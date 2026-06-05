@@ -39,3 +39,6 @@ def init_db():
     cur.close()
     conn.close()
     print("[DB] PostgreSQL connected ✅")
+
+
+    
