@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel – CareerMyntra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f4ff; min-height: 100vh; color: #0d1b3e; }
+
+    .navbar {
+      background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 32px;
+      height: 64px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    }
+    .nav-left img { height: 42px; object-fit: contain; }
+    .nav-right { display: flex; align-items: center; gap: 14px; }
+    .nav-link { font-size: 13px; font-weight: 600; color: #374151; text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; }
+    .nav-link:hover { background: #f0f4ff; color: #1565c0; }
+    .user-chip { display: flex; align-items: center; gap: 8px; background: #f0f4ff; border: 1px solid #dbeafe; border-radius: 24px; padding: 5px 14px 5px 6px; }
+    .user-avatar { width: 30px; height: 30px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+    .user-chip span { font-size: 13px; font-weight: 700; color: #1565c0; }
+    .btn-logout { padding: 7px 16px; background: #fff; border: 1.5px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 700; color: #ef4444; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .btn-logout:hover { background: #fef2f2; }
+
+    .page-header {
+      background: linear-gradient(135deg, #1565c0 0%, #0d47a1 60%, #0a2f7a 100%);
+      padding: 36px 32px; position: relative; overflow: hidden;
+    }
+    .page-header::before { content: ''; position: absolute; width: 350px; height: 350px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -120px; right: -80px; }
+    .page-header h1 { font-size: 26px; font-weight: 800; color: #fff; letter-spacing: -0.5px; margin-bottom: 6px; position: relative; z-index: 2; }
+    .page-header p { font-size: 14px; color: rgba(255,255,255,0.7); position: relative; z-index: 2; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 20px 22px; display: flex; align-items: center; gap: 16px; transition: transform 0.2s, box-shadow 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.07); }
+    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .stat-num { font-size: 26px; font-weight: 800; color: #0d1b3e; }
+    .stat-label { font-size: 12px; color: #6b7280; font-weight: 600; margin-top: 2px; }
+
+    .section-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 26px; margin-bottom: 24px; }
+    .section-card h3 { font-size: 16px; font-weight: 800; color: #0d1b3e; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
+    .form-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 16px; }
+    .form-grid-2 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 700; color: #374151; }
+    .form-group input, .form-group select { padding: 10px 13px; border: 1.5px solid #e5e7eb; border-radius: 9px; font-size: 14px; font-family: inherit; color: #0d1b3e; background: #f9fafb; outline: none; transition: all 0.2s; }
+    .form-group input:focus, .form-group select:focus { border-color: #1565c0; background: #fff; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
+
+    /* EMOJI PICKER */
+    .icon-input-wrap { position: relative; }
+    .icon-preview { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; pointer-events: none; }
+    .icon-input-wrap input { padding-left: 38px !important; cursor: pointer; }
+    .emoji-picker {
+      display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 200;
+      background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px;
+      padding: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      width: 320px;
+    }
+    .emoji-picker.open { display: block; }
+    .emoji-search { width: 100%; padding: 8px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-family: inherit; font-size: 13px; margin-bottom: 10px; outline: none; }
+    .emoji-search:focus { border-color: #1565c0; }
+    .emoji-categories { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+    .emoji-cat-btn { padding: 4px 10px; border-radius: 20px; border: 1.5px solid #e5e7eb; background: #f9fafb; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #374151; }
+    .emoji-cat-btn.active { background: #1565c0; color: #fff; border-color: #1565c0; }
+    .emoji-grid { display: grid; grid-template-columns: repeat(8,1fr); gap: 4px; max-height: 180px; overflow-y: auto; }
+    .emoji-btn { width: 34px; height: 34px; border: none; background: none; font-size: 20px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .emoji-btn:hover { background: #f0f4ff; }
+
+    .file-upload-box { border: 2px dashed #c7d7f5; border-radius: 10px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafbff; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80px; }
+    .file-upload-box:hover { border-color: #1565c0; background: #eff4ff; }
+    .file-upload-box input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .file-upload-box .up-icon { font-size: 22px; margin-bottom: 4px; }
+    .file-upload-box p { margin: 0; font-size: 13px; font-weight: 600; color: #0d1b3e; }
+    .file-upload-box span { font-size: 12px; color: #9ca3af; margin-top: 3px; }
+    .file-upload-box.active { border-color: #16a34a; background: #f0fdf4; }
+    .file-name-display { font-size: 12px; color: #16a34a; font-weight: 600; margin-top: 4px; }
+
+    .btn-add { width: 100%; padding: 13px 20px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; letter-spacing: 0.3px; box-shadow: 0 4px 15px rgba(21,101,192,0.25); }
+    .btn-add:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(21,101,192,0.35); }
+    .btn-add:active { transform: scale(0.98); }
+    .btn-add:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* SEARCH BAR */
+    .table-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .search-wrap { position: relative; flex: 1; max-width: 360px; }
+    .search-wrap input { width: 100%; padding: 10px 14px 10px 38px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; color: #0d1b3e; background: #f9fafb; outline: none; transition: all 0.2s; }
+    .search-wrap input:focus { border-color: #1565c0; background: #fff; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; pointer-events: none; }
+    .filter-select { padding: 10px 13px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 13px; font-family: inherit; color: #374151; background: #f9fafb; outline: none; cursor: pointer; }
+    .filter-select:focus { border-color: #1565c0; }
+    .results-count { font-size: 13px; color: #6b7280; font-weight: 600; margin-left: auto; }
+
+    .table-wrap { overflow-x: auto; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .admin-table thead { background: #f3f4f6; border-bottom: 2px solid #e5e7eb; }
+    .admin-table th { padding: 12px 16px; text-align: left; font-weight: 700; color: #374151; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .admin-table td { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; color: #0d1b3e; }
+    .admin-table tbody tr:hover { background: #f9fafb; }
+    .admin-table tbody tr.hidden { display: none; }
+    .course-cell { display: flex; align-items: center; gap: 10px; }
+    .course-cell-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .exam-badge { background: #dbeafe; color: #1565c0; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .file-chip { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #f3f4f6; color: #374151; }
+    .file-chip.py { background: #fef3c7; color: #92400e; }
+    .file-chip.pdf { background: #fecaca; color: #7f1d1d; }
+    .file-chip.xl { background: #c7d2fe; color: #312e81; }
+    .status-dot { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: #0d1b3e; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot.green { background: #16a34a; }
+    .tbl-btn { padding: 5px 12px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1.5px solid #e5e7eb; background: #fff; font-family: inherit; transition: all 0.2s; margin-right: 4px; }
+    .tbl-btn.edit:hover { background: #eff6ff; border-color: #1565c0; color: #1565c0; }
+    .tbl-btn.del:hover { background: #fef2f2; border-color: #ef4444; color: #ef4444; }
+
+    .no-results { text-align: center; padding: 32px; color: #9ca3af; font-size: 14px; font-weight: 600; display: none; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #0d47a1; color: #fff; padding: 13px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.15); transform: translateY(80px); opacity: 0; transition: all 0.35s; z-index: 999; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { background: #dc2626; }
+    .toast.success { background: #16a34a; }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 900px) {
+      .stat-row { grid-template-columns: repeat(2,1fr); }
+      .form-grid, .form-grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .stat-row { grid-template-columns: 1fr 1fr; }
+      .form-grid, .form-grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-left"><img src="images/logo.jpeg" alt="CareerMyntra"/></div>
+    <div class="nav-right">
+      <a href="index.html" class="nav-link">← Dashboard</a>
+      <div class="user-chip">
+        <div class="user-avatar">A</div>
+        <span>Anuradha</span>
+      </div>
+      <a href="login.html" class="btn-logout">Logout</a>
+    </div>
+  </nav>
+
+  <div class="page-header">
+    <h1>⚙️ Admin Panel</h1>
+    <p>Manage courses, upload Python scripts and sample files</p>
+  </div>
+
+  <div class="container">
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#eff6ff;">🎓</div>
+        <div><div class="stat-num" id="stat-courses">0</div><div class="stat-label">Total Courses</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#f0fdf4;">📊</div>
+        <div><div class="stat-num">48</div><div class="stat-label">Files Processed</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fef9c3;">👥</div>
+        <div><div class="stat-num">3</div><div class="stat-label">Admin Users</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fce7f3;">⚡</div>
+        <div><div class="stat-num">100%</div><div class="stat-label">System Uptime</div></div>
+      </div>
+    </div>
+
+    <!-- ADD COURSE -->
+    <div class="section-card">
+      <h3>➕ Add New Course</h3>
+      <form id="add-course-form" onsubmit="addCourse(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Course Name</label>
+            <input type="text" id="course-name" placeholder="e.g. D.Pharm" required/>
+          </div>
+          <div class="form-group">
+            <label>Exam / CET Name</label>
+            <input type="text" id="course-exam" placeholder="e.g. MHT-CET GPAT" required/>
+          </div>
+          <div class="form-group">
+            <label>Course Icon</label>
+            <div class="icon-input-wrap" id="icon-wrap">
+              <span class="icon-preview" id="icon-preview">📁</span>
+              <input type="text" id="course-icon" placeholder="Click to pick icon" readonly value="📁" required/>
+              <!-- Emoji Picker Dropdown -->
+              <div class="emoji-picker" id="emoji-picker">
+                <input type="text" class="emoji-search" id="emoji-search" placeholder="🔍 Search emoji..."/>
+                <div class="emoji-categories" id="emoji-cats"></div>
+                <div class="emoji-grid" id="emoji-grid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Upload Python Script (.py)</label>
+            <div class="file-upload-box" id="py-upload-box">
+              <input type="file" id="course-script" accept=".py" required/>
+              <div class="up-icon">🐍</div>
+              <p>Click to upload .py script</p>
+              <span>e.g. dpharm.py</span>
+              <div class="file-name-display" id="py-file-name"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Sample Input File</label>
+            <div class="file-upload-box" id="input-upload-box">
+              <input type="file" id="course-input" accept=".pdf,.xls,.xlsx" required/>
+              <div class="up-icon">📄</div>
+              <p>Click to upload sample input</p>
+              <span>PDF / XLS / XLSX</span>
+              <div class="file-name-display" id="input-file-name"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Sample Output File</label>
+            <div class="file-upload-box" id="output-upload-box">
+              <input type="file" id="course-output" accept=".xlsx" required/>
+              <div class="up-icon">📊</div>
+              <p>Click to upload sample output</p>
+              <span>XLSX only</span>
+              <div class="file-name-display" id="output-file-name"></div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-add" id="submit-btn">➕ Add Course</button>
+      </form>
+    </div>
+
+    <!-- COURSES TABLE -->
+    <div class="section-card">
+      <h3>📋 All Courses</h3>
+      <div class="table-toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Search course or exam..."/>
+        </div>
+        <select class="filter-select" id="filter-select">
+          <option value="">All Courses</option>
+        </select>
+        <span class="results-count" id="results-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Course</th>
+              <th>Exam</th>
+              <th>Python Script</th>
+              <th>Sample Input</th>
+              <th>Sample Output</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="courses-tbody"></tbody>
+        </table>
+        <div class="no-results" id="no-results">😕 No courses found matching your search.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  const BACKEND = "http://127.0.0.1:5000";
+  const courses = [];
+
+  // ─── EMOJI DATA ───────────────────────────────────────────
+  const EMOJI_CATEGORIES = {
+    "🎓 Education": ["🎓","📚","📖","📝","✏️","🖊️","📐","📏","🔬","🔭","💡","🏫","📋","📊","📈","📉","🗂️","📌","📍","🗒️"],
+    "💊 Medical":   ["💊","🩺","🧬","🩻","🩹","💉","🧪","🏥","❤️","🫀","🧠","👨‍⚕️","👩‍⚕️","🩸","🦷","👁️"],
+    "⚙️ Tech":      ["⚙️","💻","🖥️","📱","🖨️","⌨️","🖱️","💾","💿","📡","🔧","🔩","⚡","🤖","🛠️","📲"],
+    "🏛️ Law":       ["⚖️","🏛️","📜","🔏","🗝️","👨‍⚖️","👩‍⚖️","📋","🖋️","🤝","🏢","📰"],
+    "🌾 Nature":    ["🌾","🌿","🍃","🌱","🌲","🌳","🐟","🐄","🐓","🌊","☀️","🌍","🦋","🐝","🌻"],
+    "🏨 Others":    ["🏨","🏠","🎨","🎭","🎬","✈️","🚀","⭐","🎯","🏆","💰","🎪","🎠","🌈","🎊"],
+  };
+
+  let currentCategory = Object.keys(EMOJI_CATEGORIES)[0];
+  let searchTimeout;
+
+  function buildEmojiPicker() {
+    const catsEl = document.getElementById('emoji-cats');
+    const gridEl = document.getElementById('emoji-grid');
+
+    // Build category buttons
+    Object.keys(EMOJI_CATEGORIES).forEach(cat => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'emoji-cat-btn' + (cat === currentCategory ? ' active' : '');
+      btn.textContent = cat.split(' ')[0]; // just emoji
+      btn.title = cat;
+      btn.onclick = () => {
+        currentCategory = cat;
+        document.querySelectorAll('.emoji-cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('emoji-search').value = '';
+        renderEmojiGrid(EMOJI_CATEGORIES[cat]);
+      };
+      catsEl.appendChild(btn);
+    });
+
+    renderEmojiGrid(EMOJI_CATEGORIES[currentCategory]);
+  }
+
+  function renderEmojiGrid(emojis) {
+    const gridEl = document.getElementById('emoji-grid');
+    gridEl.innerHTML = emojis.map(e => `
+      <button type="button" class="emoji-btn" onclick="selectEmoji('${e}')">${e}</button>
+    `).join('');
+  }
+
+  function selectEmoji(emoji) {
+    document.getElementById('course-icon').value = emoji;
+    document.getElementById('icon-preview').textContent = emoji;
+    document.getElementById('emoji-picker').classList.remove('open');
+  }
+
+  // Toggle picker on input click
+  document.addEventListener('DOMContentLoaded', () => {
+    buildEmojiPicker();
+
+    document.getElementById('course-icon').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('emoji-picker').classList.toggle('open');
+    });
+
+    // Search
+    document.getElementById('emoji-search').addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        const q = this.value.toLowerCase().trim();
+        if (!q) {
+          renderEmojiGrid(EMOJI_CATEGORIES[currentCategory]);
+          return;
+        }
+        // Search across all categories
+        const all = Object.values(EMOJI_CATEGORIES).flat();
+        // Simple filter — show all (emoji search by keyword not possible without DB, show all)
+        renderEmojiGrid(all);
+      }, 200);
+    });
+
+    // Close picker on outside click
+    document.addEventListener('click', (e) => {
+      if (!document.getElementById('icon-wrap').contains(e.target)) {
+        document.getElementById('emoji-picker').classList.remove('open');
+      }
+    });
+  });
+
+  // ─── FILE UPLOAD LISTENERS ────────────────────────────────
+  document.getElementById('course-script').addEventListener('change', function(e) {
+    const name = e.target.files[0]?.name || '';
+    document.getElementById('py-file-name').textContent = name ? '✅ ' + name : '';
+    document.getElementById('py-upload-box').classList.toggle('active', !!name);
+  });
+  document.getElementById('course-input').addEventListener('change', function(e) {
+    const name = e.target.files[0]?.name || '';
+    document.getElementById('input-file-name').textContent = name ? '✅ ' + name : '';
+    document.getElementById('input-upload-box').classList.toggle('active', !!name);
+  });
+  document.getElementById('course-output').addEventListener('change', function(e) {
+    const name = e.target.files[0]?.name || '';
+    document.getElementById('output-file-name').textContent = name ? '✅ ' + name : '';
+    document.getElementById('output-upload-box').classList.toggle('active', !!name);
+  });
+
+  // ─── SEARCH & FILTER ─────────────────────────────────────
+  function applySearchFilter() {
+    const q = document.getElementById('search-input').value.toLowerCase().trim();
+    const f = document.getElementById('filter-select').value.toLowerCase();
+    const rows = document.querySelectorAll('#courses-tbody tr');
+    let visible = 0;
+
+    rows.forEach(row => {
+      const name = row.dataset.name || '';
+      const exam = row.dataset.exam || '';
+      const matchSearch = !q || name.includes(q) || exam.includes(q);
+      const matchFilter = !f || name.includes(f);
+      if (matchSearch && matchFilter) {
+        row.classList.remove('hidden');
+        visible++;
+      } else {
+        row.classList.add('hidden');
+      }
+    });
+
+    document.getElementById('results-count').textContent = `Showing ${visible} of ${courses.length}`;
+    document.getElementById('no-results').style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  document.getElementById('search-input').addEventListener('input', applySearchFilter);
+  document.getElementById('filter-select').addEventListener('change', applySearchFilter);
+
+  // ─── RENDER TABLE ─────────────────────────────────────────
+  function hexToRgba(hex, a) {
+    try {
+      const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+      return `rgba(${r},${g},${b},${a})`;
+    } catch(e) { return `rgba(21,101,192,${a})`; }
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('courses-tbody');
+    tbody.innerHTML = courses.map((c,i) => `
+      <tr data-name="${(c.name||'').toLowerCase()}" data-exam="${(c.exam||'').toLowerCase()}">
+        <td style="color:#9ca3af;font-weight:700;">${i+1}</td>
+        <td>
+          <div class="course-cell">
+            <div class="course-cell-icon" style="background:${hexToRgba('#1565c0',0.12)}">${c.icon||'📁'}</div>
+            <span style="font-weight:700;">${c.name}</span>
+          </div>
+        </td>
+        <td><span class="exam-badge">${c.exam}</span></td>
+        <td><span class="file-chip py">🐍 ${c.script||c.name.toLowerCase().replace(/[\s&]/g,'_')+'.py'}</span></td>
+        <td><span class="file-chip pdf">📄 ${c.sample_input||'sample_input.pdf'}</span></td>
+        <td><span class="file-chip xl">📊 ${c.sample_output||'sample_output.xlsx'}</span></td>
+        <td><span class="status-dot"><span class="dot green"></span>Active</span></td>
+        <td>
+          <button class="tbl-btn edit" onclick="showToast('✏️ Editing ${c.name}')">✏️ Edit</button>
+          <button class="tbl-btn del" onclick="deleteCourse(${i},'${c.name}')">🗑️ Delete</button>
+        </td>
+      </tr>
+    `).join('');
+    document.getElementById('stat-courses').textContent = courses.length;
+    document.getElementById('results-count').textContent = `Showing ${courses.length} of ${courses.length}`;
+
+    // Update filter dropdown
+    const sel = document.getElementById('filter-select');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">All Courses</option>' +
+      courses.map(c => `<option value="${c.name.toLowerCase()}">${c.name}</option>`).join('');
+    sel.value = prev;
+
+    applySearchFilter();
+  }
+
+  // ─── LOAD COURSES ─────────────────────────────────────────
+  async function loadCourses() {
+    try {
+      const res = await fetch(`${BACKEND}/api/courses`);
+      const data = await res.json();
+      if (data.success) {
+        courses.length = 0;
+        data.courses.forEach(c => courses.push(c));
+        renderTable();
+      }
+    } catch(e) { renderTable(); }
+  }
+
+  // ─── ADD COURSE ───────────────────────────────────────────
+  async function addCourse(e) {
+    e.preventDefault();
+    const name = document.getElementById('course-name').value.trim();
+    const exam = document.getElementById('course-exam').value.trim();
+    const icon = document.getElementById('course-icon').value || '📁';
+    const scriptFile = document.getElementById('course-script').files[0];
+    const inputFile  = document.getElementById('course-input').files[0];
+    const outputFile = document.getElementById('course-output').files[0];
+
+    if (!name||!exam||!scriptFile||!inputFile||!outputFile) {
+      showToast('❌ All fields required!','error'); return;
+    }
+
+    const formData = new FormData();
+    formData.append('course_name', name);
+    formData.append('course_exam', exam);
+    formData.append('course_icon', icon);
+    formData.append('script_file', scriptFile);
+    formData.append('input_file',  inputFile);
+    formData.append('output_file', outputFile);
+
+    const btn = document.getElementById('submit-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span> Adding...';
+    btn.disabled = true;
+
+    try {
+      const response = await fetch(`${BACKEND}/api/courses/new`, {method:'POST', body:formData});
+      const data = await response.json();
+      if (data.success) {
+        courses.push(data.course);
+        renderTable();
+        document.getElementById('add-course-form').reset();
+        document.getElementById('icon-preview').textContent = '📁';
+        document.getElementById('py-file-name').textContent = '';
+        document.getElementById('input-file-name').textContent = '';
+        document.getElementById('output-file-name').textContent = '';
+        document.getElementById('py-upload-box').classList.remove('active');
+        document.getElementById('input-upload-box').classList.remove('active');
+        document.getElementById('output-upload-box').classList.remove('active');
+        showToast(`✅ Course "${name}" added!`,'success');
+      } else {
+        showToast(`❌ ${data.error||'Failed'}`, 'error');
+      }
+    } catch(err) {
+      showToast(`❌ Network error: ${err.message}`,'error');
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  // ─── DELETE COURSE ────────────────────────────────────────
+  async function deleteCourse(idx, name) {
+    if (!confirm(`Delete "${name}"?`)) return;
+    const course = courses[idx];
+    if (course.id) {
+      try {
+        const res = await fetch(`${BACKEND}/api/courses/${course.id}`, {method:'DELETE'});
+        const data = await res.json();
+        if (!data.success) { showToast(`❌ ${data.error}`,'error'); return; }
+      } catch(err) { showToast(`❌ Network error`,'error'); return; }
+    }
+    courses.splice(idx,1);
+    renderTable();
+    showToast('🗑️ Course deleted!');
+  }
+
+  function showToast(msg, type='info') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  loadCourses();
+  </script>
+</body>
+</html>

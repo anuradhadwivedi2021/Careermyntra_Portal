@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register – CareerMyntra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      background: #f0f4ff;
+    }
+
+    /* ===== LEFT PANEL ===== */
+    .left {
+      flex: 1;
+      background: linear-gradient(145deg, #1565c0 0%, #0d47a1 50%, #0a2f7a 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px 48px;
+      position: relative;
+      overflow: hidden;
+      min-height: 100vh;
+    }
+
+    .left::before {
+      content: '';
+      position: absolute;
+      width: 420px; height: 420px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      top: -100px; right: -100px;
+    }
+    .left::after {
+      content: '';
+      position: absolute;
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      bottom: -60px; left: -60px;
+    }
+
+    .left-top { position: relative; z-index: 2; }
+
+    .logo-wrap img {
+      height: 56px;
+      object-fit: contain;
+      filter: brightness(0) invert(1);
+      margin-bottom: 48px;
+    }
+
+    .left h1 {
+      font-size: 36px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2;
+      letter-spacing: -0.8px;
+      margin-bottom: 16px;
+    }
+
+    .left h1 span { color: #69f0ae; }
+
+    .left p {
+      font-size: 15px;
+      color: rgba(255,255,255,0.72);
+      line-height: 1.7;
+      max-width: 360px;
+      margin-bottom: 48px;
+    }
+
+    .features { display: flex; flex-direction: column; gap: 16px; position: relative; z-index: 2; }
+
+    .feat {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+
+    .feat-icon {
+      width: 40px; height: 40px;
+      background: rgba(105,240,174,0.15);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .feat-text strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .feat-text span { font-size: 12px; color: rgba(255,255,255,0.6); }
+
+    .left-bottom {
+      position: relative; z-index: 2;
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    /* ===== RIGHT PANEL ===== */
+    .right {
+      flex: 0 0 500px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 40px;
+      min-height: 100vh;
+      overflow-y: auto;
+    }
+
+    .form-box { width: 100%; max-width: 400px; }
+
+    .form-box h2 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0d1b3e;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+
+    .form-box .subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 28px;
+    }
+
+    .form-row-half {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-group { margin-bottom: 18px; }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 7px;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrap .ico {
+      position: absolute;
+      left: 14px;
+      font-size: 15px;
+      pointer-events: none;
+    }
+
+    .input-wrap input,
+    .input-wrap select {
+      width: 100%;
+      padding: 11px 14px 11px 40px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #0d1b3e;
+      background: #f9fafb;
+      outline: none;
+      transition: all 0.2s;
+      appearance: none;
+    }
+
+    .input-wrap input:focus,
+    .input-wrap select:focus {
+      border-color: #1565c0;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(21,101,192,0.1);
+    }
+
+    .eye {
+      position: absolute;
+      right: 14px;
+      cursor: pointer;
+      font-size: 15px;
+      user-select: none;
+    }
+
+    /* Password strength */
+    .strength-wrap { margin-top: 6px; }
+    .strength-bar {
+      height: 4px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 4px;
+      transition: width 0.3s, background 0.3s;
+    }
+    .strength-label {
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 3px;
+      display: block;
+    }
+
+    .check-label {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 13px; color: #374151; cursor: pointer;
+    }
+    .check-label input[type=checkbox] { width: 15px; height: 15px; accent-color: #1565c0; }
+    .check-label a { color: #1565c0; font-weight: 700; text-decoration: none; }
+
+    .btn-register {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #1565c0, #0d47a1);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 4px;
+      margin-bottom: 16px;
+      letter-spacing: 0.3px;
+    }
+    .btn-register:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(21,101,192,0.35); }
+    .btn-register:active { transform: scale(0.98); }
+    .btn-register:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      color: #9ca3af; font-size: 12px;
+      margin-bottom: 16px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: #e5e7eb;
+    }
+
+    .btn-google {
+      width: 100%;
+      padding: 11px;
+      background: #fff;
+      color: #374151;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: all 0.2s;
+    }
+    .btn-google:hover { border-color: #1565c0; background: #f0f4ff; }
+
+    .switch {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .switch a { color: #1565c0; font-weight: 700; text-decoration: none; }
+    .switch a:hover { text-decoration: underline; }
+
+    @media (max-width: 860px) {
+      body { flex-direction: column; }
+      .left { min-height: auto; padding: 32px 24px; }
+      .left h1 { font-size: 26px; }
+      .features { display: none; }
+      .right { flex: 1; min-height: auto; padding: 32px 24px; }
+      .form-row-half { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LEFT -->
+  <div class="left">
+    <div class="left-top">
+      <div class="logo-wrap">
+        
+      </div>
+      <h1>Start Processing<br/><span>Admission Data</span><br/>Today</h1>
+      <p>Create your free account and get instant access to Maharashtra's CAP round data processing tools.</p>
+
+      <div class="features">
+        <div class="feat">
+          <div class="feat-icon">🆓</div>
+          <div class="feat-text">
+            <strong>Free to Register</strong>
+            <span>No credit card required</span>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🔐</div>
+          <div class="feat-text">
+            <strong>Secure Data Processing</strong>
+            <span>Your files are safe with us</span>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">📥</div>
+          <div class="feat-text">
+            <strong>Instant Excel Downloads</strong>
+            <span>Ready output in seconds</span>
+          </div>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">⚙️</div>
+          <div class="feat-text">
+            <strong>Admin Panel Access</strong>
+            <span>Manage courses & scripts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="left-bottom">© 2025 CareerMyntra. All rights reserved.</div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="form-box">
+      <h2>Create Account ✨</h2>
+      <p class="subtitle">Join CareerMyntra — it's completely free</p>
+
+      <form onsubmit="handleRegister(event)">
+
+        <div class="form-row-half">
+          <div class="form-group">
+            <label>First Name</label>
+            <div class="input-wrap">
+              <span class="ico">👤</span>
+              <input type="text" placeholder="Anuradha" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <div class="input-wrap">
+              <span class="ico">👤</span>
+              <input type="text" placeholder="Sharma" required />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <span class="ico">✉️</span>
+            <input type="email" placeholder="you@example.com" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Phone Number</label>
+          <div class="input-wrap">
+            <span class="ico">📱</span>
+            <input type="tel" placeholder="+91 98765 43210" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <span class="ico">🔒</span>
+            <input type="password" id="reg-password" placeholder="Min 8 characters" required minlength="8" />
+            <span class="eye" onclick="togglePwd('reg-password', this)">👁️</span>
+          </div>
+          <div class="strength-wrap">
+            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+            <span class="strength-label" id="strength-label"></span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Account Role</label>
+          <div class="input-wrap">
+            <span class="ico">🎯</span>
+            <select required>
+              <option value="" disabled selected>Select your role</option>
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="check-label">
+            <input type="checkbox" required />
+            I agree to the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-register" id="reg-btn">
+          <span id="reg-text">Create Account →</span>
+        </button>
+      </form>
+
+      <div class="divider"><span>or sign up with</span></div>
+
+      <button class="btn-google" onclick="googleRedirectLogin()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="G" />
+        Sign up with Google
+      </button>
+
+      <p class="switch">
+        Already have an account? <a href="login.html">Log in here</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function googleRedirectLogin() {
+      const clientId = '461124697477-drvajmfg4a3onc9aqc4f9ikj0bl4ectm.apps.googleusercontent.com';
+      const redirectUri = encodeURIComponent('http://127.0.0.1:5000/api/auth/google/callback');
+      const scope = encodeURIComponent('openid email profile');
+      const url = 'https://accounts.google.com/o/oauth2/v2/auth' +
+        '?client_id=' + clientId +
+        '&redirect_uri=' + redirectUri +
+        '&response_type=code' +
+        '&scope=' + scope +
+        '&access_type=offline';
+      window.location.href = url;
+    }
+
+    function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('reg-btn');
+      const text = document.getElementById('reg-text');
+      btn.disabled = true;
+      text.textContent = 'Creating account...';
+      setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+    }
+
+    function togglePwd(id, el) {
+      const input = document.getElementById(id);
+      input.type = input.type === 'password' ? 'text' : 'password';
+      el.textContent = input.type === 'password' ? '👁️' : '🙈';
+    }
+
+    document.getElementById('reg-password').addEventListener('input', function() {
+      const val = this.value;
+      const fill = document.getElementById('strength-fill');
+      const label = document.getElementById('strength-label');
+      let strength = 0;
+      if (val.length >= 8) strength++;
+      if (/[A-Z]/.test(val)) strength++;
+      if (/[0-9]/.test(val)) strength++;
+      if (/[^A-Za-z0-9]/.test(val)) strength++;
+      const colors = ['', '#ef4444', '#f97316', '#eab308', '#16a34a'];
+      const labels = ['', '😟 Weak', '😐 Fair', '🙂 Good', '💪 Strong'];
+      fill.style.width = (strength * 25) + '%';
+      fill.style.background = colors[strength];
+      label.textContent = val.length > 0 ? labels[strength] : '';
+      label.style.color = colors[strength];
+    });
+  </script>
+</body>
+</html>
