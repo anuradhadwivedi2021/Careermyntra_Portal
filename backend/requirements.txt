@@ -1,4 +1,6 @@
 flask
+pandas
+openpyxl
 flask-cors
 psycopg2-binary
 python-dotenv
