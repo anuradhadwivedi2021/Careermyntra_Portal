@@ -11,8 +11,11 @@ auth_bp = Blueprint('auth', __name__)
 
 GOOGLE_CLIENT_ID     = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-REDIRECT_URI         = "http://127.0.0.1:5000/api/auth/google/callback"
-FRONTEND_URL         = "http://127.0.0.1:5501/frontend"
+
+# routes/auth.py mein ye 2 lines change karo:
+
+REDIRECT_URI = os.getenv("REDIRECT_URI", "https://careermyntra-portal-6.onrender.com/api/auth/google/callback")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://careermyntra-portal-4.onrender.com")
 
 @auth_bp.route("/auth/google/callback", methods=["GET"])
 def google_callback():
