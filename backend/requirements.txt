@@ -4,7 +4,6 @@ openpyxl
 flask-cors
 psycopg2-binary
 python-dotenv
-openpyxl
 pdfplumber
 requests
 gunicorn
