@@ -137,18 +137,17 @@
   </style>
 </head>
 <body>
-
-  <nav class="navbar">
-    <div class="nav-left"><img src="images/logo.jpeg" alt="CareerMyntra"/></div>
-    <div class="nav-right">
-      <a href="index.html" class="nav-link">← Dashboard</a>
-      <div class="user-chip">
-       <div class="user-avatar">U</div>
-<span>User</span>
-      </div>
-      <a href="index.html" ...>  <!-- landing pe jaaye -->
+<nav class="navbar">
+  <div class="nav-left"><img src="images/logo.jpeg" alt="CareerMyntra"/></div>
+  <div class="nav-right">
+    <a href="dashboard.html" class="nav-link">← Dashboard</a>
+    <div class="user-chip">
+      <div class="user-avatar" id="admin-avatar">U</div>
+      <span id="admin-name">User</span>
     </div>
-  </nav>
+    <a href="index.html" class="btn-logout">Logout</a>
+  </div>
+</nav>
 
   <div class="page-header">
     <h1>⚙️ Admin Panel</h1>
@@ -540,6 +539,18 @@
   }
 
   loadCourses();
+
+
+
+  // Dynamic user name
+  const n = sessionStorage.getItem('user_name') || 'User';
+  document.getElementById('admin-avatar').textContent = n.charAt(0).toUpperCase();
+  document.getElementById('admin-name').textContent = n.split(' ')[0];
+
+  </script>
+
+
+
   </script>
 </body>
 </html>

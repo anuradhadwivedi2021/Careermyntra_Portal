@@ -1,5 +1,3 @@
-# routes/courses.py — PostgreSQL version
-
 from flask import Blueprint, jsonify, request, current_app
 import os
 from db import get_connection, get_cursor
@@ -21,13 +19,11 @@ def get_courses():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# ✅ /courses/new — renamed from /courses/add to avoid Flask routing conflict
 @courses_bp.route("/courses/new", methods=["GET", "POST"])
 def add_course():
     if request.method == "GET":
         return jsonify({"success": True, "message": "✅ /api/courses/new route is working!"})
 
-    print("\n" + "="*60)
     course_name = request.form.get("course_name", "").strip()
     course_exam = request.form.get("course_exam", "").strip()
     course_icon = request.form.get("course_icon", "📁").strip()
@@ -47,37 +43,39 @@ def add_course():
         return jsonify({"success": False, "error": "Sample output (.xlsx) required"}), 400
 
     try:
-        scripts_dir = current_app.config["SCRIPTS_DIR"]
-        samples_dir = os.path.join(current_app.config["UPLOAD_DIR"], "samples")
-        os.makedirs(scripts_dir, exist_ok=True)
-        os.makedirs(samples_dir, exist_ok=True)
+        safe_name      = course_name.lower().replace(" ", "_").replace("&", "and")
+        script_name    = safe_name + ".py"
+        input_ext      = os.path.splitext(input_file.filename)[1]
+        input_name     = safe_name + "_sample_input" + input_ext
+        output_name    = safe_name + "_sample_output.xlsx"
 
-        safe_name   = course_name.lower().replace(" ", "_").replace("&", "and")
-        script_name = safe_name + ".py"
-        input_ext   = os.path.splitext(input_file.filename)[1]
-        input_name  = safe_name + "_sample_input" + input_ext
-        output_name = safe_name + "_sample_output.xlsx"
-
-        script_file.save(os.path.join(scripts_dir, script_name))
-        input_file.save(os.path.join(samples_dir, input_name))
-        output_file.save(os.path.join(samples_dir, output_name))
+        # ── Script content DB mein save karo (Render filesystem ke liye) ──
+        script_content = script_file.read().decode("utf-8")
 
         conn = get_connection()
         cur  = conn.cursor()
         cur.execute(
-            "INSERT INTO courses (name, exam, icon, script, sample_input, sample_output) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id;",
-            (course_name, course_exam, course_icon, script_name, input_name, output_name)
+            """INSERT INTO courses
+               (name, exam, icon, script, script_content, sample_input, sample_output)
+               VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;""",
+            (course_name, course_exam, course_icon, script_name,
+             script_content, input_name, output_name)
         )
         new_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
         conn.close()
 
-        print(f"[SUCCESS] Course added — ID: {new_id}")
-        return jsonify({"success": True, "message": f'Course "{course_name}" added!',
-            "course": {"id": new_id, "name": course_name, "exam": course_exam,
-                       "icon": course_icon, "script": script_name,
-                       "sample_input": input_name, "sample_output": output_name}}), 201
+        print(f"[SUCCESS] Course added — ID: {new_id}, script saved to DB ✅")
+        return jsonify({
+            "success": True,
+            "message": f'Course "{course_name}" added!',
+            "course": {
+                "id": new_id, "name": course_name, "exam": course_exam,
+                "icon": course_icon, "script": script_name,
+                "sample_input": input_name, "sample_output": output_name
+            }
+        }), 201
 
     except Exception as e:
         print(f"[ERROR] {e}")
