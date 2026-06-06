@@ -39,6 +39,26 @@ def init_db():
     cur.execute("""
         ALTER TABLE courses ADD COLUMN IF NOT EXISTS script_content TEXT;
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS college_master (
+            id              SERIAL PRIMARY KEY,
+            college_code    VARCHAR(20) NOT NULL UNIQUE,
+            college_name    VARCHAR(300) NOT NULL,
+            district        VARCHAR(100),
+            city            VARCHAR(100),
+            university      VARCHAR(300),
+            college_type    VARCHAR(100),
+            management      VARCHAR(100),
+            minority_status VARCHAR(100),
+            autonomy_status VARCHAR(100),
+            website         VARCHAR(300),
+            phone           VARCHAR(50),
+            address         TEXT,
+            state           VARCHAR(100) DEFAULT 'Maharashtra',
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
     conn.commit()
     cur.close()
     conn.close()
