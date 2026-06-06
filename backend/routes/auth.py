@@ -49,6 +49,4 @@ def google_callback():
     email   = requests.utils.quote(user.get("email", ""))
     picture = requests.utils.quote(user.get("picture", ""))
 
-    return redirect(
-        f"{FRONTEND_URL}/index.html?name={name}&email={email}&picture={picture}"
-    )
+    return redirect(f"{FRONTEND_URL}/dashboard.html?name={name}&email={email}&picture={picture}")

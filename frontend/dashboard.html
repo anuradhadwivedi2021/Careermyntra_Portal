@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard – CareerMyntra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f4ff; min-height: 100vh; color: #0d1b3e; }
+    .navbar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+    .nav-left img { height: 42px; object-fit: contain; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-link { font-size: 13px; font-weight: 600; color: #374151; text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; }
+    .nav-link:hover { background: #f0f4ff; color: #1565c0; }
+    .user-chip { display: flex; align-items: center; gap: 8px; background: #f0f4ff; border: 1px solid #dbeafe; border-radius: 24px; padding: 5px 14px 5px 6px; cursor: pointer; }
+    .user-avatar { width: 30px; height: 30px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+    .user-chip span { font-size: 13px; font-weight: 700; color: #1565c0; }
+    .btn-logout { padding: 7px 16px; background: #fff; border: 1.5px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 700; color: #ef4444; cursor: pointer; text-decoration: none; transition: all 0.2s; font-family: inherit; }
+    .btn-logout:hover { background: #fef2f2; }
+    .hero { background: linear-gradient(135deg, #1565c0 0%, #0d47a1 60%, #0a2f7a 100%); padding: 48px 32px 52px; text-align: center; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -200px; right: -100px; }
+    .hero::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); bottom: -100px; left: -80px; }
+    .hero-badge { display: inline-block; background: rgba(105,240,174,0.15); border: 1px solid rgba(105,240,174,0.3); color: #69f0ae; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; margin-bottom: 16px; letter-spacing: 0.5px; }
+    .hero h1 { font-size: 34px; font-weight: 800; color: #fff; letter-spacing: -0.8px; margin-bottom: 12px; position: relative; z-index: 2; }
+    .hero p { font-size: 15px; color: rgba(255,255,255,0.75); max-width: 520px; margin: 0 auto 28px; line-height: 1.6; position: relative; z-index: 2; }
+    .hero-stats { display: flex; justify-content: center; gap: 32px; position: relative; z-index: 2; }
+    .hero-stat { text-align: center; }
+    .hero-stat strong { display: block; font-size: 22px; font-weight: 800; color: #fff; }
+    .hero-stat span { font-size: 12px; color: rgba(255,255,255,0.6); font-weight: 500; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+    .tab-section { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .tab-row { display: flex; gap: 8px; }
+    .tab { padding: 10px 24px; border-radius: 24px; font-size: 14px; font-weight: 700; cursor: pointer; border: 2px solid #e5e7eb; background: #fff; color: #6b7280; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; gap: 7px; }
+    .tab.active { background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(21,101,192,0.3); }
+    .tab:hover:not(.active) { border-color: #1565c0; color: #1565c0; }
+    .section-label { font-size: 14px; font-weight: 600; color: #6b7280; }
+    .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+    .course-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; padding: 20px 18px 16px; cursor: pointer; transition: all 0.22s; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
+    .course-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--card-color); opacity: 0; transition: opacity 0.2s; }
+    .course-card:hover { border-color: var(--card-color); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.09); }
+    .course-card:hover::before { opacity: 1; }
+    .card-top { display: flex; align-items: center; gap: 13px; }
+    .card-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; background: var(--card-bg); }
+    .card-title { font-size: 14px; font-weight: 800; color: var(--card-color); margin-bottom: 3px; }
+    .card-sub { font-size: 11.5px; color: #9ca3af; font-weight: 500; }
+    .upload-btn { width: 100%; padding: 9px 0; background: #16a34a; color: #fff; border: none; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .upload-btn:hover { background: #15803d; box-shadow: 0 4px 12px rgba(22,163,74,0.3); transform: translateY(-1px); }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,60,0.45); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 20px; padding: 32px; width: 460px; max-width: 95vw; border: 1px solid #e5e7eb; animation: popIn 0.25s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.94) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .modal-icon { font-size: 36px; margin-bottom: 6px; }
+    .modal-header h3 { font-size: 20px; font-weight: 800; color: #0d1b3e; }
+    .modal-header p { font-size: 13px; color: #6b7280; margin-top: 3px; }
+    .close-btn { width: 32px; height: 32px; background: #f3f4f6; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; }
+    .close-btn:hover { background: #e5e7eb; }
+    .drop-zone { border: 2px dashed #c7d7f5; border-radius: 14px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; background: #fafbff; }
+    .drop-zone:hover, .drop-zone.dragover { border-color: #1565c0; background: #eff4ff; }
+    .drop-icon { font-size: 40px; margin-bottom: 10px; }
+    .drop-title { font-size: 15px; font-weight: 700; color: #374151; margin-bottom: 5px; }
+    .drop-sub { font-size: 12px; color: #9ca3af; }
+    .format-badges { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+    .fmt-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .fmt-badge.pdf { background: #fee2e2; color: #b91c1c; }
+    .fmt-badge.xls { background: #dcfce7; color: #15803d; }
+    .fmt-badge.xlsx { background: #d1fae5; color: #065f46; }
+    .file-preview { font-size: 13px; color: #16a34a; font-weight: 700; min-height: 18px; margin-bottom: 8px; padding-left: 4px; }
+    .btn-start { width: 100%; padding: 13px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; }
+    .btn-start:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(21,101,192,0.35); transform: translateY(-1px); }
+    .btn-start:disabled { opacity: 0.45; cursor: not-allowed; }
+    @media (max-width: 640px) { .hero h1 { font-size: 24px; } .hero-stats { gap: 20px; } .navbar { padding: 0 16px; } .container { padding: 20px 14px; } }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-left">
+      <img src="images/logo.jpeg" alt="CareerMyntra" />
+    </div>
+    <div class="nav-right">
+      <a href="admin.html" class="nav-link">⚙️ Admin</a>
+      <div class="user-chip">
+
+        <div class="user-avatar">U</div>
+        <span>User</span>
+
+      </div>
+      <a href="index.html" class="btn-logout">Logout</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-badge">🎓 Maharashtra CAP Round Portal</div>
+    <h1>Admission Data Processing System</h1>
+    <p>Upload CAP round PDFs & Excel files for any course. Get clean, structured Excel output in seconds.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><strong>12+</strong><span>Courses</span></div>
+      <div class="hero-stat"><strong>PDF & XLS</strong><span>Supported</span></div>
+      <div class="hero-stat"><strong>&lt; 30s</strong><span>Processing Time</span></div>
+      <div class="hero-stat"><strong>100%</strong><span>Clean Output</span></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="tab-section">
+      <div class="tab-row">
+        <button class="tab active" onclick="switchTab(this)">📋 Vacant Seats</button>
+        <button class="tab" onclick="switchTab(this)">✂️ Cut-offs</button>
+      </div>
+      <span class="section-label">Select a course to upload data</span>
+    </div>
+    <div class="course-grid" id="course-grid"></div>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="closeOutside(event)">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <div class="modal-icon" id="modal-icon">⚙️</div>
+          <h3 id="modal-title">Upload File</h3>
+          <p id="modal-sub">Select your file below</p>
+        </div>
+        <button class="close-btn" onclick="closeModal()">✕</button>
+      </div>
+
+      <div class="drop-zone" id="drop-zone"
+           onclick="document.getElementById('file-input').click()"
+           ondragover="dragOver(event)"
+           ondragleave="dragLeave(event)"
+           ondrop="dropFile(event)">
+        <div class="drop-icon">📂</div>
+        <p class="drop-title">Click to browse or drag & drop</p>
+        <p class="drop-sub">Upload your CAP round data file</p>
+        <div class="format-badges">
+          <span class="fmt-badge pdf">PDF</span>
+          <span class="fmt-badge xls">XLS</span>
+          <span class="fmt-badge xlsx">XLSX</span>
+        </div>
+      </div>
+
+      <input type="file" id="file-input" accept=".pdf,.xls,.xlsx" style="display:none" onchange="fileSelected(this)"/>
+      <div class="file-preview" id="file-preview"></div>
+      <div id="upload-error" style="display:none; color:#ef4444; font-size:13px; font-weight:600; margin-bottom:10px; padding:8px 12px; background:#fef2f2; border-radius:8px; border:1px solid #fecaca;"></div>
+
+      <button class="btn-start" id="btn-start" onclick="goToProgress()" disabled>
+        🚀 Start Processing
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const BACKEND = "https://careermyntra-portal-6.onrender.com";
+
+    const courses = [
+      { name:"11th FYJC",        sub:"Maharashtra",      icon:"🏫", color:"#4f46e5" },
+      { name:"Engineering",      sub:"MHT-CET / JEE",    icon:"⚙️", color:"#1565c0" },
+      { name:"Architecture",     sub:"JEE P2 / NATA",    icon:"🏛️", color:"#0891b2" },
+      { name:"Design",           sub:"CET / UCEED",      icon:"🎨", color:"#ea580c" },
+      { name:"Pharmacy",         sub:"MHT-CET GPAT",     icon:"💊", color:"#e11d48" },
+      { name:"Medical",          sub:"NEET",              icon:"🩺", color:"#7c3aed" },
+      { name:"Nursing",          sub:"CET / NEET",        icon:"🩹", color:"#0d9488" },
+      { name:"Animal & Fishery", sub:"MHT-CET / NEET",   icon:"🐟", color:"#0369a1" },
+      { name:"Agriculture",      sub:"MHT-CET",           icon:"🌾", color:"#16a34a" },
+      { name:"Law",              sub:"CET / CLAT",        icon:"⚖️", color:"#475569" },
+      { name:"Management",       sub:"MHT-CET CAT",      icon:"💼", color:"#d97706" },
+      { name:"Hotel Management", sub:"CET / NCHM JEE",   icon:"🏨", color:"#9333ea" },
+    ];
+
+    let selectedCourse = null;
+
+    function hexToRgba(hex, alpha) {
+      const r = parseInt(hex.slice(1,3),16);
+      const g = parseInt(hex.slice(3,5),16);
+      const b = parseInt(hex.slice(5,7),16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+
+    function renderCourses() {
+      const grid = document.getElementById('course-grid');
+      grid.innerHTML = courses.map(c => `
+        <div class="course-card" style="--card-color:${c.color}; --card-bg:${hexToRgba(c.color,0.1)}">
+          <div class="card-top">
+            <div class="card-icon">${c.icon}</div>
+            <div>
+              <div class="card-title">${c.name}</div>
+              <div class="card-sub">${c.sub}</div>
+            </div>
+          </div>
+          <button class="upload-btn" onclick="openModal('${c.name}','${c.sub}','${c.icon}')">
+            ⬆️ Upload PDF / Excel
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function switchTab(el) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    function openModal(name, sub, icon) {
+      selectedCourse = { name, sub, icon };
+      document.getElementById('modal-icon').textContent = icon;
+      document.getElementById('modal-title').textContent = name;
+      document.getElementById('modal-sub').textContent = sub;
+      document.getElementById('file-preview').textContent = '';
+      document.getElementById('btn-start').disabled = true;
+      document.getElementById('file-input').value = '';
+      document.getElementById('drop-zone').style.borderColor = '#c7d7f5';
+      document.getElementById('upload-error').style.display = 'none';
+      document.getElementById('modal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('open');
+    }
+
+    function closeOutside(e) {
+      if (e.target.id === 'modal') closeModal();
+    }
+
+    function fileSelected(input) {
+      if (input.files[0]) {
+        document.getElementById('file-preview').textContent = '📎 ' + input.files[0].name;
+        document.getElementById('btn-start').disabled = false;
+        document.getElementById('drop-zone').style.borderColor = '#16a34a';
+      }
+    }
+
+    function dragOver(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.add('dragover');
+    }
+
+    function dragLeave(e) {
+      document.getElementById('drop-zone').classList.remove('dragover');
+    }
+
+    function dropFile(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      const ext = '.' + file.name.split('.').pop().toLowerCase();
+      if (!['.pdf','.xls','.xlsx'].includes(ext)) {
+        alert('❌ Only PDF, XLS, XLSX files allowed!');
+        return;
+      }
+      document.getElementById('file-preview').textContent = '📎 ' + file.name;
+      document.getElementById('btn-start').disabled = false;
+      document.getElementById('drop-zone').style.borderColor = '#16a34a';
+    }
+
+    async function goToProgress() {
+      if (!selectedCourse) return;
+      const btn  = document.getElementById('btn-start');
+      const errDiv = document.getElementById('upload-error');
+      btn.disabled    = true;
+      btn.textContent = '⏳ Uploading...';
+      errDiv.style.display = 'none';
+
+      const file = document.getElementById('file-input').files[0];
+      if (!file) return;
+
+      try {
+        const formData = new FormData();
+        formData.append('file',        file);
+        formData.append('course_name', selectedCourse.name);
+
+        const res  = await fetch(`${BACKEND}/api/upload`, { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (data.success) {
+          sessionStorage.setItem('task_id',     data.task_id);
+          sessionStorage.setItem('course',      selectedCourse.name);
+          sessionStorage.setItem('icon',        selectedCourse.icon);
+          sessionStorage.setItem('filename',    file.name);
+          sessionStorage.setItem('output_file', data.output_file);
+          window.location.href = 'pages/progress.html';
+        } else {
+          errDiv.textContent   = '❌ ' + (data.error || 'Upload failed');
+          errDiv.style.display = 'block';
+          btn.disabled         = false;
+          btn.textContent      = '🚀 Start Processing';
+        }
+      } catch(err) {
+        errDiv.textContent   = '❌ Backend not reachable! Flask chal raha hai?';
+        errDiv.style.display = 'block';
+        btn.disabled         = false;
+        btn.textContent      = '🚀 Start Processing';
+      }
+    }
+
+
+
+    // User info from Google OAuth
+const params = new URLSearchParams(window.location.search);
+const userName = params.get('name') || sessionStorage.getItem('user_name') || 'User';
+const userEmail = params.get('email') || '';
+const userPicture = params.get('picture') || '';
+
+if (params.get('name')) {
+  sessionStorage.setItem('user_name', userName);
+  sessionStorage.setItem('user_email', userEmail);
+  sessionStorage.setItem('user_picture', userPicture);
+}
+
+const firstLetter = userName.charAt(0).toUpperCase();
+document.querySelector('.user-avatar').textContent = firstLetter;
+document.querySelector('.user-chip span').textContent = userName.split(' ')[0];
+
+
+
+    renderCourses();
+  </script>
+</body>
+</html>
