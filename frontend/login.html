@@ -385,28 +385,20 @@
   </div>
 
   <script>
-    function googleRedirectLogin() {
-      const clientId = '461124697477-d39u0mt1u2of47fpue7264ls8saasi87.apps.googleusercontent.com';
-      
-      // ✅ FIXED: Determine backend URL based on environment (localhost vs production)
-      let backendUrl;
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        backendUrl = 'https://careermyntra-portal-6.onrender.com'; // Local development
-      } else {
-        // ⚠️ CHANGE THIS to your actual backend Render URL
-        backendUrl = 'https://careermyntra-portal-6.onrender.com';
-      }
-      
-      const redirectUri = encodeURIComponent(backendUrl + '/api/auth/google/callback');
-      const scope = encodeURIComponent('openid email profile');
-      const url = 'https://accounts.google.com/o/oauth2/v2/auth' +
-        '?client_id=' + clientId +
-        '&redirect_uri=' + redirectUri +
-        '&response_type=code' +
-        '&scope=' + scope +
-        '&access_type=offline';
-      window.location.href = url;
-    }
+    
+  function googleRedirectLogin() {
+  const clientId = '461124697477-d39u0mt1u2of47fpue7264ls8saasi87.apps.googleusercontent.com';
+  const backendUrl = 'https://careermyntra-portal-6.onrender.com';
+  const redirectUri = encodeURIComponent(backendUrl + '/api/auth/google/callback');
+  const scope = encodeURIComponent('openid email profile');
+  const url = 'https://accounts.google.com/o/oauth2/v2/auth' +
+    '?client_id=' + clientId +
+    '&redirect_uri=' + redirectUri +
+    '&response_type=code' +
+    '&scope=' + scope +
+    '&access_type=offline';
+  window.location.href = url;
+}
 
     function handleLogin(e) {
       e.preventDefault();

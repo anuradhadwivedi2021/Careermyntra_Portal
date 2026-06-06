@@ -10,15 +10,37 @@
     body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f4ff; min-height: 100vh; color: #0d1b3e; }
 
     /* NAVBAR */
-    .navbar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+    .navbar {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    }
     .nav-left img { height: 42px; object-fit: contain; }
     .nav-right { display: flex; align-items: center; gap: 14px; }
-    .user-chip { display: flex; align-items: center; gap: 8px; background: #f0f4ff; border: 1px solid #dbeafe; border-radius: 24px; padding: 5px 14px 5px 6px; }
-    .user-avatar { width: 30px; height: 30px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+    .user-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: #f0f4ff; border: 1px solid #dbeafe;
+      border-radius: 24px; padding: 5px 14px 5px 6px;
+    }
+    .user-avatar {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, #1565c0, #0d47a1);
+      color: #fff; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800;
+    }
     .user-chip span { font-size: 13px; font-weight: 700; color: #1565c0; }
 
     /* PAGE */
-    .page { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 64px); padding: 32px 20px; }
+    .page {
+      display: flex; align-items: center; justify-content: center;
+      min-height: calc(100vh - 64px); padding: 32px 20px;
+    }
 
     /* CARD */
     .card {
@@ -32,12 +54,24 @@
       text-align: center;
     }
 
-    .course-icon { font-size: 56px; margin-bottom: 12px; animation: float 3s ease-in-out infinite; }
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .course-icon {
+      font-size: 56px;
+      margin-bottom: 12px;
+      display: block;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
 
     .course-name { font-size: 22px; font-weight: 800; color: #0d1b3e; margin-bottom: 6px; }
-    .file-name { font-size: 13px; color: #6b7280; margin-bottom: 32px; }
-    .file-name span { background: #f0f4ff; border: 1px solid #dbeafe; padding: 3px 10px; border-radius: 20px; font-weight: 600; color: #1565c0; }
+    .file-name   { font-size: 13px; color: #6b7280; margin-bottom: 32px; }
+    .file-name span {
+      background: #f0f4ff; border: 1px solid #dbeafe;
+      padding: 3px 10px; border-radius: 20px;
+      font-weight: 600; color: #1565c0;
+    }
 
     /* PROGRESS BAR */
     .progress-wrap {
@@ -46,29 +80,36 @@
       height: 14px;
       overflow: hidden;
       margin-bottom: 10px;
-      position: relative;
     }
-
     .progress-fill {
       height: 100%;
       width: 0%;
       border-radius: 50px;
       background: linear-gradient(90deg, #1565c0, #16a34a);
-      transition: width 0.4s ease;
+      transition: width 0.5s ease;
       position: relative;
+      overflow: hidden;
     }
-
     .progress-fill::after {
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
       animation: shimmer 1.5s infinite;
     }
+    /* Hide shimmer when complete */
+    .progress-fill.done::after { display: none; }
 
-    @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+    @keyframes shimmer {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
 
-    .progress-stats { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 28px; }
+    .progress-stats {
+      display: flex; justify-content: space-between;
+      font-size: 13px; font-weight: 700; color: #374151;
+      margin-bottom: 28px;
+    }
     .progress-stats .pct { color: #1565c0; font-size: 15px; }
 
     /* STATUS STEPS */
@@ -85,15 +126,13 @@
       background: #f9fafb;
       border: 1.5px solid #e5e7eb;
       color: #9ca3af;
-      transition: all 0.35s;
+      transition: background 0.35s, border-color 0.35s, color 0.35s;
     }
-
     .step.active {
       background: #eff4ff;
       border-color: #bfdbfe;
       color: #1565c0;
     }
-
     .step.done {
       background: #f0fdf4;
       border-color: #bbf7d0;
@@ -110,10 +149,9 @@
       animation: spin 0.8s linear infinite;
       flex-shrink: 0;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* CURRENT MESSAGE */
+    /* LIVE MESSAGE */
     .current-msg {
       font-size: 13px;
       color: #6b7280;
@@ -126,6 +164,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: color 0.3s;
     }
 
     /* ERROR STATE */
@@ -140,7 +179,6 @@
       font-weight: 600;
       margin-top: 16px;
     }
-
     .btn-retry {
       margin-top: 16px;
       padding: 10px 28px;
@@ -173,7 +211,7 @@
 
   <div class="page">
     <div class="card">
-      <div class="course-icon" id="course-icon">⚙️</div>
+      <span class="course-icon" id="course-icon">⚙️</span>
       <div class="course-name" id="course-name">Engineering</div>
       <div class="file-name">📎 <span id="file-name">file.pdf</span></div>
 
@@ -188,11 +226,26 @@
 
       <!-- STEPS -->
       <div class="steps">
-        <div class="step" id="step-1"><span class="step-icon">📤</span> Uploading file</div>
-        <div class="step" id="step-2"><span class="step-icon">📖</span> Reading file</div>
-        <div class="step" id="step-3"><span class="step-icon">⚙️</span> Processing data</div>
-        <div class="step" id="step-4"><span class="step-icon">📊</span> Generating Excel</div>
-        <div class="step" id="step-5"><span class="step-icon">✅</span> Completed</div>
+        <div class="step" id="step-1">
+          <span class="step-icon">📤</span>
+          <span class="step-label">Uploading file</span>
+        </div>
+        <div class="step" id="step-2">
+          <span class="step-icon">📖</span>
+          <span class="step-label">Reading file</span>
+        </div>
+        <div class="step" id="step-3">
+          <span class="step-icon">⚙️</span>
+          <span class="step-label">Processing data</span>
+        </div>
+        <div class="step" id="step-4">
+          <span class="step-icon">📊</span>
+          <span class="step-label">Generating Excel</span>
+        </div>
+        <div class="step" id="step-5">
+          <span class="step-icon">✅</span>
+          <span class="step-label">Completed</span>
+        </div>
       </div>
 
       <!-- LIVE MESSAGE -->
@@ -218,95 +271,151 @@
     document.getElementById("course-icon").textContent = icon;
     document.getElementById("file-name").textContent   = filename;
 
-    const BACKEND = "https://careermyntra-portal-6.onrender.com";
+  
 
-    // ── Step thresholds ──
+// Badlo:
+    const BACKEND = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:5000"
+  : "https://careermyntra-portal-6.onrender.com";
+    // Each step becomes active when pct >= min, done wh
+    // en pct >= max
+
+    
     const stepRanges = [
-      { step: "step-1", min: 0,  max: 15  },
-      { step: "step-2", min: 15, max: 30  },
-      { step: "step-3", min: 30, max: 75  },
-      { step: "step-4", min: 75, max: 95  },
-      { step: "step-5", min: 95, max: 100 },
+      { id: "step-1", origIcon: "📤", min: 0,  max: 15  },
+      { id: "step-2", origIcon: "📖", min: 15, max: 30  },
+      { id: "step-3", origIcon: "⚙️", min: 30, max: 75  },
+      { id: "step-4", origIcon: "📊", min: 75, max: 95  },
+      { id: "step-5", origIcon: "✅", min: 95, max: 100 },
     ];
 
+    // Track which steps have been activated / completed already
+    // to avoid DOM thrashing on every poll tick
+    const stepState = {};  // { "step-1": "idle" | "active" | "done" }
+    stepRanges.forEach(s => { stepState[s.id] = "idle"; });
+
     function updateSteps(pct) {
-      stepRanges.forEach(({ step, min, max }) => {
-        const el = document.getElementById(step);
-        el.classList.remove("active", "done");
+      stepRanges.forEach(({ id, origIcon, min, max }) => {
+        const el      = document.getElementById(id);
+        const iconEl  = el.querySelector(".step-icon");
+        const current = stepState[id];
+
         if (pct >= max) {
-          el.classList.add("done");
-          el.querySelector(".step-icon").textContent = "✅";
+          // ── DONE ──
+          if (current !== "done") {
+            stepState[id] = "done";
+            el.classList.remove("active");
+            el.classList.add("done");
+            // Remove spinner if present
+            const spinner = el.querySelector(".step-spinner");
+            if (spinner) spinner.remove();
+            iconEl.style.display = "";
+            iconEl.textContent   = "✅";
+          }
+
         } else if (pct >= min) {
-          el.classList.add("active");
-          // Add spinner to active step
-          const ico = el.querySelector(".step-icon");
-          if (!el.querySelector(".step-spinner")) {
-            const spinner = document.createElement("div");
-            spinner.className = "step-spinner";
-            el.insertBefore(spinner, ico);
-            ico.style.display = "none";
+          // ── ACTIVE ──
+          if (current !== "active") {
+            stepState[id] = "active";
+            el.classList.remove("done");
+            el.classList.add("active");
+            // Add spinner only once
+            if (!el.querySelector(".step-spinner")) {
+              const spinner     = document.createElement("div");
+              spinner.className = "step-spinner";
+              el.insertBefore(spinner, iconEl);
+              iconEl.style.display = "none";
+            }
+          }
+
+        } else {
+          // ── IDLE ──
+          if (current !== "idle") {
+            stepState[id] = "idle";
+            el.classList.remove("active", "done");
+            const spinner = el.querySelector(".step-spinner");
+            if (spinner) spinner.remove();
+            iconEl.style.display = "";
+            iconEl.textContent   = origIcon;
           }
         }
       });
     }
 
     function updateUI(pct, message, status) {
-      document.getElementById("progress-fill").style.width = pct + "%";
-      document.getElementById("pct-text").textContent = pct + "%";
+      const fillEl = document.getElementById("progress-fill");
+      fillEl.style.width = pct + "%";
+
+      // Remove shimmer once fully done
+      if (pct >= 100) fillEl.classList.add("done");
+
+      document.getElementById("pct-text").textContent  = pct + "%";
       document.getElementById("current-msg").textContent = message;
+
+      // ETA: rough estimate based on % remaining (0.4s per %)
       const remaining = Math.max(0, Math.ceil((100 - pct) * 0.4));
       document.getElementById("eta").textContent = pct < 100
         ? `⏱ Est. ${remaining}s remaining`
         : "✅ Complete!";
+
       updateSteps(pct);
 
       if (status === "completed") {
         setTimeout(() => {
           window.location.href = "download.html";
-        }, 1200);
+        }, 1400);
       }
 
       if (status === "error") {
         document.getElementById("error-box").style.display = "block";
-        document.getElementById("error-msg").textContent = message;
+        document.getElementById("error-msg").textContent   = message;
+        document.getElementById("current-msg").style.color = "#b91c1c";
       }
     }
 
-    // ── Poll backend every 1 second ──
+    // ── Poll backend every 1.5 seconds ──
     function pollProgress() {
       if (!taskId) {
-        // Demo mode — no backend
         simulateDemo();
         return;
       }
 
+      let isPolling = true;
+
       const interval = setInterval(async () => {
+        if (!isPolling) return;
+
         try {
           const res  = await fetch(`${BACKEND}/api/progress/${taskId}`);
           const data = await res.json();
 
           if (data.success) {
             updateUI(data.percent, data.message, data.status);
+
             if (data.status === "completed") {
-              // ✅ FIX: Store output_file and records BEFORE redirecting
-              sessionStorage.setItem("records", data.records || 0);
+              // Store output info BEFORE redirect
+              sessionStorage.setItem("records",     data.records     || 0);
               sessionStorage.setItem("output_file", data.output_file || "");
-              sessionStorage.setItem("course", course);
-              console.log("[SUCCESS] Stored output_file:", data.output_file);
-              console.log("[SUCCESS] Stored records:", data.records);
+              sessionStorage.setItem("course",      course);
+              console.log("[SUCCESS] output_file:", data.output_file);
+              console.log("[SUCCESS] records:",     data.records);
+              isPolling = false;
               clearInterval(interval);
             }
+
             if (data.status === "error") {
+              isPolling = false;
               clearInterval(interval);
             }
           }
         } catch (err) {
           console.error("Poll error:", err);
+          // Don't stop polling on transient network error — retry next tick
         }
-      }, 1000);
+      }, 1500);
     }
 
-    // ── Demo mode (no backend) ──
+    // ── Demo mode (no backend / no taskId) ──
     function simulateDemo() {
       const steps = [
         { pct: 10,  msg: "📤 Uploading file...",      status: "processing" },
@@ -322,8 +431,7 @@
         const s = steps[i++];
         updateUI(s.pct, s.msg, s.status);
         if (s.status === "completed") {
-          // Demo mode: set mock data
-          sessionStorage.setItem("records", "1250");
+          sessionStorage.setItem("records",     "1250");
           sessionStorage.setItem("output_file", "engineering_demo_output.xlsx");
           clearInterval(iv);
         }

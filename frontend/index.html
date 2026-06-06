@@ -82,8 +82,10 @@
     <div class="nav-right">
       <a href="admin.html" class="nav-link">⚙️ Admin</a>
       <div class="user-chip">
-        <div class="user-avatar">A</div>
-        <span>Anuradha</span>
+
+        <div class="user-avatar">U</div>
+        <span>User</span>
+
       </div>
       <a href="login.html" class="btn-logout">Logout</a>
     </div>
@@ -290,6 +292,26 @@
         btn.textContent      = '🚀 Start Processing';
       }
     }
+
+
+
+    // User info from Google OAuth
+const params = new URLSearchParams(window.location.search);
+const userName = params.get('name') || sessionStorage.getItem('user_name') || 'User';
+const userEmail = params.get('email') || '';
+const userPicture = params.get('picture') || '';
+
+if (params.get('name')) {
+  sessionStorage.setItem('user_name', userName);
+  sessionStorage.setItem('user_email', userEmail);
+  sessionStorage.setItem('user_picture', userPicture);
+}
+
+const firstLetter = userName.charAt(0).toUpperCase();
+document.querySelector('.user-avatar').textContent = firstLetter;
+document.querySelector('.user-chip span').textContent = userName.split(' ')[0];
+
+
 
     renderCourses();
   </script>

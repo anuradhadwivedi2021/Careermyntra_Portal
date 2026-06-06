@@ -218,7 +218,10 @@
   </div>
 
   <script>
-    const BACKEND = "https://careermyntra-portal-6.onrender.com";
+
+   const backend = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:5000"
+  : "https://careermyntra-portal-6.onrender.com";
 
     // ✅ FIX: Initialize with empty values, update as soon as data is available
     let course     = sessionStorage.getItem("course")      || "Engineering";

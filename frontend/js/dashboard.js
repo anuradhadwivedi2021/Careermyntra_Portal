@@ -1,6 +1,5 @@
 // dashboard.js — CareerMyntra Frontend JS
 // Connected to Flask backend at localhost:5000
-
 const BACKEND = "https://careermyntra-portal-6.onrender.com";
 
 const courses = [
