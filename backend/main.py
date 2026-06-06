@@ -18,7 +18,12 @@ from db import init_db  # ← SIRF YE LINE ADD KI
 
 # ─── App Setup ───────────────────────────────────────────────
 app = Flask(__name__)
-CORS(app)
+
+CORS(app, origins=[
+    "https://careermyntra-portal-4.onrender.com",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500"
+])
 
 # ─── Config ──────────────────────────────────────────────────
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))

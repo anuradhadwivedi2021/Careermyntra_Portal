@@ -157,3 +157,4 @@ def get_progress(task_id):
         "output_file": task.get("output_file"),
         "records":     task.get("records", 0)
     })
+
