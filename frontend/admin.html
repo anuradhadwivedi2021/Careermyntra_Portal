@@ -140,6 +140,8 @@
 <nav class="navbar">
   <div class="nav-left"><img src="images/logo.jpeg" alt="CareerMyntra"/></div>
   <div class="nav-right">
+
+    <a href="pages/college_master.html" class="nav-link">🏛️ College Master</a>
     <a href="dashboard.html" class="nav-link">← Dashboard</a>
     <div class="user-chip">
       <div class="user-avatar" id="admin-avatar">U</div>
@@ -546,11 +548,6 @@
   const n = sessionStorage.getItem('user_name') || 'User';
   document.getElementById('admin-avatar').textContent = n.charAt(0).toUpperCase();
   document.getElementById('admin-name').textContent = n.split(' ')[0];
-
-  </script>
-
-
-
   </script>
 </body>
 </html>

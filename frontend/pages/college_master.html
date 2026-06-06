@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>College Master Database – CareerMyntra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f4ff; min-height: 100vh; color: #0d1b3e; }
+
+    /* ── Navbar ── */
+    .navbar {
+      background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 32px;
+      height: 64px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    }
+    .nav-left img { height: 42px; object-fit: contain; }
+    .nav-right { display: flex; align-items: center; gap: 14px; }
+    .nav-link { font-size: 13px; font-weight: 600; color: #374151; text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; }
+    .nav-link:hover { background: #f0f4ff; color: #1565c0; }
+    .user-chip { display: flex; align-items: center; gap: 8px; background: #f0f4ff; border: 1px solid #dbeafe; border-radius: 24px; padding: 5px 14px 5px 6px; }
+    .user-avatar { width: 30px; height: 30px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+    .user-chip span { font-size: 13px; font-weight: 700; color: #1565c0; }
+    .btn-logout { padding: 7px 16px; background: #fff; border: 1.5px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 700; color: #ef4444; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .btn-logout:hover { background: #fef2f2; }
+
+    /* ── Page Header ── */
+    .page-header {
+      background: linear-gradient(135deg, #1565c0 0%, #0d47a1 60%, #0a2f7a 100%);
+      padding: 36px 32px; position: relative; overflow: hidden;
+    }
+    .page-header::before { content: ''; position: absolute; width: 350px; height: 350px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -120px; right: -80px; }
+    .page-header h1 { font-size: 26px; font-weight: 800; color: #fff; letter-spacing: -0.5px; margin-bottom: 6px; position: relative; z-index: 2; }
+    .page-header p { font-size: 14px; color: rgba(255,255,255,0.7); position: relative; z-index: 2; }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+
+    /* ── Stats ── */
+    .stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 20px 22px; display: flex; align-items: center; gap: 16px; transition: transform 0.2s, box-shadow 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.07); }
+    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .stat-num { font-size: 26px; font-weight: 800; color: #0d1b3e; }
+    .stat-label { font-size: 12px; color: #6b7280; font-weight: 600; margin-top: 2px; }
+
+    /* ── Section Cards ── */
+    .section-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 26px; margin-bottom: 24px; }
+    .section-card h3 { font-size: 16px; font-weight: 800; color: #0d1b3e; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
+    /* ── Tabs ── */
+    .tab-bar { display: flex; gap: 4px; background: #f3f4f6; border-radius: 10px; padding: 4px; margin-bottom: 24px; width: fit-content; }
+    .tab-btn { padding: 8px 18px; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; background: none; color: #6b7280; font-family: inherit; transition: all 0.2s; }
+    .tab-btn.active { background: #fff; color: #1565c0; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+    /* ── Form ── */
+    .form-grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-bottom: 16px; }
+    .form-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 16px; }
+    .form-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 700; color: #374151; }
+    .form-group label span.req { color: #ef4444; }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 10px 13px; border: 1.5px solid #e5e7eb; border-radius: 9px;
+      font-size: 14px; font-family: inherit; color: #0d1b3e; background: #f9fafb;
+      outline: none; transition: all 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: #1565c0; background: #fff; box-shadow: 0 0 0 3px rgba(21,101,192,0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+
+    .btn-primary { padding: 11px 22px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; box-shadow: 0 4px 12px rgba(21,101,192,0.2); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(21,101,192,0.3); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-secondary { padding: 11px 22px; background: #fff; color: #374151; border: 1.5px solid #e5e7eb; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .btn-secondary:hover { background: #f9fafb; border-color: #9ca3af; }
+
+    /* ── Bulk Import ── */
+    .bulk-info { background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; color: #1e40af; }
+    .bulk-info b { color: #1565c0; }
+    .json-input { width: 100%; min-height: 200px; padding: 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 13px; color: #0d1b3e; background: #f9fafb; resize: vertical; outline: none; transition: border-color 0.2s; }
+    .json-input:focus { border-color: #1565c0; background: #fff; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
+
+    /* ── Search & Table ── */
+    .table-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .search-wrap { position: relative; flex: 1; min-width: 220px; max-width: 360px; }
+    .search-wrap input { width: 100%; padding: 10px 14px 10px 38px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; color: #0d1b3e; background: #f9fafb; outline: none; transition: all 0.2s; }
+    .search-wrap input:focus { border-color: #1565c0; background: #fff; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; }
+    .filter-select { padding: 10px 13px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 13px; font-family: inherit; color: #374151; background: #f9fafb; outline: none; cursor: pointer; }
+    .filter-select:focus { border-color: #1565c0; }
+    .results-count { font-size: 13px; color: #6b7280; font-weight: 600; margin-left: auto; }
+
+    .table-wrap { overflow-x: auto; }
+    .master-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .master-table thead { background: #f3f4f6; border-bottom: 2px solid #e5e7eb; }
+    .master-table th { padding: 11px 14px; text-align: left; font-weight: 700; color: #374151; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    .master-table td { padding: 12px 14px; border-bottom: 1px solid #f3f4f6; color: #0d1b3e; vertical-align: middle; }
+    .master-table tbody tr:hover { background: #f9fafb; }
+    .code-badge { font-family: monospace; font-size: 12px; background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+    .type-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .type-badge.govt { background: #dcfce7; color: #15803d; }
+    .type-badge.aided { background: #fef9c3; color: #854d0e; }
+    .type-badge.unaided { background: #fce7f3; color: #9d174d; }
+    .type-badge.autonomous { background: #e0f2fe; color: #0369a1; }
+    .tbl-btn { padding: 4px 11px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1.5px solid #e5e7eb; background: #fff; font-family: inherit; transition: all 0.2s; margin-right: 3px; }
+    .tbl-btn.edit:hover { background: #eff6ff; border-color: #1565c0; color: #1565c0; }
+    .tbl-btn.del:hover { background: #fef2f2; border-color: #ef4444; color: #ef4444; }
+
+    .empty-state { text-align: center; padding: 48px 20px; }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 14px; }
+    .empty-state h3 { font-size: 18px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+    .empty-state p { font-size: 14px; color: #9ca3af; }
+
+    /* ── Pagination ── */
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 20px; }
+    .pg-btn { padding: 7px 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; background: #fff; font-family: inherit; transition: all 0.2s; color: #374151; }
+    .pg-btn:hover:not(:disabled) { border-color: #1565c0; color: #1565c0; }
+    .pg-btn.active { background: #1565c0; color: #fff; border-color: #1565c0; }
+    .pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Modal ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 500; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 16px; padding: 28px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+    .modal-header h3 { font-size: 18px; font-weight: 800; color: #0d1b3e; }
+    .modal-close { width: 32px; height: 32px; border: none; background: #f3f4f6; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .modal-close:hover { background: #fecaca; }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; padding-top: 18px; border-top: 1px solid #e5e7eb; }
+
+    /* ── Toast ── */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #0d47a1; color: #fff; padding: 13px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.15); transform: translateY(80px); opacity: 0; transition: all 0.35s; z-index: 999; max-width: 400px; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { background: #dc2626; }
+    .toast.success { background: #16a34a; }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Loading skeleton ── */
+    .skeleton { background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+
+    /* ── PDF Upload Tab ── */
+    .pdf-drop-zone {
+      border: 2.5px dashed #c7d7f5; border-radius: 14px; padding: 40px 20px;
+      text-align: center; cursor: pointer; transition: all 0.2s; background: #fafbff;
+      position: relative; margin-bottom: 4px;
+    }
+    .pdf-drop-zone:hover, .pdf-drop-zone.drag-over { border-color: #1565c0; background: #eff4ff; }
+    .pdf-drop-zone.has-file { border-color: #16a34a; background: #f0fdf4; border-style: solid; }
+    .pdf-drop-icon { font-size: 44px; margin-bottom: 10px; }
+    .pdf-drop-title { font-size: 16px; font-weight: 700; color: #0d1b3e; margin-bottom: 4px; }
+    .pdf-drop-sub { font-size: 13px; color: #9ca3af; }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+    .preview-table th { padding: 8px 12px; background: #f3f4f6; font-size: 12px; font-weight: 700; color: #374151; text-align: left; }
+    .preview-table td { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; }
+    .preview-table tr:hover td { background: #f9fafb; }
+
+    @media (max-width: 900px) {
+      .stat-row { grid-template-columns: repeat(2,1fr); }
+      .form-grid-3, .form-grid-4 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .stat-row { grid-template-columns: 1fr 1fr; }
+      .form-grid-2, .form-grid-3, .form-grid-4 { grid-template-columns: 1fr; }
+      .navbar { padding: 0 16px; }
+      .container { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ── -->
+<nav class="navbar">
+  <div class="nav-left"><img src="../images/logo.jpeg" alt="CareerMyntra"/></div>
+  <div class="nav-right">
+    <a href="../dashboard.html" class="nav-link">← Dashboard</a>
+    <a href="../admin.html" class="nav-link">⚙️ Admin</a>
+    <div class="user-chip">
+      <div class="user-avatar" id="admin-avatar">U</div>
+      <span id="admin-name">User</span>
+    </div>
+    <a href="../index.html" class="btn-logout">Logout</a>
+  </div>
+</nav>
+
+<!-- ── Page Header ── -->
+<div class="page-header">
+  <h1>🏛️ College Master Database</h1>
+  <p>Centralised repository of all colleges — College Code is the unique key used to auto-enrich cut-off data</p>
+</div>
+
+<!-- ── Main Content ── -->
+<div class="container">
+
+  <!-- Stats Row -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#e0e7ff;">🏛️</div>
+      <div><div class="stat-num" id="stat-total">—</div><div class="stat-label">Total Colleges</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#dcfce7;">🏙️</div>
+      <div><div class="stat-num" id="stat-districts">—</div><div class="stat-label">Districts</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef3c7;">🎓</div>
+      <div><div class="stat-num" id="stat-universities">—</div><div class="stat-label">Universities</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fce7f3;">🏷️</div>
+      <div><div class="stat-num" id="stat-types">—</div><div class="stat-label">College Types</div></div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('browse')">🔍 Browse & Manage</button>
+    <button class="tab-btn" onclick="switchTab('add')">➕ Add College</button>
+    <button class="tab-btn" onclick="switchTab('pdf')">📄 PDF Upload</button>
+    <button class="tab-btn" onclick="switchTab('bulk')">📥 Bulk JSON</button>
+  </div>
+
+  <!-- ── TAB: Browse ── -->
+  <div id="tab-browse">
+    <div class="section-card">
+      <h3>🔍 All Colleges</h3>
+      <div class="table-toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔎</span>
+          <input type="text" id="search-input" placeholder="Search by code, name, city..." oninput="debounceSearch()"/>
+        </div>
+        <select class="filter-select" id="filter-district" onchange="loadColleges(1)">
+          <option value="">All Districts</option>
+        </select>
+        <select class="filter-select" id="filter-type" onchange="loadColleges(1)">
+          <option value="">All Types</option>
+        </select>
+        <span class="results-count" id="results-count">Loading...</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="master-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>College Name</th>
+              <th>District</th>
+              <th>City</th>
+              <th>University</th>
+              <th>Type</th>
+              <th>Management</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="colleges-tbody">
+            <tr><td colspan="8" style="text-align:center;padding:30px;color:#9ca3af;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+
+  <!-- ── TAB: Add College ── -->
+  <div id="tab-add" style="display:none;">
+    <div class="section-card">
+      <h3>➕ Add New College</h3>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>College Code <span class="req">*</span></label>
+          <input type="text" id="f-code" placeholder="e.g. 6001" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"/>
+        </div>
+        <div class="form-group">
+          <label>College Name <span class="req">*</span></label>
+          <input type="text" id="f-name" placeholder="e.g. Govt. College of Engineering, Pune"/>
+        </div>
+      </div>
+
+      <div class="form-grid-4">
+        <div class="form-group">
+          <label>District</label>
+          <input type="text" id="f-district" placeholder="e.g. Pune"/>
+        </div>
+        <div class="form-group">
+          <label>City / Taluka</label>
+          <input type="text" id="f-city" placeholder="e.g. Shivajinagar"/>
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <input type="text" id="f-state" value="Maharashtra"/>
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="text" id="f-phone" placeholder="e.g. 020-25500100"/>
+        </div>
+      </div>
+
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>University</label>
+          <input type="text" id="f-university" placeholder="e.g. Savitribai Phule Pune University"/>
+        </div>
+        <div class="form-group">
+          <label>College Type</label>
+          <select id="f-type">
+            <option value="">Select Type</option>
+            <option>Government</option>
+            <option>Government Aided</option>
+            <option>Unaided</option>
+            <option>Autonomous</option>
+            <option>Deemed University</option>
+            <option>Private University</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Management</label>
+          <select id="f-management">
+            <option value="">Select</option>
+            <option>State Government</option>
+            <option>Private Trust</option>
+            <option>Society</option>
+            <option>Minority Trust</option>
+            <option>Central Government</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Minority Status</label>
+          <select id="f-minority">
+            <option value="">Not Applicable</option>
+            <option>Linguistic Minority</option>
+            <option>Religious Minority</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Autonomy Status</label>
+          <select id="f-autonomy">
+            <option value="">Non-Autonomous</option>
+            <option>Autonomous</option>
+            <option>Graded Autonomy</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>Website</label>
+        <input type="url" id="f-website" placeholder="https://www.example.edu.in"/>
+      </div>
+
+      <div class="form-group" style="margin-bottom:20px;">
+        <label>Address</label>
+        <textarea id="f-address" placeholder="Full postal address..."></textarea>
+      </div>
+
+      <div style="display:flex;gap:12px;">
+        <button class="btn-primary" id="btn-save-college" onclick="saveCollege()">💾 Save College</button>
+        <button class="btn-secondary" onclick="clearAddForm()">✕ Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: PDF Upload ── -->
+  <div id="tab-pdf" style="display:none;">
+    <div class="section-card">
+      <h3>📄 Import Colleges from PDF</h3>
+
+      <div class="bulk-info">
+        <b>How it works:</b> Upload any CAP Round / Admission PDF that has college listings like
+        <b>"60001 - Govt. College of Engineering, Pune"</b>. All pages will be scanned automatically,
+        college codes &amp; names extracted, and saved to the master database.
+        Existing codes are <b>updated</b> (safe to re-upload). You can edit each record later to add
+        District, City, University etc.
+      </div>
+
+      <div class="pdf-drop-zone" id="pdf-drop-zone"
+           onclick="document.getElementById('pdf-file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handlePdfDrop(event)">
+        <input type="file" id="pdf-file-input" accept=".pdf" style="display:none;" onchange="handlePdfSelect(event)"/>
+        <div class="pdf-drop-icon">📄</div>
+        <div class="pdf-drop-title" id="pdf-drop-title">Click or drag &amp; drop PDF here</div>
+        <div class="pdf-drop-sub">CAP Round, Admission PDFs • Max 50MB</div>
+      </div>
+
+      <div id="pdf-progress-wrap" style="display:none;margin-top:18px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:13px;font-weight:700;color:#374151;" id="pdf-progress-label">Uploading &amp; Scanning...</span>
+          <span style="font-size:13px;font-weight:600;color:#1565c0;" id="pdf-progress-pct"></span>
+        </div>
+        <div style="background:#e5e7eb;border-radius:99px;height:10px;overflow:hidden;">
+          <div id="pdf-progress-bar" style="height:100%;background:linear-gradient(90deg,#1565c0,#0d47a1);border-radius:99px;width:0%;transition:width 0.5s;"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-primary" id="btn-pdf-upload" onclick="uploadPdf()" disabled>
+          📤 Extract &amp; Save to Database
+        </button>
+        <button class="btn-secondary" onclick="clearPdfUpload()">✕ Clear</button>
+        <span id="pdf-file-name" style="font-size:13px;color:#16a34a;font-weight:600;"></span>
+      </div>
+
+      <div id="pdf-result" style="display:none;margin-top:20px;border-radius:12px;overflow:hidden;border:1.5px solid #e5e7eb;">
+        <div id="pdf-result-header" style="padding:14px 18px;font-size:14px;font-weight:700;"></div>
+        <div id="pdf-result-preview" style="padding:0 18px 18px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: Bulk Import ── -->
+  <div id="tab-bulk" style="display:none;">
+    <div class="section-card">
+      <h3>📥 Bulk Import via JSON</h3>
+
+      <div class="bulk-info">
+        <b>Format:</b> Paste a JSON array of college objects. Each object must have <b>college_code</b> and <b>college_name</b>. Other fields are optional. If a <b>college_code</b> already exists, it will be <b>updated</b> (upsert). <br/><br/>
+        <b>Available fields:</b> college_code, college_name, district, city, state, university, college_type, management, minority_status, autonomy_status, website, phone, address
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <button class="btn-secondary" style="font-size:12px;padding:6px 14px;" onclick="loadSampleJson()">📋 Load Sample JSON</button>
+      </div>
+
+      <textarea class="json-input" id="bulk-json" placeholder='[
+  {
+    "college_code": "6001",
+    "college_name": "Govt. College of Engineering, Pune",
+    "district": "Pune",
+    "city": "Shivajinagar",
+    "university": "Savitribai Phule Pune University",
+    "college_type": "Government",
+    "management": "State Government"
+  },
+  {
+    "college_code": "6002",
+    "college_name": "College of Engineering, Pune",
+    "district": "Pune",
+    "city": "Shivajinagar",
+    "university": "Savitribai Phule Pune University",
+    "college_type": "Government Aided",
+    "management": "State Government"
+  }
+]'></textarea>
+
+      <div style="margin-top:16px;display:flex;gap:12px;align-items:center;">
+        <button class="btn-primary" id="btn-bulk-import" onclick="runBulkImport()">📥 Import Colleges</button>
+        <button class="btn-secondary" onclick="document.getElementById('bulk-json').value=''">✕ Clear</button>
+        <span id="bulk-status" style="font-size:13px;color:#6b7280;font-weight:600;"></span>
+      </div>
+
+      <!-- Result summary -->
+      <div id="bulk-result" style="display:none;margin-top:16px;padding:14px 18px;border-radius:10px;font-size:13px;"></div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ── Edit Modal ── -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>✏️ Edit College</h3>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <input type="hidden" id="edit-id"/>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>College Code <span class="req">*</span></label>
+        <input type="text" id="edit-code" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"/>
+      </div>
+      <div class="form-group">
+        <label>College Name <span class="req">*</span></label>
+        <input type="text" id="edit-name"/>
+      </div>
+    </div>
+    <div class="form-grid-4">
+      <div class="form-group"><label>District</label><input type="text" id="edit-district"/></div>
+      <div class="form-group"><label>City</label><input type="text" id="edit-city"/></div>
+      <div class="form-group"><label>State</label><input type="text" id="edit-state"/></div>
+      <div class="form-group"><label>Phone</label><input type="text" id="edit-phone"/></div>
+    </div>
+    <div class="form-grid-3">
+      <div class="form-group"><label>University</label><input type="text" id="edit-university"/></div>
+      <div class="form-group">
+        <label>College Type</label>
+        <select id="edit-type">
+          <option value="">Select Type</option>
+          <option>Government</option><option>Government Aided</option><option>Unaided</option>
+          <option>Autonomous</option><option>Deemed University</option><option>Private University</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Management</label>
+        <select id="edit-management">
+          <option value="">Select</option>
+          <option>State Government</option><option>Private Trust</option><option>Society</option>
+          <option>Minority Trust</option><option>Central Government</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>Minority Status</label>
+        <select id="edit-minority"><option value="">Not Applicable</option><option>Linguistic Minority</option><option>Religious Minority</option></select>
+      </div>
+      <div class="form-group">
+        <label>Autonomy Status</label>
+        <select id="edit-autonomy"><option value="">Non-Autonomous</option><option>Autonomous</option><option>Graded Autonomy</option></select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px;"><label>Website</label><input type="url" id="edit-website"/></div>
+    <div class="form-group"><label>Address</label><textarea id="edit-address"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-primary" id="btn-update" onclick="updateCollege()">💾 Update College</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000/api'
+    : 'https://careermyntra-portal-6.onrender.com/api';
+
+  let currentPage = 1;
+  let searchTimer = null;
+
+  // ── User info from session ──
+  const params = new URLSearchParams(window.location.search);
+  const name   = params.get('name') || localStorage.getItem('cm_name') || 'Admin';
+  const email  = params.get('email') || '';
+  if (name) {
+    document.getElementById('admin-name').textContent = name.split(' ')[0];
+    document.getElementById('admin-avatar').textContent = name.charAt(0).toUpperCase();
+    localStorage.setItem('cm_name', name);
+  }
+
+  // ── Tab switching ──
+  function switchTab(tab) {
+    ['browse','add','pdf','bulk'].forEach(t => {
+      document.getElementById('tab-'+t).style.display = (t===tab) ? '' : 'none';
+    });
+    document.querySelectorAll('.tab-btn').forEach((b,i) => {
+      b.classList.toggle('active', ['browse','add','pdf','bulk'][i] === tab);
+    });
+    if (tab === 'browse') loadColleges(currentPage);
+  }
+
+  // ── Load stats & filter options ──
+  async function loadMeta() {
+    try {
+      const res  = await fetch(`${API}/colleges/meta/filters`);
+      const data = await res.json();
+      if (!data.success) return;
+
+      const dSel = document.getElementById('filter-district');
+      data.districts.forEach(d => {
+        const o = document.createElement('option'); o.value = d; o.textContent = d;
+        dSel.appendChild(o);
+      });
+
+      const tSel = document.getElementById('filter-type');
+      data.types.forEach(t => {
+        const o = document.createElement('option'); o.value = t; o.textContent = t;
+        tSel.appendChild(o);
+      });
+
+      document.getElementById('stat-districts').textContent   = data.districts.length;
+      document.getElementById('stat-universities').textContent = data.universities.length;
+      document.getElementById('stat-types').textContent       = data.types.length;
+    } catch(e) { console.error('Meta load error:', e); }
+  }
+
+  // ── Load colleges table ──
+  async function loadColleges(page = 1) {
+    currentPage = page;
+    const search   = document.getElementById('search-input').value.trim();
+    const district = document.getElementById('filter-district').value;
+    const type     = document.getElementById('filter-type').value;
+
+    const tbody = document.getElementById('colleges-tbody');
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:#9ca3af;">Loading...</td></tr>`;
+
+    try {
+      const qs   = new URLSearchParams({ search, district, type, page, per_page: 25 });
+      const res  = await fetch(`${API}/colleges?${qs}`);
+      const data = await res.json();
+
+      if (!data.success) throw new Error(data.error);
+
+      document.getElementById('stat-total').textContent   = data.total;
+      document.getElementById('results-count').textContent = `${data.total} colleges found`;
+
+      if (data.colleges.length === 0) {
+        tbody.innerHTML = `
+          <tr><td colspan="8">
+            <div class="empty-state">
+              <div class="empty-icon">🏛️</div>
+              <h3>No colleges found</h3>
+              <p>Add colleges using the "Add College" or "Bulk Import" tab.</p>
+            </div>
+          </td></tr>`;
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+
+      tbody.innerHTML = data.colleges.map(c => `
+        <tr>
+          <td><span class="code-badge">${esc(c.college_code)}</span></td>
+          <td style="max-width:260px;"><div style="font-weight:600;font-size:13px;">${esc(c.college_name)}</div></td>
+          <td>${esc(c.district||'—')}</td>
+          <td>${esc(c.city||'—')}</td>
+          <td style="max-width:200px;font-size:12px;">${esc(c.university||'—')}</td>
+          <td>${typeBadge(c.college_type)}</td>
+          <td style="font-size:12px;">${esc(c.management||'—')}</td>
+          <td>
+            <button class="tbl-btn edit" onclick="openEditModal(${c.id})">✏️ Edit</button>
+            <button class="tbl-btn del" onclick="deleteCollege(${c.id}, '${esc(c.college_name).replace(/'/g,"\\'")}')">🗑</button>
+          </td>
+        </tr>
+      `).join('');
+
+      renderPagination(data.page, data.pages);
+    } catch(e) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:20px;color:#ef4444;">Error: ${e.message}</td></tr>`;
+    }
+  }
+
+  function typeBadge(type) {
+    if (!type) return '<span style="color:#9ca3af;font-size:12px;">—</span>';
+    const t = type.toLowerCase();
+    let cls = 'unaided';
+    if (t.includes('government') && !t.includes('aided')) cls = 'govt';
+    else if (t.includes('aided')) cls = 'aided';
+    else if (t.includes('autonom')) cls = 'autonomous';
+    return `<span class="type-badge ${cls}">${esc(type)}</span>`;
+  }
+
+  function renderPagination(page, pages) {
+    const pg = document.getElementById('pagination');
+    if (pages <= 1) { pg.innerHTML = ''; return; }
+    let html = `<button class="pg-btn" onclick="loadColleges(${page-1})" ${page===1?'disabled':''}>‹ Prev</button>`;
+    const start = Math.max(1, page-2), end = Math.min(pages, page+2);
+    if (start > 1) html += `<button class="pg-btn" onclick="loadColleges(1)">1</button>`;
+    if (start > 2) html += `<span style="padding:0 4px;color:#9ca3af;">…</span>`;
+    for (let i=start; i<=end; i++)
+      html += `<button class="pg-btn ${i===page?'active':''}" onclick="loadColleges(${i})">${i}</button>`;
+    if (end < pages-1) html += `<span style="padding:0 4px;color:#9ca3af;">…</span>`;
+    if (end < pages) html += `<button class="pg-btn" onclick="loadColleges(${pages})">${pages}</button>`;
+    html += `<button class="pg-btn" onclick="loadColleges(${page+1})" ${page===pages?'disabled':''}>Next ›</button>`;
+    pg.innerHTML = html;
+  }
+
+  function debounceSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => loadColleges(1), 350);
+  }
+
+  // ── Save new college ──
+  async function saveCollege() {
+    const btn = document.getElementById('btn-save-college');
+    const code = document.getElementById('f-code').value.trim();
+    const name = document.getElementById('f-name').value.trim();
+    if (!code || !name) { toast('College Code and Name are required!', 'error'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Saving...';
+
+    try {
+      const res  = await fetch(`${API}/colleges`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          college_code: code, college_name: name,
+          district:     document.getElementById('f-district').value.trim(),
+          city:         document.getElementById('f-city').value.trim(),
+          state:        document.getElementById('f-state').value.trim() || 'Maharashtra',
+          university:   document.getElementById('f-university').value.trim(),
+          college_type: document.getElementById('f-type').value,
+          management:   document.getElementById('f-management').value,
+          minority_status: document.getElementById('f-minority').value,
+          autonomy_status: document.getElementById('f-autonomy').value,
+          website:      document.getElementById('f-website').value.trim(),
+          phone:        document.getElementById('f-phone').value.trim(),
+          address:      document.getElementById('f-address').value.trim(),
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast(`✅ ${data.message}`, 'success');
+        clearAddForm();
+        loadMeta();
+      } else {
+        toast(data.error || 'Save failed', 'error');
+      }
+    } catch(e) { toast('Network error: ' + e.message, 'error'); }
+    finally {
+      btn.disabled = false;
+      btn.innerHTML = '💾 Save College';
+    }
+  }
+
+  function clearAddForm() {
+    ['f-code','f-name','f-district','f-city','f-university','f-website','f-phone','f-address'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f-state').value = 'Maharashtra';
+    document.getElementById('f-type').value = '';
+    document.getElementById('f-management').value = '';
+    document.getElementById('f-minority').value = '';
+    document.getElementById('f-autonomy').value = '';
+  }
+
+  // ── Edit Modal ──
+  async function openEditModal(id) {
+    try {
+      // Find college from current table data (or fetch)
+      const res  = await fetch(`${API}/colleges?search=&per_page=1000`);
+      const data = await res.json();
+      const c    = data.colleges.find(x => x.id === id);
+      if (!c) { toast('College not found', 'error'); return; }
+
+      document.getElementById('edit-id').value         = c.id;
+      document.getElementById('edit-code').value       = c.college_code || '';
+      document.getElementById('edit-name').value       = c.college_name || '';
+      document.getElementById('edit-district').value   = c.district || '';
+      document.getElementById('edit-city').value       = c.city || '';
+      document.getElementById('edit-state').value      = c.state || 'Maharashtra';
+      document.getElementById('edit-phone').value      = c.phone || '';
+      document.getElementById('edit-university').value = c.university || '';
+      document.getElementById('edit-type').value       = c.college_type || '';
+      document.getElementById('edit-management').value = c.management || '';
+      document.getElementById('edit-minority').value   = c.minority_status || '';
+      document.getElementById('edit-autonomy').value   = c.autonomy_status || '';
+      document.getElementById('edit-website').value    = c.website || '';
+      document.getElementById('edit-address').value    = c.address || '';
+
+      document.getElementById('edit-modal').classList.add('open');
+    } catch(e) { toast('Error loading college: ' + e.message, 'error'); }
+  }
+
+  function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('open');
+  }
+
+  async function updateCollege() {
+    const id  = document.getElementById('edit-id').value;
+    const btn = document.getElementById('btn-update');
+    const code = document.getElementById('edit-code').value.trim();
+    const name = document.getElementById('edit-name').value.trim();
+    if (!code || !name) { toast('College Code and Name are required!', 'error'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Updating...';
+
+    try {
+      const res = await fetch(`${API}/colleges/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          college_code: code, college_name: name,
+          district:     document.getElementById('edit-district').value.trim(),
+          city:         document.getElementById('edit-city').value.trim(),
+          state:        document.getElementById('edit-state').value.trim() || 'Maharashtra',
+          phone:        document.getElementById('edit-phone').value.trim(),
+          university:   document.getElementById('edit-university').value.trim(),
+          college_type: document.getElementById('edit-type').value,
+          management:   document.getElementById('edit-management').value,
+          minority_status: document.getElementById('edit-minority').value,
+          autonomy_status: document.getElementById('edit-autonomy').value,
+          website:      document.getElementById('edit-website').value.trim(),
+          address:      document.getElementById('edit-address').value.trim(),
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast('✅ College updated!', 'success');
+        closeEditModal();
+        loadColleges(currentPage);
+        loadMeta();
+      } else {
+        toast(data.error || 'Update failed', 'error');
+      }
+    } catch(e) { toast('Network error: ' + e.message, 'error'); }
+    finally {
+      btn.disabled = false;
+      btn.innerHTML = '💾 Update College';
+    }
+  }
+
+  // ── Delete ──
+  async function deleteCollege(id, name) {
+    if (!confirm(`Delete "${name}"?\n\nThis cannot be undone.`)) return;
+    try {
+      const res  = await fetch(`${API}/colleges/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        toast(`🗑️ ${data.message}`, 'success');
+        loadColleges(currentPage);
+        loadMeta();
+      } else {
+        toast(data.error || 'Delete failed', 'error');
+      }
+    } catch(e) { toast('Network error: ' + e.message, 'error'); }
+  }
+
+  // ── Bulk Import ──
+  function loadSampleJson() {
+    document.getElementById('bulk-json').value = JSON.stringify([
+      { "college_code": "6001", "college_name": "Govt. College of Engineering, Pune", "district": "Pune", "city": "Shivajinagar", "university": "Savitribai Phule Pune University", "college_type": "Government", "management": "State Government" },
+      { "college_code": "6002", "college_name": "College of Engineering, Pune", "district": "Pune", "city": "Shivajinagar", "university": "Savitribai Phule Pune University", "college_type": "Government Aided", "management": "State Government" },
+      { "college_code": "6113", "college_name": "Maharashtra Institute of Technology, Pune", "district": "Pune", "city": "Kothrud", "university": "Savitribai Phule Pune University", "college_type": "Unaided", "management": "Private Trust" }
+    ], null, 2);
+  }
+
+  async function runBulkImport() {
+    const btn    = document.getElementById('btn-bulk-import');
+    const raw    = document.getElementById('bulk-json').value.trim();
+    const status = document.getElementById('bulk-status');
+    const result = document.getElementById('bulk-result');
+
+    if (!raw) { toast('Please paste JSON data first!', 'error'); return; }
+
+    let parsed;
+    try { parsed = JSON.parse(raw); }
+    catch(e) { toast('❌ Invalid JSON: ' + e.message, 'error'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Importing...';
+    status.textContent = 'Processing...';
+    result.style.display = 'none';
+
+    try {
+      const res  = await fetch(`${API}/colleges/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed)
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast(`✅ ${data.message}`, 'success');
+        status.textContent = '';
+        result.style.display = 'block';
+        result.style.background = '#f0fdf4';
+        result.style.border = '1.5px solid #86efac';
+        result.style.color = '#15803d';
+        let html = `<b>✅ Import Complete!</b><br/>
+          Inserted/Updated: <b>${data.inserted}</b> &nbsp;|&nbsp; Skipped: <b>${data.skipped}</b>`;
+        if (data.errors && data.errors.length > 0) {
+          html += `<br/><br/><b>Errors (first 10):</b><br/>` + data.errors.map(e=>`• ${e}`).join('<br/>');
+        }
+        result.innerHTML = html;
+        loadMeta();
+      } else {
+        toast(data.error || 'Import failed', 'error');
+        status.textContent = '';
+      }
+    } catch(e) { toast('Network error: ' + e.message, 'error'); status.textContent = ''; }
+    finally {
+      btn.disabled = false;
+      btn.innerHTML = '📥 Import Colleges';
+    }
+  }
+
+  // ── Toast ──
+  function toast(msg, type = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show' + (type ? ' ' + type : '');
+    setTimeout(() => el.className = 'toast', 3200);
+  }
+
+  function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Close modal on overlay click ──
+  document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
+
+  // ── Init ──
+  loadMeta();
+  loadColleges(1);
+  // ═══════════════════════════════════════════
+  // PDF UPLOAD FUNCTIONS
+  // ═══════════════════════════════════════════
+  let selectedPdfFile = null;
+
+  function handlePdfSelect(evt) {
+    const file = evt.target.files[0];
+    if (file) setPdfFile(file);
+  }
+
+  function handlePdfDrop(evt) {
+    evt.preventDefault();
+    document.getElementById('pdf-drop-zone').classList.remove('drag-over');
+    const file = evt.dataTransfer.files[0];
+    if (file && file.name.toLowerCase().endsWith('.pdf')) {
+      setPdfFile(file);
+    } else {
+      toast('Only PDF files are allowed!', 'error');
+    }
+  }
+
+  function setPdfFile(file) {
+    selectedPdfFile = file;
+    const zone  = document.getElementById('pdf-drop-zone');
+    const title = document.getElementById('pdf-drop-title');
+    const label = document.getElementById('pdf-file-name');
+    const btn   = document.getElementById('btn-pdf-upload');
+    const sizeKB = (file.size / 1024).toFixed(0);
+    const sizeTxt = file.size > 1024*1024 ? (file.size/1024/1024).toFixed(1)+' MB' : sizeKB+' KB';
+
+    zone.classList.add('has-file');
+    title.textContent  = '✅ ' + file.name;
+    label.textContent  = sizeTxt;
+    btn.disabled       = false;
+    document.getElementById('pdf-result').style.display = 'none';
+    document.getElementById('pdf-progress-wrap').style.display = 'none';
+    setProgress(0, '');
+  }
+
+  function clearPdfUpload() {
+    selectedPdfFile = null;
+    document.getElementById('pdf-file-input').value = '';
+    const zone  = document.getElementById('pdf-drop-zone');
+    zone.classList.remove('has-file');
+    document.getElementById('pdf-drop-title').textContent = 'Click or drag & drop PDF here';
+    document.getElementById('pdf-file-name').textContent  = '';
+    document.getElementById('btn-pdf-upload').disabled    = true;
+    document.getElementById('pdf-result').style.display   = 'none';
+    document.getElementById('pdf-progress-wrap').style.display = 'none';
+  }
+
+  function setProgress(pct, label) {
+    document.getElementById('pdf-progress-bar').style.width = pct + '%';
+    document.getElementById('pdf-progress-pct').textContent = pct ? pct + '%' : '';
+    if (label) document.getElementById('pdf-progress-label').textContent = label;
+  }
+
+  async function uploadPdf() {
+    if (!selectedPdfFile) return;
+    const btn = document.getElementById('btn-pdf-upload');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Scanning PDF...';
+
+    const progress = document.getElementById('pdf-progress-wrap');
+    progress.style.display = 'block';
+    document.getElementById('pdf-result').style.display = 'none';
+
+    // Simulate progress steps while upload runs
+    setProgress(10, 'Uploading PDF...');
+    const progInterval = setInterval(() => {
+      const bar = document.getElementById('pdf-progress-bar');
+      const cur = parseInt(bar.style.width) || 10;
+      if (cur < 80) setProgress(cur + 5, cur < 30 ? 'Uploading PDF...' : 'Scanning pages...');
+    }, 400);
+
+    try {
+      const fd = new FormData();
+      fd.append('file', selectedPdfFile);
+
+      const res  = await fetch(`${API}/colleges/upload-pdf`, { method: 'POST', body: fd });
+      const data = await res.json();
+
+      clearInterval(progInterval);
+      setProgress(100, 'Done!');
+
+      const resultBox    = document.getElementById('pdf-result');
+      const resultHeader = document.getElementById('pdf-result-header');
+      const resultPrev   = document.getElementById('pdf-result-preview');
+      resultBox.style.display = 'block';
+
+      if (data.success) {
+        resultBox.style.borderColor = '#86efac';
+        resultHeader.style.background = '#f0fdf4';
+        resultHeader.style.color      = '#15803d';
+        resultHeader.innerHTML = `✅ ${data.message} &nbsp;|&nbsp; Pages scanned: <b>${data.pages_scanned}</b>`;
+
+        const preview = data.preview || [];
+        let html = '';
+        if (preview.length > 0) {
+          html += `<p style="font-size:13px;color:#6b7280;font-weight:600;margin-bottom:10px;">
+            Preview (first ${preview.length} of ${data.extracted} extracted):
+          </p>
+          <table class="preview-table">
+            <thead><tr><th>Code</th><th>College Name</th></tr></thead>
+            <tbody>
+              ${preview.map(c => `<tr>
+                <td><span class="code-badge">${esc(c.college_code)}</span></td>
+                <td>${esc(c.college_name)}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>`;
+          if (data.extracted > preview.length) {
+            html += `<p style="font-size:12px;color:#9ca3af;margin-top:8px;">… and ${data.extracted - preview.length} more saved to database.</p>`;
+          }
+        }
+        resultPrev.innerHTML = html;
+        toast(`✅ ${data.extracted} colleges saved from PDF!`, 'success');
+        loadMeta();
+
+      } else {
+        resultBox.style.borderColor = '#fca5a5';
+        resultHeader.style.background = '#fef2f2';
+        resultHeader.style.color      = '#dc2626';
+        resultHeader.innerHTML = '❌ ' + (data.error || 'PDF processing failed');
+        resultPrev.innerHTML = data.pages_scanned
+          ? `<p style="font-size:13px;color:#6b7280;">Pages scanned: ${data.pages_scanned}. Try a different PDF format.</p>`
+          : '';
+        toast(data.error || 'PDF processing failed', 'error');
+      }
+
+    } catch(e) {
+      clearInterval(progInterval);
+      setProgress(0, '');
+      toast('Network error: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '📤 Extract & Save to Database';
+    }
+  }
+
+
+</script>
+</body>
+</html>
