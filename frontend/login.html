@@ -401,13 +401,20 @@
 }
 
     function handleLogin(e) {
-      e.preventDefault();
-      const btn = document.getElementById('login-btn');
-      const text = document.getElementById('login-text');
-      btn.disabled = true;
-      text.textContent = 'Logging in...';
-      setTimeout(() => {window.location.href = 'dashboard.html'; }, 1500);
-    }
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const text = document.getElementById('login-text');
+  const email = document.getElementById('email').value;
+  const name = email.split('@')[0]; // email se naam nikalo
+
+  // naam sessionStorage mein save karo
+  sessionStorage.setItem('user_name', name);
+  sessionStorage.setItem('user_email', email);
+
+  btn.disabled = true;
+  text.textContent = 'Logging in...';
+  setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+}
 
     function togglePwd(id, el) {
       const input = document.getElementById(id);
