@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, current_app
 import os
+import re
 from db import get_connection, get_cursor
 
 courses_bp = Blueprint("courses", __name__)
@@ -48,7 +49,7 @@ def add_course():
         return jsonify({"success": False, "error": "Sample output (.xlsx) required"}), 400
 
     try:
-        safe_name      = course_name.lower().replace(" ", "_").replace("&", "and")
+        safe_name      = re.sub(r"[^a-z0-9]+", "_", course_name.lower().replace("&", "and")).strip("_")
         script_name    = safe_name + ".py"
         input_ext      = os.path.splitext(input_file.filename)[1]
         input_name     = safe_name + "_sample_input" + input_ext
@@ -141,7 +142,7 @@ def update_course(course_id):
         input_file  = request.files.get("input_file")
         output_file = request.files.get("output_file")
 
-        safe_name = course_name.lower().replace(" ", "_").replace("&", "and")
+        safe_name = re.sub(r"[^a-z0-9]+", "_", course_name.lower().replace("&", "and")).strip("_")
 
         if script_file and script_file.filename.endswith(".py"):
             script_content = script_file.read().decode("utf-8")

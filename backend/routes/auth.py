@@ -10,7 +10,8 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
-
+import bcrypt
+from db import get_connection, get_cursor
 load_dotenv()
 
 auth_bp = Blueprint('auth', __name__)
@@ -174,3 +175,52 @@ def resend_otp():
 
     send_otp_email(email, record["name"], new_otp)
     return jsonify({"success": True, "message": "Naya OTP bheja gaya!"})
+
+
+# ── Register (Email/Phone + Password) ─────────────────────
+@auth_bp.route("/auth/register", methods=["POST"])
+def register():
+    data = request.get_json()
+    first_name = data.get("first_name", "").strip()
+    last_name  = data.get("last_name", "").strip()
+    email      = data.get("email", "").strip().lower()
+    phone      = data.get("phone", "").strip()
+    password   = data.get("password", "")
+    role       = data.get("role", "user")
+
+    if not first_name or not email or not password:
+        return jsonify({"success": False, "error": "Naam, email aur password zaroori hai"}), 400
+
+    conn = get_connection()
+    cur  = get_cursor(conn)
+
+    cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+    if cur.fetchone():
+        cur.close()
+        conn.close()
+        return jsonify({"success": False, "error": "Yeh email already registered hai"}), 400
+
+    password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    cur.execute("""
+        INSERT INTO users (first_name, last_name, email, phone, password_hash, role)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING id
+    """, (first_name, last_name, email, phone, password_hash, role))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    # OTP generate aur email bhejo
+    otp     = generate_otp()
+    expires = time.time() + 300
+    _otp_store[email] = {
+        "otp":     otp,
+        "expires": expires,
+        "name":    first_name,
+        "picture": ""
+    }
+    send_otp_email(email, first_name, otp)
+
+    return jsonify({"success": True, "message": "Registered! OTP bheja gaya email pe", "email": email})
+

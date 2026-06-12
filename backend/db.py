@@ -59,6 +59,19 @@ def init_db():
             updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id            SERIAL PRIMARY KEY,
+            first_name    VARCHAR(100) NOT NULL,
+            last_name     VARCHAR(100),
+            email         VARCHAR(150) UNIQUE NOT NULL,
+            phone         VARCHAR(20),
+            password_hash VARCHAR(255) NOT NULL,
+            role          VARCHAR(20) DEFAULT 'user',
+            is_verified   BOOLEAN DEFAULT FALSE,
+            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
     conn.commit()
     cur.close()
     conn.close()

@@ -98,7 +98,10 @@ def run_processing(task_id, course_name, pdf_path, output_path, scripts_dir):
         TASKS[task_id]["status"] = "processing"
         update(5, "Uploading file...")
 
-        script_name = course_name.lower().replace(" ", "_").replace("&", "and") + ".py"
+        import re as _re
+        _sname = course_name.lower().replace("&", "and")
+        _sname = _re.sub(r"[^a-z0-9]+", "_", _sname)
+        script_name = _sname.strip("_") + ".py"
         script_path = os.path.join(scripts_dir, script_name)
 
         # ── Step 1: Disk pe check karo (local dev ke liye) ──
@@ -135,6 +138,18 @@ def run_processing(task_id, course_name, pdf_path, output_path, scripts_dir):
         spec   = importlib.util.spec_from_file_location("course_script", script_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+
+        # ── Verify process() function exist karta hai ──
+        if not hasattr(module, "process"):
+            print(f"[Task {task_id[:8]}] ⚠️ Script mein 'process' function nahi hai! engineering.py pe fallback...")
+            fallback = os.path.join(scripts_dir, "engineering.py")
+            if os.path.exists(fallback):
+                spec   = importlib.util.spec_from_file_location("course_script", fallback)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                print(f"[Task {task_id[:8]}] ✅ engineering.py se process() load hua")
+            else:
+                raise Exception("Script mein 'process' function nahi mila aur engineering.py bhi nahi hai!")
 
         update(15, "Reading file...")
 
