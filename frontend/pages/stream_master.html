@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stream Master – CareerMyntra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    /* ── Reset & Base ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f4ff; min-height: 100vh; color: #0d1b3e; }
+
+    /* ── Navbar ─────────────────────────────────────────────── */
+    .navbar-cm {
+      background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 32px;
+      height: 64px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 200; box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    }
+    .nav-brand { height: 36px; font-size: 18px; font-weight: 800; color: #1565c0; display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-brand span { font-size: 22px; }
+    .nav-links { display: flex; align-items: center; gap: 6px; }
+    .nav-link-btn { font-size: 13px; font-weight: 600; color: #374151; text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; border: none; background: none; cursor: pointer; }
+    .nav-link-btn:hover, .nav-link-btn.active { background: #f0f4ff; color: #1565c0; }
+    .user-chip { display: flex; align-items: center; gap: 8px; background: #f0f4ff; border: 1px solid #dbeafe; border-radius: 24px; padding: 5px 14px 5px 6px; }
+    .user-avatar { width: 30px; height: 30px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+    .user-chip span { font-size: 13px; font-weight: 700; color: #1565c0; }
+
+    /* ── Page Header ─────────────────────────────────────────── */
+    .page-header {
+      background: linear-gradient(135deg, #1565c0 0%, #0d47a1 60%, #0a2f7a 100%);
+      padding: 36px 32px; position: relative; overflow: hidden;
+    }
+    .page-header::before { content: ''; position: absolute; width: 350px; height: 350px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -120px; right: -80px; pointer-events: none; }
+    .page-header::after  { content: ''; position: absolute; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.03); bottom: -60px; left: 120px; pointer-events: none; }
+    .page-header h1 { font-size: 26px; font-weight: 800; color: #fff; letter-spacing: -0.5px; margin-bottom: 6px; position: relative; z-index: 2; }
+    .page-header p  { font-size: 14px; color: rgba(255,255,255,0.7); position: relative; z-index: 2; }
+    .header-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 600; color: #fff; margin-top: 12px; backdrop-filter: blur(4px); }
+
+    /* ── Container ──────────────────────────────────────────── */
+    .main-container { max-width: 1300px; margin: 0 auto; padding: 28px 24px; }
+
+    /* ── Stats Row ──────────────────────────────────────────── */
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 20px 22px; display: flex; align-items: center; gap: 16px; transition: transform 0.2s, box-shadow 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.07); }
+    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .stat-num  { font-size: 26px; font-weight: 800; color: #0d1b3e; line-height: 1; }
+    .stat-label { font-size: 12px; color: #6b7280; font-weight: 600; margin-top: 4px; }
+
+    /* ── Tab Bar ─────────────────────────────────────────────── */
+    .tab-bar { display: flex; gap: 4px; background: #f3f4f6; border-radius: 10px; padding: 4px; margin-bottom: 24px; width: fit-content; }
+    .tab-btn { padding: 9px 20px; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; background: none; color: #6b7280; font-family: inherit; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+    .tab-btn.active { background: #fff; color: #1565c0; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Section Cards ──────────────────────────────────────── */
+    .section-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 26px; margin-bottom: 24px; }
+    .section-title { font-size: 16px; font-weight: 800; color: #0d1b3e; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .section-title span.badge-count { font-size: 12px; background: #f0f4ff; color: #1565c0; border-radius: 20px; padding: 2px 10px; font-weight: 700; margin-left: 4px; }
+
+    /* ── Forms ───────────────────────────────────────────────── */
+    .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+    .form-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 13px; font-weight: 700; color: #374151; }
+    .form-label .req { color: #ef4444; }
+    .form-control-cm {
+      padding: 10px 13px; border: 1.5px solid #e5e7eb; border-radius: 9px;
+      font-size: 14px; font-family: inherit; color: #0d1b3e;
+      background: #f9fafb; outline: none; transition: all 0.2s; width: 100%;
+    }
+    .form-control-cm:focus { border-color: #1565c0; background: #fff; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
+    .form-control-cm::placeholder { color: #9ca3af; }
+    textarea.form-control-cm { resize: vertical; min-height: 72px; }
+
+    /* Color Input */
+    .color-input-wrap { position: relative; display: flex; align-items: center; gap: 10px; }
+    .color-swatch { width: 36px; height: 36px; border-radius: 8px; border: 2px solid #e5e7eb; flex-shrink: 0; cursor: pointer; }
+    input[type="color"] { width: 0; height: 0; opacity: 0; position: absolute; }
+
+    /* Icon Input */
+    .icon-wrap { position: relative; }
+    .icon-preview { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; pointer-events: none; }
+    .icon-wrap .form-control-cm { padding-left: 40px; cursor: pointer; }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    .btn-primary-cm {
+      padding: 11px 24px; background: linear-gradient(135deg, #1565c0, #0d47a1);
+      color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(21,101,192,0.2); display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary-cm:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(21,101,192,0.3); }
+    .btn-primary-cm:active { transform: scale(0.98); }
+    .btn-primary-cm:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .btn-secondary-cm {
+      padding: 11px 22px; background: #fff; color: #374151; border: 1.5px solid #e5e7eb;
+      border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-secondary-cm:hover { background: #f9fafb; border-color: #9ca3af; }
+
+    .btn-danger-sm {
+      padding: 5px 12px; background: #fff; color: #ef4444; border: 1.5px solid #fecaca;
+      border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: all 0.2s;
+    }
+    .btn-danger-sm:hover { background: #fef2f2; }
+
+    .btn-edit-sm {
+      padding: 5px 12px; background: #fff; color: #1565c0; border: 1.5px solid #bfdbfe;
+      border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: all 0.2s;
+    }
+    .btn-edit-sm:hover { background: #eff6ff; }
+
+    /* ── Stream Cards Grid ───────────────────────────────────── */
+    .streams-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .stream-card {
+      background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px;
+      overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stream-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .stream-card-header {
+      padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .stream-card-title { display: flex; align-items: center; gap: 10px; }
+    .stream-icon-badge { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .stream-name { font-size: 15px; font-weight: 800; color: #0d1b3e; }
+    .stream-desc { font-size: 12px; color: #6b7280; margin-top: 2px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stream-card-actions { display: flex; gap: 6px; }
+    .stream-card-body { padding: 16px 20px; }
+    .stream-course-count { font-size: 12px; font-weight: 700; color: #6b7280; margin-bottom: 12px; }
+    .course-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .course-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #f3f4f6; border-radius: 20px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: #374151;
+    }
+    .course-tag span { font-size: 14px; }
+    .no-courses-msg { font-size: 13px; color: #9ca3af; font-style: italic; }
+
+    /* ── Table ───────────────────────────────────────────────── */
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+    .search-wrap { position: relative; flex: 1; max-width: 340px; }
+    .search-wrap input { width: 100%; padding: 10px 14px 10px 38px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; color: #0d1b3e; background: #f9fafb; outline: none; transition: all 0.2s; }
+    .search-wrap input:focus { border-color: #1565c0; background: #fff; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; pointer-events: none; }
+    .filter-select { padding: 10px 13px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 13px; font-family: inherit; color: #374151; background: #f9fafb; outline: none; cursor: pointer; }
+    .filter-select:focus { border-color: #1565c0; }
+    .results-count { font-size: 13px; color: #6b7280; font-weight: 600; margin-left: auto; }
+
+    .table-wrap { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .data-table thead { background: #f3f4f6; border-bottom: 2px solid #e5e7eb; }
+    .data-table thead th { padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    .data-table tbody tr { border-bottom: 1px solid #f3f4f6; transition: background 0.15s; }
+    .data-table tbody tr:hover { background: #f9fafb; }
+    .data-table td { padding: 12px 16px; vertical-align: middle; }
+    .data-table tr.hidden { display: none; }
+
+    /* Stream badge in table */
+    .stream-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;
+    }
+    .unassigned-badge { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 700; }
+
+    /* ── Grouped View ─────────────────────────────────────────── */
+    .grouped-stream { margin-bottom: 20px; border: 1.5px solid #e5e7eb; border-radius: 14px; overflow: hidden; }
+    .grouped-header {
+      display: flex; align-items: center; gap: 14px; padding: 14px 20px;
+      cursor: pointer; user-select: none; transition: background 0.15s;
+    }
+    .grouped-header:hover { background: #f9fafb; }
+    .grouped-header-icon { font-size: 22px; }
+    .grouped-header-text { flex: 1; }
+    .grouped-header-name { font-size: 15px; font-weight: 800; color: #0d1b3e; }
+    .grouped-header-desc { font-size: 12px; color: #6b7280; margin-top: 1px; }
+    .grouped-count { font-size: 12px; font-weight: 700; padding: 3px 12px; border-radius: 20px; }
+    .grouped-chevron { font-size: 14px; color: #9ca3af; transition: transform 0.2s; }
+    .grouped-body { padding: 4px 20px 16px; border-top: 1px solid #f3f4f6; background: #fafafa; }
+    .grouped-course-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+    .grouped-course-row:last-child { border-bottom: none; }
+    .course-icon-sm { width: 32px; height: 32px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .course-info-name { font-size: 14px; font-weight: 700; color: #0d1b3e; }
+    .course-info-exam { font-size: 12px; color: #6b7280; }
+    .course-actions-sm { margin-left: auto; display: flex; gap: 6px; }
+
+    /* ── Toast ───────────────────────────────────────────────── */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast {
+      min-width: 280px; max-width: 380px; background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 12px; padding: 14px 18px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600;
+      animation: slideUp 0.3s ease; color: #0d1b3e;
+    }
+    .toast.success { border-left: 4px solid #16a34a; }
+    .toast.error   { border-left: 4px solid #ef4444; }
+    .toast.info    { border-left: 4px solid #1565c0; }
+    .toast-icon { font-size: 20px; flex-shrink: 0; }
+    @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 18px; padding: 28px; width: 520px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+    .modal-title { font-size: 17px; font-weight: 800; color: #0d1b3e; }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #9ca3af; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .modal-close:hover { background: #f3f4f6; color: #374151; }
+
+    /* ── Spinner ─────────────────────────────────────────────── */
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Empty State ─────────────────────────────────────────── */
+    .empty-state { text-align: center; padding: 48px 24px; }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state h3 { font-size: 16px; font-weight: 800; color: #0d1b3e; margin-bottom: 6px; }
+    .empty-state p { font-size: 14px; color: #6b7280; }
+
+    /* ── Loading Skeleton ──────────────────────────────────── */
+    .skeleton { background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+      .streams-grid { grid-template-columns: 1fr; }
+      .form-grid-3 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+      .form-grid-3 { grid-template-columns: 1fr; }
+      .form-grid-2 { grid-template-columns: 1fr; }
+      .navbar-cm { padding: 0 16px; }
+      .main-container { padding: 16px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ NAVBAR ══════════════════════════════════════════════ -->
+<nav class="navbar-cm">
+  <a class="nav-brand" href="../dashboard.html">
+    <span>🎓</span> CareerMyntra
+  </a>
+  <div class="nav-links">
+    <a href="../admin.html"         class="nav-link-btn">⚙️ Admin</a>
+    <a href="college_master.html"   class="nav-link-btn">🏛️ Colleges</a>
+    <a href="stream_master.html"    class="nav-link-btn active">🌊 Streams</a>
+  </div>
+  <div class="user-chip">
+    <div class="user-avatar" id="user-initials">A</div>
+    <span id="user-name">Admin</span>
+  </div>
+</nav>
+
+<!-- ══ PAGE HEADER ═════════════════════════════════════════ -->
+<div class="page-header">
+  <h1>🌊 Stream Master</h1>
+  <p>Manage academic streams and map courses under them. Create hierarchy: Stream → Courses.</p>
+  <div class="header-badge">📂 Stream → Course Hierarchy Management</div>
+</div>
+
+<!-- ══ MAIN CONTENT ════════════════════════════════════════ -->
+<div class="main-container">
+
+  <!-- Stats Row -->
+  <div class="stat-row" id="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;">🌊</div>
+      <div>
+        <div class="stat-num skeleton" id="stat-streams" style="width:40px;height:28px;"> </div>
+        <div class="stat-label">Total Streams</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;">📚</div>
+      <div>
+        <div class="stat-num skeleton" id="stat-total-courses" style="width:40px;height:28px;"> </div>
+        <div class="stat-label">Total Courses</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef9c3;">✅</div>
+      <div>
+        <div class="stat-num skeleton" id="stat-mapped" style="width:40px;height:28px;"> </div>
+        <div class="stat-label">Mapped Courses</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef2f2;">⚠️</div>
+      <div>
+        <div class="stat-num skeleton" id="stat-unmapped" style="width:40px;height:28px;"> </div>
+        <div class="stat-label">Unmapped Courses</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('streams', this)">🌊 Streams</button>
+    <button class="tab-btn"        onclick="switchTab('mapping',  this)">🔗 Course Mapping</button>
+    <button class="tab-btn"        onclick="switchTab('grouped',  this)">📂 Grouped View</button>
+  </div>
+
+  <!-- ═══ TAB 1: STREAMS ═══════════════════════════════════ -->
+  <div class="tab-content active" id="tab-streams">
+
+    <!-- Add Stream Form -->
+    <div class="section-card">
+      <div class="section-title">➕ Add New Stream</div>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label class="form-label">Stream Name <span class="req">*</span></label>
+          <input id="s-name" class="form-control-cm" placeholder="e.g. Engineering" maxlength="100"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Icon (Emoji)</label>
+          <div class="icon-wrap" id="icon-wrap">
+            <span class="icon-preview" id="icon-preview-add">📚</span>
+            <input id="s-icon" class="form-control-cm" value="📚" placeholder="Click to pick emoji" readonly/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Theme Color</label>
+          <div class="color-input-wrap">
+            <div class="color-swatch" id="color-swatch-add" style="background:#1565c0;" onclick="document.getElementById('s-color-picker').click()"></div>
+            <input type="color" id="s-color-picker" value="#1565c0" onchange="updateColorSwatch(this.value,'color-swatch-add'); document.getElementById('s-color').value = this.value;"/>
+            <input id="s-color" class="form-control-cm" value="#1565c0" placeholder="#1565c0" maxlength="20" oninput="document.getElementById('color-swatch-add').style.background=this.value"/>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label class="form-label">Description</label>
+          <textarea id="s-desc" class="form-control-cm" placeholder="Brief description of this stream (optional)" rows="2"></textarea>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
+        <button class="btn-secondary-cm" onclick="resetAddForm()">🔄 Reset</button>
+        <button class="btn-primary-cm" id="btn-add-stream" onclick="addStream()">
+          <span class="spinner" id="spinner-add" style="display:none;"></span>
+          ➕ Add Stream
+        </button>
+      </div>
+    </div>
+
+    <!-- Streams Grid -->
+    <div class="section-card">
+      <div class="section-title">
+        🌊 All Streams
+        <span class="badge-count" id="streams-count-badge">0</span>
+        <div style="margin-left:auto;">
+          <div class="search-wrap" style="max-width:220px;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="stream-search" placeholder="Search streams..." oninput="filterStreamCards()" />
+          </div>
+        </div>
+      </div>
+      <div id="streams-grid-loading" class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <h3>Loading streams...</h3>
+      </div>
+      <div class="streams-grid" id="streams-grid" style="display:none;"></div>
+      <div class="empty-state" id="streams-empty" style="display:none;">
+        <div class="empty-icon">🌊</div>
+        <h3>No streams yet</h3>
+        <p>Add your first stream using the form above.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB 2: COURSE MAPPING ════════════════════════════ -->
+  <div class="tab-content" id="tab-mapping">
+    <div class="section-card">
+      <div class="section-title">🔗 Map Courses to Streams</div>
+      <p style="font-size:13px; color:#6b7280; margin-bottom:20px;">
+        Assign each course to its parent stream. You can also bulk-assign by selecting multiple courses.
+      </p>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="map-search" placeholder="Search courses..." oninput="filterMapTable()"/>
+        </div>
+        <select class="filter-select" id="map-stream-filter" onchange="filterMapTable()">
+          <option value="">All Streams</option>
+          <option value="unmapped">⚠️ Unmapped Only</option>
+        </select>
+        <button class="btn-primary-cm" id="btn-bulk-assign" onclick="openBulkModal()" style="display:none;">
+          🔗 Bulk Assign Selected
+        </button>
+        <span class="results-count" id="map-results-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this)" style="cursor:pointer;"/></th>
+              <th>Course</th>
+              <th>Exam</th>
+              <th>Stream</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="map-tbody">
+            <tr><td colspan="5" style="text-align:center; padding:32px; color:#9ca3af;">Loading courses...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB 3: GROUPED VIEW ══════════════════════════════ -->
+  <div class="tab-content" id="tab-grouped">
+    <div class="section-card">
+      <div class="section-title">📂 Stream → Course Hierarchy</div>
+      <p style="font-size:13px; color:#6b7280; margin-bottom:24px;">
+        Visual tree of all streams and their mapped courses. Click any stream header to expand/collapse.
+      </p>
+      <div id="grouped-container">
+        <div class="empty-state">
+          <div class="empty-icon">⏳</div>
+          <h3>Loading hierarchy...</h3>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unmapped section -->
+    <div class="section-card" id="unmapped-section" style="display:none;">
+      <div class="section-title">⚠️ Unmapped Courses <span class="badge-count" id="unmapped-badge" style="background:#fef3c7; color:#92400e;">0</span></div>
+      <p style="font-size:13px; color:#6b7280; margin-bottom:16px;">These courses are not assigned to any stream yet.</p>
+      <div class="course-tags" id="unmapped-tags"></div>
+    </div>
+  </div>
+
+</div><!-- end main-container -->
+
+<!-- ══ EDIT STREAM MODAL ════════════════════════════════════ -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Stream</div>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <input type="hidden" id="edit-stream-id"/>
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label class="form-label">Stream Name <span class="req">*</span></label>
+        <input id="edit-name" class="form-control-cm" maxlength="100"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Icon</label>
+        <div class="icon-wrap">
+          <span class="icon-preview" id="icon-preview-edit">📚</span>
+          <input id="edit-icon" class="form-control-cm" placeholder="Emoji" readonly/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <div class="color-input-wrap">
+          <div class="color-swatch" id="color-swatch-edit" style="background:#1565c0;" onclick="document.getElementById('edit-color-picker').click()"></div>
+          <input type="color" id="edit-color-picker" onchange="updateColorSwatch(this.value,'color-swatch-edit'); document.getElementById('edit-color').value = this.value;"/>
+          <input id="edit-color" class="form-control-cm" placeholder="#1565c0" oninput="document.getElementById('color-swatch-edit').style.background=this.value"/>
+        </div>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label class="form-label">Description</label>
+      <textarea id="edit-desc" class="form-control-cm" rows="2"></textarea>
+    </div>
+    <div style="display:flex; gap:12px; justify-content:flex-end;">
+      <button class="btn-secondary-cm" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-primary-cm" id="btn-save-edit" onclick="saveEdit()">
+        <span class="spinner" id="spinner-edit" style="display:none;"></span>
+        💾 Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BULK ASSIGN MODAL ════════════════════════════════════ -->
+<div class="modal-overlay" id="bulk-modal">
+  <div class="modal-box" style="width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">🔗 Bulk Assign Stream</div>
+      <button class="modal-close" onclick="closeBulkModal()">✕</button>
+    </div>
+    <p style="font-size:13px; color:#6b7280; margin-bottom:16px;">
+      Select a stream to assign to <strong id="bulk-count">0</strong> selected courses.
+    </p>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label class="form-label">Target Stream <span class="req">*</span></label>
+      <select id="bulk-stream-select" class="form-control-cm">
+        <option value="">— Select Stream —</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:12px; justify-content:flex-end;">
+      <button class="btn-secondary-cm" onclick="closeBulkModal()">Cancel</button>
+      <button class="btn-primary-cm" onclick="doBulkAssign()">
+        <span class="spinner" id="spinner-bulk" style="display:none;"></span>
+        ✅ Assign
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EMOJI PICKER PANEL ═══════════════════════════════════ -->
+<div id="emoji-panel" style="
+  display:none; position:fixed; z-index:500;
+  background:#fff; border:1.5px solid #e5e7eb; border-radius:14px;
+  padding:14px; box-shadow:0 8px 32px rgba(0,0,0,0.12); width:280px;
+">
+  <div style="display:flex;flex-wrap:wrap;gap:4px;max-height:200px;overflow-y:auto;" id="emoji-grid-panel"></div>
+</div>
+
+<!-- ══ TOAST CONTAINER ══════════════════════════════════════ -->
+<div class="toast-container" id="toasts"></div>
+
+<!-- ══ SCRIPTS ══════════════════════════════════════════════ -->
+<script>
+// ── Config ────────────────────────────────────────────────────
+const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000/api'
+  : 'https://careermyntra-portal-6.onrender.com/api';   // ← change to your Render URL
+
+// ── State ─────────────────────────────────────────────────────
+let allStreams  = [];
+let allCourses = [];
+let groupedData = { grouped: [], unmapped: [] };
+let selectedCourseIds = new Set();
+let activeEmojiTarget = null;
+
+// ── Emoji List ────────────────────────────────────────────────
+const EMOJIS = [
+  '📚','🎓','🏥','⚕️','💊','🩺','🦷','🌿','🏛️','⚖️','📜',
+  '⚙️','🔧','🔩','🏗️','💻','📐','📊','💼','📈','💹','🎯',
+  '🌊','🧪','🔬','🧬','🏆','🎖️','📌','🗂️','📁','🗃️','💡',
+  '🌟','🔴','🟡','🟢','🔵','🟣','🟤','⭐','🏠','🌏','🔑'
+];
+
+// ── Toast ─────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="toast-icon">${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── Spinner helpers ───────────────────────────────────────────
+function setLoading(btnId, spinnerId, on, label = '') {
+  const btn = document.getElementById(btnId);
+  const sp  = document.getElementById(spinnerId);
+  if (!btn || !sp) return;
+  sp.style.display = on ? 'inline-block' : 'none';
+  btn.disabled = on;
+  if (label) btn.lastChild.textContent = on ? ' Loading...' : ' ' + label;
+}
+
+// ── Color swatch helper ───────────────────────────────────────
+function updateColorSwatch(val, id) {
+  const sw = document.getElementById(id);
+  if (sw) sw.style.background = val;
+}
+
+// ── Tab Switching ─────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'mapping' && allCourses.length === 0) loadMapTab();
+  if (tab === 'grouped') loadGroupedTab();
+}
+
+// ─────────────────────────────────────────────────────────────
+//  LOAD DATA
+// ─────────────────────────────────────────────────────────────
+
+// Load stats + streams grid
+async function loadStreams() {
+  try {
+    const r = await fetch(`${API}/streams?with_courses=true`);
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+
+    allStreams = d.streams;
+
+    // Stats
+    setStat('stat-streams',       d.total_streams);
+    setStat('stat-total-courses', d.total_courses);
+    setStat('stat-mapped',        d.mapped_courses);
+    setStat('stat-unmapped',      d.unmapped_courses);
+    document.getElementById('streams-count-badge').textContent = d.total_streams;
+
+    renderStreamsGrid(allStreams);
+    populateStreamFilters(allStreams);
+  } catch(e) {
+    toast('Failed to load streams: ' + e.message, 'error');
+  }
+}
+
+function setStat(id, val) {
+  const el = document.getElementById(id);
+  if (el) { el.className = 'stat-num'; el.textContent = val; }
+}
+
+// Load courses for mapping tab
+async function loadMapTab() {
+  try {
+    const r = await fetch(`${API}/courses`);
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    allCourses = d.courses;
+    renderMapTable(allCourses);
+  } catch(e) {
+    toast('Failed to load courses: ' + e.message, 'error');
+  }
+}
+
+// Load grouped view
+async function loadGroupedTab() {
+  document.getElementById('grouped-container').innerHTML = `
+    <div class="empty-state"><div class="empty-icon">⏳</div><h3>Loading hierarchy...</h3></div>`;
+  try {
+    const r = await fetch(`${API}/streams/grouped`);
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    groupedData = d;
+    renderGrouped(d);
+  } catch(e) {
+    toast('Failed to load grouped data: ' + e.message, 'error');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER STREAMS GRID
+// ─────────────────────────────────────────────────────────────
+function renderStreamsGrid(streams) {
+  const grid  = document.getElementById('streams-grid');
+  const empty = document.getElementById('streams-empty');
+  const loading = document.getElementById('streams-grid-loading');
+
+  loading.style.display = 'none';
+
+  if (!streams.length) {
+    grid.style.display  = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  grid.style.display  = 'grid';
+
+  grid.innerHTML = streams.map(s => {
+    const courseTags = (s.courses || []).map(c =>
+      `<span class="course-tag"><span>${c.icon||'📁'}</span>${c.name}</span>`
+    ).join('');
+
+    return `
+      <div class="stream-card" data-stream-name="${s.name.toLowerCase()}" data-id="${s.id}">
+        <div class="stream-card-header">
+          <div class="stream-card-title">
+            <div class="stream-icon-badge" style="background:${hexToRgba(s.color||'#1565c0',0.12)};">
+              ${s.icon || '📚'}
+            </div>
+            <div>
+              <div class="stream-name">${s.name}</div>
+              <div class="stream-desc">${s.description || 'No description'}</div>
+            </div>
+          </div>
+          <div class="stream-card-actions">
+            <button class="btn-edit-sm" onclick="openEditModal(${s.id})">✏️ Edit</button>
+            <button class="btn-danger-sm" onclick="deleteStream(${s.id}, '${escHtml(s.name)}')">🗑️</button>
+          </div>
+        </div>
+        <div class="stream-card-body">
+          <div class="stream-course-count">${s.course_count} course${s.course_count !== 1 ? 's' : ''} in this stream</div>
+          <div class="course-tags">
+            ${courseTags || '<span class="no-courses-msg">No courses mapped yet</span>'}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterStreamCards() {
+  const q = document.getElementById('stream-search').value.toLowerCase();
+  let visible = 0;
+  document.querySelectorAll('.stream-card').forEach(card => {
+    const match = !q || card.dataset.streamName.includes(q);
+    card.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  document.getElementById('streams-count-badge').textContent = visible;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER MAP TABLE
+// ─────────────────────────────────────────────────────────────
+function renderMapTable(courses) {
+  const tbody = document.getElementById('map-tbody');
+
+  if (!courses.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:#9ca3af;">No courses found.</td></tr>`;
+    document.getElementById('map-results-count').textContent = '0 courses';
+    return;
+  }
+
+  tbody.innerHTML = courses.map(c => {
+    const stream = allStreams.find(s => s.id === c.stream_id);
+    const streamBadge = stream
+      ? `<span class="stream-badge" style="background:${hexToRgba(stream.color||'#1565c0',0.1)};color:${stream.color||'#1565c0'};border:1px solid ${hexToRgba(stream.color||'#1565c0',0.3)};">${stream.icon} ${stream.name}</span>`
+      : `<span class="unassigned-badge">⚠️ Unassigned</span>`;
+
+    const streamOpts = allStreams.map(s =>
+      `<option value="${s.id}" ${c.stream_id === s.id ? 'selected' : ''}>${s.icon} ${s.name}</option>`
+    ).join('');
+
+    return `
+      <tr data-id="${c.id}" data-name="${c.name.toLowerCase()}" data-stream-id="${c.stream_id||''}" class="${c.stream_id ? '' : 'unmapped-row'}">
+        <td><input type="checkbox" class="course-cb" data-id="${c.id}" onchange="onCbChange(this)"/></td>
+        <td><span style="font-size:18px;margin-right:6px;">${c.icon||'📁'}</span><strong>${c.name}</strong></td>
+        <td><span style="font-size:12px;color:#6b7280;">${c.exam||'—'}</span></td>
+        <td>${streamBadge}</td>
+        <td>
+          <select class="filter-select" style="font-size:12px;padding:5px 8px;" onchange="quickAssign(${c.id}, this)">
+            <option value="">— Select Stream —</option>
+            ${streamOpts}
+            <option value="null" ${!c.stream_id ? 'selected':''}>🚫 Unassign</option>
+          </select>
+        </td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('map-results-count').textContent = `${courses.length} courses`;
+}
+
+function filterMapTable() {
+  const q      = document.getElementById('map-search').value.toLowerCase();
+  const filter = document.getElementById('map-stream-filter').value;
+  const rows   = document.querySelectorAll('#map-tbody tr');
+  let vis = 0;
+
+  rows.forEach(row => {
+    const name     = row.dataset.name || '';
+    const streamId = row.dataset.streamId || '';
+    const matchQ = !q || name.includes(q);
+    let matchF = true;
+    if (filter === 'unmapped') matchF = !streamId;
+    else if (filter)           matchF = streamId === filter;
+
+    const show = matchQ && matchF;
+    row.classList.toggle('hidden', !show);
+    if (show) vis++;
+  });
+
+  document.getElementById('map-results-count').textContent = `${vis} courses`;
+}
+
+function toggleSelectAll(cb) {
+  document.querySelectorAll('.course-cb:not(.hidden)').forEach(c => {
+    c.checked = cb.checked;
+    onCbChange(c);
+  });
+}
+
+function onCbChange(cb) {
+  const id = parseInt(cb.dataset.id);
+  if (cb.checked) selectedCourseIds.add(id);
+  else            selectedCourseIds.delete(id);
+  document.getElementById('btn-bulk-assign').style.display = selectedCourseIds.size > 0 ? 'flex' : 'none';
+}
+
+// Quick inline assign
+async function quickAssign(courseId, selectEl) {
+  const streamId = selectEl.value === 'null' ? null : (selectEl.value ? parseInt(selectEl.value) : null);
+  try {
+    const r = await fetch(`${API}/courses/${courseId}/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stream_id: streamId })
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    toast(d.message, 'success');
+
+    // Update local state
+    const c = allCourses.find(x => x.id === courseId);
+    if (c) c.stream_id = streamId;
+
+    loadStreams(); // Refresh stream cards
+    renderMapTable(allCourses);
+    filterMapTable();
+  } catch(e) {
+    toast('Assign failed: ' + e.message, 'error');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER GROUPED VIEW
+// ─────────────────────────────────────────────────────────────
+function renderGrouped(data) {
+  const container = document.getElementById('grouped-container');
+
+  if (!data.grouped.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🌊</div><h3>No streams yet</h3><p>Add streams first.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = data.grouped.map((s, i) => {
+    const courses = s.courses.map(c => `
+      <div class="grouped-course-row">
+        <div class="course-icon-sm">${c.icon||'📁'}</div>
+        <div>
+          <div class="course-info-name">${c.name}</div>
+          <div class="course-info-exam">${c.exam||'—'}</div>
+        </div>
+      </div>`).join('') || '<p style="font-size:13px;color:#9ca3af;padding:8px 0;">No courses in this stream yet.</p>';
+
+    return `
+      <div class="grouped-stream">
+        <div class="grouped-header" onclick="toggleGrouped(this)">
+          <div class="grouped-header-icon">${s.stream_icon}</div>
+          <div class="grouped-header-text">
+            <div class="grouped-header-name">${s.stream_name}</div>
+          </div>
+          <span class="grouped-count" style="background:${hexToRgba(s.stream_color||'#1565c0',0.1)};color:${s.stream_color||'#1565c0'};">
+            ${s.count} course${s.count !== 1 ? 's' : ''}
+          </span>
+          <span class="grouped-chevron">▼</span>
+        </div>
+        <div class="grouped-body ${i === 0 ? '' : 'collapsed'}" style="${i === 0 ? '' : 'display:none;'}">
+          ${courses}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Unmapped
+  if (data.unmapped && data.unmapped.length) {
+    const sec = document.getElementById('unmapped-section');
+    sec.style.display = 'block';
+    document.getElementById('unmapped-badge').textContent = data.unmapped.length;
+    document.getElementById('unmapped-tags').innerHTML = data.unmapped.map(c =>
+      `<span class="course-tag"><span>${c.icon||'📁'}</span>${c.name}</span>`
+    ).join('');
+  }
+}
+
+function toggleGrouped(header) {
+  const body    = header.nextElementSibling;
+  const chevron = header.querySelector('.grouped-chevron');
+  const isOpen  = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  chevron.textContent = isOpen ? '▶' : '▼';
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ADD STREAM
+// ─────────────────────────────────────────────────────────────
+async function addStream() {
+  const name  = document.getElementById('s-name').value.trim();
+  const icon  = document.getElementById('s-icon').value.trim() || '📚';
+  const color = document.getElementById('s-color').value.trim() || '#1565c0';
+  const desc  = document.getElementById('s-desc').value.trim();
+
+  if (!name) { toast('Stream name is required', 'error'); return; }
+
+  setLoading('btn-add-stream', 'spinner-add', true, 'Add Stream');
+  try {
+    const r = await fetch(`${API}/streams`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, icon, color, description: desc })
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    toast(d.message, 'success');
+    resetAddForm();
+    loadStreams();
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    setLoading('btn-add-stream', 'spinner-add', false, 'Add Stream');
+  }
+}
+
+function resetAddForm() {
+  document.getElementById('s-name').value  = '';
+  document.getElementById('s-icon').value  = '📚';
+  document.getElementById('s-color').value = '#1565c0';
+  document.getElementById('s-desc').value  = '';
+  document.getElementById('icon-preview-add').textContent = '📚';
+  document.getElementById('color-swatch-add').style.background = '#1565c0';
+  document.getElementById('s-color-picker').value = '#1565c0';
+}
+
+// ─────────────────────────────────────────────────────────────
+//  EDIT STREAM MODAL
+// ─────────────────────────────────────────────────────────────
+function openEditModal(streamId) {
+  const s = allStreams.find(x => x.id === streamId);
+  if (!s) return;
+  document.getElementById('edit-stream-id').value = s.id;
+  document.getElementById('edit-name').value  = s.name;
+  document.getElementById('edit-icon').value  = s.icon || '📚';
+  document.getElementById('edit-color').value = s.color || '#1565c0';
+  document.getElementById('edit-desc').value  = s.description || '';
+  document.getElementById('icon-preview-edit').textContent = s.icon || '📚';
+  document.getElementById('color-swatch-edit').style.background = s.color || '#1565c0';
+  document.getElementById('edit-color-picker').value = s.color || '#1565c0';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+}
+
+async function saveEdit() {
+  const id    = parseInt(document.getElementById('edit-stream-id').value);
+  const name  = document.getElementById('edit-name').value.trim();
+  const icon  = document.getElementById('edit-icon').value.trim() || '📚';
+  const color = document.getElementById('edit-color').value.trim() || '#1565c0';
+  const desc  = document.getElementById('edit-desc').value.trim();
+
+  if (!name) { toast('Stream name is required', 'error'); return; }
+
+  setLoading('btn-save-edit', 'spinner-edit', true, 'Save Changes');
+  try {
+    const r = await fetch(`${API}/streams/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, icon, color, description: desc })
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    toast(d.message, 'success');
+    closeEditModal();
+    loadStreams();
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    setLoading('btn-save-edit', 'spinner-edit', false, 'Save Changes');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  DELETE STREAM
+// ─────────────────────────────────────────────────────────────
+async function deleteStream(id, name) {
+  if (!confirm(`Delete stream "${name}"?\n\nCourses under it will become unmapped but won't be deleted.`)) return;
+  try {
+    const r = await fetch(`${API}/streams/${id}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    toast(d.message, 'success');
+    loadStreams();
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  BULK ASSIGN MODAL
+// ─────────────────────────────────────────────────────────────
+function openBulkModal() {
+  document.getElementById('bulk-count').textContent = selectedCourseIds.size;
+  const sel = document.getElementById('bulk-stream-select');
+  sel.innerHTML = '<option value="">— Select Stream —</option>' +
+    allStreams.map(s => `<option value="${s.id}">${s.icon} ${s.name}</option>`).join('');
+  document.getElementById('bulk-modal').classList.add('open');
+}
+
+function closeBulkModal() {
+  document.getElementById('bulk-modal').classList.remove('open');
+}
+
+async function doBulkAssign() {
+  const streamId = parseInt(document.getElementById('bulk-stream-select').value);
+  if (!streamId) { toast('Please select a stream', 'error'); return; }
+
+  const ids = [...selectedCourseIds];
+  document.getElementById('spinner-bulk').style.display = 'inline-block';
+  try {
+    const r = await fetch(`${API}/streams/${streamId}/courses/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ course_ids: ids })
+    });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    toast(d.message, 'success');
+    closeBulkModal();
+    selectedCourseIds.clear();
+    document.getElementById('btn-bulk-assign').style.display = 'none';
+    loadStreams();
+    loadMapTab();
+  } catch(e) {
+    toast(e.message, 'error');
+  } finally {
+    document.getElementById('spinner-bulk').style.display = 'none';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  STREAM FILTER SELECT POPULATE
+// ─────────────────────────────────────────────────────────────
+function populateStreamFilters(streams) {
+  const sel = document.getElementById('map-stream-filter');
+  // Keep first two options, rebuild rest
+  while (sel.options.length > 2) sel.remove(2);
+  streams.forEach(s => {
+    const opt = new Option(`${s.icon} ${s.name}`, s.id);
+    sel.add(opt);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  EMOJI PICKER
+// ─────────────────────────────────────────────────────────────
+function buildEmojiPanel() {
+  const grid = document.getElementById('emoji-grid-panel');
+  grid.innerHTML = EMOJIS.map(e =>
+    `<button onclick="pickEmoji('${e}')" style="
+      width:34px;height:34px;border:none;background:none;font-size:20px;
+      cursor:pointer;border-radius:6px;transition:background 0.15s;
+    " onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background='none'">${e}</button>`
+  ).join('');
+}
+
+function showEmojiPicker(inputId, previewId, triggerEl) {
+  activeEmojiTarget = { inputId, previewId };
+  const panel = document.getElementById('emoji-panel');
+  const rect  = triggerEl.getBoundingClientRect();
+  panel.style.display = 'block';
+  panel.style.top  = (rect.bottom + window.scrollY + 6) + 'px';
+  panel.style.left = (rect.left  + window.scrollX)     + 'px';
+}
+
+function pickEmoji(e) {
+  if (!activeEmojiTarget) return;
+  document.getElementById(activeEmojiTarget.inputId).value  = e;
+  document.getElementById(activeEmojiTarget.previewId).textContent = e;
+  document.getElementById('emoji-panel').style.display = 'none';
+  activeEmojiTarget = null;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  UTILS
+// ─────────────────────────────────────────────────────────────
+function hexToRgba(hex, a) {
+  try {
+    hex = hex.replace('#','');
+    if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+    const r = parseInt(hex.slice(0,2),16);
+    const g = parseInt(hex.slice(2,4),16);
+    const b = parseInt(hex.slice(4,6),16);
+    return `rgba(${r},${g},${b},${a})`;
+  } catch(e) { return `rgba(21,101,192,${a})`; }
+}
+
+function escHtml(s) {
+  return (s||'').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+// ─────────────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Auth guard
+  const user = JSON.parse(localStorage.getItem('cm_user') || '{}');
+  if (user.name) {
+    document.getElementById('user-name').textContent    = user.name;
+    document.getElementById('user-initials').textContent = user.name.charAt(0).toUpperCase();
+  }
+
+  buildEmojiPanel();
+  loadStreams();
+
+  // Emoji picker on icon inputs
+  document.getElementById('s-icon').addEventListener('click', function() {
+    showEmojiPicker('s-icon', 'icon-preview-add', this);
+  });
+  document.getElementById('edit-icon').addEventListener('click', function() {
+    showEmojiPicker('edit-icon', 'icon-preview-edit', this);
+  });
+
+  // Close emoji panel on outside click
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('emoji-panel');
+    if (!document.getElementById('icon-wrap').contains(e.target) &&
+        !e.target.closest('#emoji-panel')) {
+      panel.style.display = 'none';
+    }
+  });
+
+  // Close modals on overlay click
+  document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
+  document.getElementById('bulk-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeBulkModal();
+  });
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

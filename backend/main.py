@@ -13,6 +13,8 @@ from routes.upload import upload_bp
 from routes.download import download_bp
 from routes.auth import auth_bp
 from routes.college_master import college_master_bp  # ← NEW
+from routes.streams import streams_bp   
+
 from db import init_db
 
 # ─── App Setup ───────────────────────────────────────────────
@@ -49,6 +51,7 @@ app.register_blueprint(auth_bp,           url_prefix="/api")
 app.register_blueprint(upload_bp,         url_prefix="/api")
 app.register_blueprint(download_bp,       url_prefix="/api")
 app.register_blueprint(college_master_bp, url_prefix="/api")  # ← NEW
+app.register_blueprint(streams_bp,        url_prefix="/api")  # ← STREAMS
 
 # ─── Health Check ────────────────────────────────────────────
 @app.route("/api/health", methods=["GET"])
