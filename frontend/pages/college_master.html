@@ -975,7 +975,10 @@
       const fd = new FormData();
       fd.append('file', selectedPdfFile);
 
-      const res  = await fetch(`${API}/colleges/upload-pdf`, { method: 'POST', body: fd });
+     const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 300000);
+const res  = await fetch(`${API}/colleges/upload-pdf`, { method: 'POST', body: fd, signal: controller.signal });
+clearTimeout(timeoutId); 
       const data = await res.json();
 
       clearInterval(progInterval);
@@ -1029,14 +1032,16 @@
     } catch(e) {
       clearInterval(progInterval);
       setProgress(0, '');
-      toast('Network error: ' + e.message, 'error');
+      if (e.name === 'AbortError') {
+        toast('Processing chal rahi hai background mein — 2 min baad Browse tab check karo!', '');
+      } else {
+        toast('Network error: ' + e.message, 'error');
+      }
     } finally {
       btn.disabled = false;
       btn.innerHTML = '📤 Extract & Save to Database';
     }
   }
-
-
 </script>
 </body>
 </html>

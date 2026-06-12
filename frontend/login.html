@@ -388,7 +388,13 @@
 
   function googleRedirectLogin() {
   const clientId = '461124697477-d39u0mt1u2of47fpue7264ls8saasi87.apps.googleusercontent.com';
-  const backendUrl = 'https://careermyntra-portal-6.onrender.com';
+
+
+  const backendUrl = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ? "http://127.0.0.1:5000"
+  : "https://careermyntra-portal-6.onrender.com";
+
+
   const redirectUri = encodeURIComponent(backendUrl + '/api/auth/google/callback');
   const scope = encodeURIComponent('openid email profile');
   const url = 'https://accounts.google.com/o/oauth2/v2/auth' +

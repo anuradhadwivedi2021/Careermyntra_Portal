@@ -1,6 +1,8 @@
 // dashboard.js — CareerMyntra Frontend JS
 // Connected to Flask backend at localhost:5000
-const BACKEND = "https://careermyntra-portal-6.onrender.com";
+const BACKEND = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://127.0.0.1:5000"
+  : "https://careermyntra-portal-6.onrender.com";
 
 const courses = [
   { name:"11th FYJC",        sub:"Maharashtra",      icon:"🏫", color:"#4f46e5" },
