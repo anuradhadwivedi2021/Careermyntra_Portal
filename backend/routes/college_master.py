@@ -68,7 +68,20 @@ def get_colleges():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-
+# ─── GET single college by code ───────────────────────────────────────────────
+@college_master_bp.route("/colleges/<code>", methods=["GET"])
+def get_college(code):
+    try:
+        conn = get_connection()
+        cur  = get_cursor(conn)
+        cur.execute("SELECT * FROM college_master WHERE LOWER(college_code) = LOWER(%s);", (code,))
+        row  = cur.fetchone()
+        cur.close(); conn.close()
+        if not row:
+            return jsonify({"success": False, "error": "College not found"}), 404
+        return jsonify({"success": True, "college": dict(row)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ─── POST add single college ──────────────────────────────────────────────────
@@ -263,109 +276,127 @@ def get_filters():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# ─── POST upload PDF and extract college codes/names ────────────────────────
+# ─── Async PDF processing ────────────────────────────────────────────────────
 import os
 import re
 import io
+import uuid
+import threading
+
+PDF_TASKS = {}  # task_id -> status dict
+
+def process_pdf_background(task_id, pdf_bytes):
+    """Background mein PDF process karo aur DB mein save karo."""
+    try:
+        import pdfplumber
+
+        PDF_TASKS[task_id]["status"]  = "processing"
+        PDF_TASKS[task_id]["message"] = "PDF scan ho raha hai..."
+
+        college_pattern = re.compile(
+            r"^\s*(\d{4,6})\s*[-–—]\s*(.+)",
+            re.MULTILINE
+        )
+
+        found = {}
+        pages_scanned = 0
+
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            total_pages = len(pdf.pages)
+            PDF_TASKS[task_id]["total_pages"] = total_pages
+
+            for i, page in enumerate(pdf.pages):
+                text = page.extract_text() or ""
+                for m in college_pattern.finditer(text):
+                    code = m.group(1).strip()
+                    name = m.group(2).strip()
+                    name = re.split(r"\s{3,}|\t", name)[0].strip()
+                    if len(name) > 5:
+                        found[code] = name
+
+                pages_scanned += 1
+                pct = int((pages_scanned / total_pages) * 80)
+                PDF_TASKS[task_id]["percent"] = pct
+                PDF_TASKS[task_id]["message"] = f"Scanning page {pages_scanned}/{total_pages}..."
+
+        if not found:
+            PDF_TASKS[task_id]["status"]  = "error"
+            PDF_TASKS[task_id]["message"] = "No college codes found in PDF."
+            return
+
+        # ── DB mein save karo ──
+        PDF_TASKS[task_id]["message"] = "Database mein save ho raha hai..."
+        conn = get_connection()
+        cur  = conn.cursor()
+        inserted = 0
+        skipped  = 0
+
+        for code, name in found.items():
+            try:
+                cur.execute("""
+                    INSERT INTO college_master (college_code, college_name)
+                    VALUES (%s, %s)
+                    ON CONFLICT (college_code) DO UPDATE
+                      SET college_name = EXCLUDED.college_name,
+                          updated_at   = CURRENT_TIMESTAMP;
+                """, (code.upper(), name))
+                inserted += 1
+            except Exception:
+                skipped += 1
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        PDF_TASKS[task_id]["status"]        = "completed"
+        PDF_TASKS[task_id]["percent"]       = 100
+        PDF_TASKS[task_id]["message"]       = f"{inserted} colleges saved!"
+        PDF_TASKS[task_id]["extracted"]     = inserted
+        PDF_TASKS[task_id]["skipped"]       = skipped
+        PDF_TASKS[task_id]["pages_scanned"] = pages_scanned
+        PDF_TASKS[task_id]["preview"]       = [
+            {"college_code": k, "college_name": v}
+            for k, v in list(found.items())[:10]
+        ]
+
+    except Exception as e:
+        PDF_TASKS[task_id]["status"]  = "error"
+        PDF_TASKS[task_id]["message"] = f"Error: {str(e)}"
+        PDF_TASKS[task_id]["percent"] = 0
+
 
 @college_master_bp.route("/colleges/upload-pdf", methods=["POST"])
 def upload_pdf_colleges():
-    """
-    PDF upload karo → college codes aur names extract karo →
-    college_master table mein upsert karo.
-    Pattern: 5-digit code - College Name
-    e.g.  "6001 - Govt. College of Engineering, Pune"
-    """
-    try:
-        import pdfplumber
-    except ImportError:
-        return jsonify({"success": False, "error": "pdfplumber not installed. Run: pip install pdfplumber"}), 500
-
     if "file" not in request.files:
         return jsonify({"success": False, "error": "No file uploaded"}), 400
 
     f = request.files["file"]
     if not f.filename.lower().endswith(".pdf"):
-        return jsonify({"success": False, "error": "Only PDF files are allowed"}), 400
+        return jsonify({"success": False, "error": "Only PDF files allowed"}), 400
 
-    # ── Read PDF in memory ──
     pdf_bytes = f.read()
+    task_id   = str(uuid.uuid4())
 
-    # Pattern: optional whitespace, 4-6 digit code, dash/hyphen, college name
-    college_pattern = re.compile(
-        r"^\s*(\d{4,6})\s*[-–—]\s*(.+)",
-        re.MULTILINE
+    PDF_TASKS[task_id] = {
+        "status":  "pending",
+        "percent": 0,
+        "message": "Processing shuru ho rahi hai...",
+        "total_pages": 0
+    }
+
+    thread = threading.Thread(
+        target=process_pdf_background,
+        args=(task_id, pdf_bytes),
+        daemon=True
     )
+    thread.start()
 
-    found   = {}   # code -> name (deduplicated)
-    pages_scanned = 0
+    return jsonify({"success": True, "task_id": task_id})
 
-    try:
-        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-            pages_scanned = len(pdf.pages)
-            for page in pdf.pages:
-                text = page.extract_text() or ""
-                for m in college_pattern.finditer(text):
-                    code = m.group(1).strip()
-                    name = m.group(2).strip()
-                    # Clean trailing garbage (page numbers, extra text after long dash)
-                    name = re.split(r"\s{3,}|\t", name)[0].strip()
-                    if len(name) > 5:   # skip noise
-                        found[code] = name
-    except Exception as e:
-        return jsonify({"success": False, "error": f"PDF read error: {str(e)}"}), 500
 
-    if not found:
-        return jsonify({
-            "success": False,
-            "error": "No college codes found in PDF. Expected pattern: '60001 - College Name'",
-            "pages_scanned": pages_scanned
-        }), 422
-
-    # ── Upsert into DB ──
-    conn = get_connection()
-    cur  = conn.cursor()
-    inserted = 0
-    skipped  = 0
-
-    for code, name in found.items():
-        try:
-            cur.execute("""
-                INSERT INTO college_master (college_code, college_name)
-                VALUES (%s, %s)
-                ON CONFLICT (college_code) DO UPDATE
-                  SET college_name = EXCLUDED.college_name,
-                      updated_at   = CURRENT_TIMESTAMP;
-            """, (code.upper(), name))
-            inserted += 1
-        except Exception:
-            skipped += 1
-
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return jsonify({
-        "success":       True,
-        "message":       f"{inserted} colleges extracted and saved from PDF.",
-        "extracted":     inserted,
-        "skipped":       skipped,
-        "pages_scanned": pages_scanned,
-        "preview":       [{"college_code": k, "college_name": v}
-                          for k, v in list(found.items())[:10]]
-    })
-
-    # ─── GET single college by code ───────────────────────────────────────────────
-@college_master_bp.route("/colleges/<code>", methods=["GET"])
-def get_college(code):
-    try:
-        conn = get_connection()
-        cur  = get_cursor(conn)
-        cur.execute("SELECT * FROM college_master WHERE LOWER(college_code) = LOWER(%s);", (code,))
-        row  = cur.fetchone()
-        cur.close(); conn.close()
-        if not row:
-            return jsonify({"success": False, "error": "College not found"}), 404
-        return jsonify({"success": True, "college": dict(row)})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+@college_master_bp.route("/colleges/pdf-status/<task_id>", methods=["GET"])
+def pdf_status(task_id):
+    task = PDF_TASKS.get(task_id)
+    if not task:
+        return jsonify({"success": False, "error": "Task not found"}), 404
+    return jsonify({"success": True, **task})

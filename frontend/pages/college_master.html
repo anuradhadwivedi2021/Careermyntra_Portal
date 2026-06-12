@@ -957,91 +957,87 @@
     if (!selectedPdfFile) return;
     const btn = document.getElementById('btn-pdf-upload');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Scanning PDF...';
+    btn.innerHTML = '<span class="spinner"></span> Uploading...';
 
     const progress = document.getElementById('pdf-progress-wrap');
     progress.style.display = 'block';
     document.getElementById('pdf-result').style.display = 'none';
-
-    // Simulate progress steps while upload runs
-    setProgress(10, 'Uploading PDF...');
-    const progInterval = setInterval(() => {
-      const bar = document.getElementById('pdf-progress-bar');
-      const cur = parseInt(bar.style.width) || 10;
-      if (cur < 80) setProgress(cur + 5, cur < 30 ? 'Uploading PDF...' : 'Scanning pages...');
-    }, 400);
+    setProgress(5, 'PDF upload ho rahi hai...');
 
     try {
       const fd = new FormData();
       fd.append('file', selectedPdfFile);
 
-     const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 300000);
-const res  = await fetch(`${API}/colleges/upload-pdf`, { method: 'POST', body: fd, signal: controller.signal });
-clearTimeout(timeoutId); 
+      const res  = await fetch(`${API}/colleges/upload-pdf`, { method: 'POST', body: fd });
       const data = await res.json();
 
-      clearInterval(progInterval);
-      setProgress(100, 'Done!');
-
-      const resultBox    = document.getElementById('pdf-result');
-      const resultHeader = document.getElementById('pdf-result-header');
-      const resultPrev   = document.getElementById('pdf-result-preview');
-      resultBox.style.display = 'block';
-
-      if (data.success) {
-        resultBox.style.borderColor = '#86efac';
-        resultHeader.style.background = '#f0fdf4';
-        resultHeader.style.color      = '#15803d';
-        resultHeader.innerHTML = `✅ ${data.message} &nbsp;|&nbsp; Pages scanned: <b>${data.pages_scanned}</b>`;
-
-        const preview = data.preview || [];
-        let html = '';
-        if (preview.length > 0) {
-          html += `<p style="font-size:13px;color:#6b7280;font-weight:600;margin-bottom:10px;">
-            Preview (first ${preview.length} of ${data.extracted} extracted):
-          </p>
-          <table class="preview-table">
-            <thead><tr><th>Code</th><th>College Name</th></tr></thead>
-            <tbody>
-              ${preview.map(c => `<tr>
-                <td><span class="code-badge">${esc(c.college_code)}</span></td>
-                <td>${esc(c.college_name)}</td>
-              </tr>`).join('')}
-            </tbody>
-          </table>`;
-          if (data.extracted > preview.length) {
-            html += `<p style="font-size:12px;color:#9ca3af;margin-top:8px;">… and ${data.extracted - preview.length} more saved to database.</p>`;
-          }
-        }
-        resultPrev.innerHTML = html;
-        toast(`✅ ${data.extracted} colleges saved from PDF!`, 'success');
-        loadMeta();
-
-      } else {
-        resultBox.style.borderColor = '#fca5a5';
-        resultHeader.style.background = '#fef2f2';
-        resultHeader.style.color      = '#dc2626';
-        resultHeader.innerHTML = '❌ ' + (data.error || 'PDF processing failed');
-        resultPrev.innerHTML = data.pages_scanned
-          ? `<p style="font-size:13px;color:#6b7280;">Pages scanned: ${data.pages_scanned}. Try a different PDF format.</p>`
-          : '';
-        toast(data.error || 'PDF processing failed', 'error');
+      if (!data.success || !data.task_id) {
+        throw new Error(data.error || 'Upload failed');
       }
+
+      btn.innerHTML = '<span class="spinner"></span> Processing...';
+      setProgress(10, 'PDF scan ho rahi hai...');
+      await pollPdfStatus(data.task_id);
 
     } catch(e) {
-      clearInterval(progInterval);
       setProgress(0, '');
-      if (e.name === 'AbortError') {
-        toast('Processing chal rahi hai background mein — 2 min baad Browse tab check karo!', '');
-      } else {
-        toast('Network error: ' + e.message, 'error');
-      }
+      const resultBox    = document.getElementById('pdf-result');
+      const resultHeader = document.getElementById('pdf-result-header');
+      resultBox.style.display = 'block';
+      resultBox.style.borderColor = '#fca5a5';
+      resultHeader.style.background = '#fef2f2';
+      resultHeader.style.color = '#dc2626';
+      resultHeader.innerHTML = '❌ ' + e.message;
+      toast('Error: ' + e.message, 'error');
     } finally {
       btn.disabled = false;
       btn.innerHTML = '📤 Extract & Save to Database';
     }
   }
+
+  async function pollPdfStatus(taskId) {
+    return new Promise((resolve, reject) => {
+      const interval = setInterval(async () => {
+        try {
+          const res  = await fetch(`${API}/colleges/pdf-status/${taskId}`);
+          const data = await res.json();
+          if (!data.success) { clearInterval(interval); reject(new Error(data.error)); return; }
+          setProgress(data.percent || 10, data.message || 'Processing...');
+          if (data.status === 'completed') {
+            clearInterval(interval);
+            setProgress(100, 'Done!');
+            const resultBox    = document.getElementById('pdf-result');
+            const resultHeader = document.getElementById('pdf-result-header');
+            const resultPrev   = document.getElementById('pdf-result-preview');
+            resultBox.style.display = 'block';
+            resultBox.style.borderColor = '#86efac';
+            resultHeader.style.background = '#f0fdf4';
+            resultHeader.style.color = '#15803d';
+            resultHeader.innerHTML = `✅ ${data.message} &nbsp;|&nbsp; Pages scanned: <b>${data.pages_scanned}</b>`;
+            const preview = data.preview || [];
+            let html = '';
+            if (preview.length > 0) {
+              html += `<p style="font-size:13px;color:#6b7280;font-weight:600;margin-bottom:10px;">Preview (first ${preview.length} of ${data.extracted}):</p>
+              <table class="preview-table"><thead><tr><th>Code</th><th>College Name</th></tr></thead><tbody>
+              ${preview.map(c => `<tr><td><span class="code-badge">${esc(c.college_code)}</span></td><td>${esc(c.college_name)}</td></tr>`).join('')}
+              </tbody></table>`;
+              if (data.extracted > preview.length)
+                html += `<p style="font-size:12px;color:#9ca3af;margin-top:8px;">… and ${data.extracted - preview.length} more saved.</p>`;
+            }
+            resultPrev.innerHTML = html;
+            toast(`✅ ${data.extracted} colleges saved from PDF!`, 'success');
+            loadMeta();
+            resolve();
+          } else if (data.status === 'error') {
+            clearInterval(interval);
+            reject(new Error(data.message || 'Processing failed'));
+          }
+        } catch(e) { clearInterval(interval); reject(e); }
+      }, 2000);
+    });
+  }
+
+
 </script>
 </body>
 </html>
