@@ -8,9 +8,13 @@ courses_bp = Blueprint("courses", __name__)
 @courses_bp.route("/courses", methods=["GET"])
 def get_courses():
     try:
+        stream_id = request.args.get("stream_id")
         conn = get_connection()
         cur  = get_cursor(conn)
-        cur.execute("SELECT * FROM courses ORDER BY id;")
+        if stream_id:
+            cur.execute("SELECT * FROM courses WHERE stream_id = %s ORDER BY id;", (stream_id,))
+        else:
+            cur.execute("SELECT * FROM courses ORDER BY id;")
         rows = cur.fetchall()
         cur.close()
         conn.close()
@@ -27,6 +31,7 @@ def add_course():
     course_name = request.form.get("course_name", "").strip()
     course_exam = request.form.get("course_exam", "").strip()
     course_icon = request.form.get("course_icon", "📁").strip()
+    stream_id   = request.form.get("stream_id") or None
 
     if not course_name or not course_exam:
         return jsonify({"success": False, "error": "Course name and exam are required"}), 400
@@ -56,10 +61,10 @@ def add_course():
         cur  = conn.cursor()
         cur.execute(
             """INSERT INTO courses
-               (name, exam, icon, script, script_content, sample_input, sample_output)
-               VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;""",
+               (name, exam, icon, script, script_content, sample_input, sample_output, stream_id)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id;""",
             (course_name, course_exam, course_icon, script_name,
-             script_content, input_name, output_name)
+             script_content, input_name, output_name, stream_id)
         )
         new_id = cur.fetchone()[0]
         conn.commit()

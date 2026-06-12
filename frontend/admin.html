@@ -105,6 +105,7 @@
     .course-cell { display: flex; align-items: center; gap: 10px; }
     .course-cell-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
     .exam-badge { background: #dbeafe; color: #1565c0; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .stream-badge { background: #f0fdf4; color: #16a34a; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
     .file-chip { display: inline-block; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #f3f4f6; color: #374151; }
     .file-chip.py { background: #fef3c7; color: #92400e; }
     .file-chip.pdf { background: #fecaca; color: #7f1d1d; }
@@ -181,6 +182,14 @@
     <div class="section-card">
       <h3>➕ Add New Course</h3>
       <form id="add-course-form" onsubmit="addCourse(event)">
+        <div class="form-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label>Stream</label>
+            <select id="course-stream" style="padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:14px;font-family:inherit;color:#0d1b3e;background:#f9fafb;outline:none;transition:all 0.2s;">
+              <option value="">— Select Stream (optional) —</option>
+            </select>
+          </div>
+        </div>
         <div class="form-grid">
           <div class="form-group">
             <label>Course Name</label>
@@ -250,6 +259,9 @@
           <span class="search-icon">🔍</span>
           <input type="text" id="search-input" placeholder="Search course or exam..."/>
         </div>
+        <select class="filter-select" id="stream-filter-select">
+          <option value="">All Streams</option>
+        </select>
         <select class="filter-select" id="filter-select">
           <option value="">All Courses</option>
         </select>
@@ -261,6 +273,7 @@
             <tr>
               <th>#</th>
               <th>Course</th>
+              <th>Stream</th>
               <th>Exam</th>
               <th>Python Script</th>
               <th>Sample Input</th>
@@ -285,6 +298,24 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
   : "https://careermyntra-portal-6.onrender.com";
   
   const courses = [];
+  let streams = [];
+
+  // ─── LOAD STREAMS ─────────────────────────────────────────
+  async function loadStreams() {
+    try {
+      const res = await fetch(`${BACKEND}/api/streams`);
+      const data = await res.json();
+      if (data.success) {
+        streams = data.streams;
+        const sel = document.getElementById('course-stream');
+        const filterSel = document.getElementById('stream-filter-select');
+        streams.forEach(s => {
+          sel.innerHTML += `<option value="${s.id}">${s.icon} ${s.name}</option>`;
+          filterSel.innerHTML += `<option value="${s.id}">${s.icon} ${s.name}</option>`;
+        });
+      }
+    } catch(e) { /* streams optional */ }
+  }
 
   // ─── EMOJI DATA ───────────────────────────────────────────
   const EMOJI_CATEGORIES = {
@@ -390,15 +421,18 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
   function applySearchFilter() {
     const q = document.getElementById('search-input').value.toLowerCase().trim();
     const f = document.getElementById('filter-select').value.toLowerCase();
+    const sf = document.getElementById('stream-filter-select').value;
     const rows = document.querySelectorAll('#courses-tbody tr');
     let visible = 0;
 
     rows.forEach(row => {
       const name = row.dataset.name || '';
       const exam = row.dataset.exam || '';
+      const streamId = row.dataset.stream_id || '';
       const matchSearch = !q || name.includes(q) || exam.includes(q);
       const matchFilter = !f || name.includes(f);
-      if (matchSearch && matchFilter) {
+      const matchStream = !sf || streamId === sf;
+      if (matchSearch && matchFilter && matchStream) {
         row.classList.remove('hidden');
         visible++;
       } else {
@@ -412,6 +446,7 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
 
   document.getElementById('search-input').addEventListener('input', applySearchFilter);
   document.getElementById('filter-select').addEventListener('change', applySearchFilter);
+  document.getElementById('stream-filter-select').addEventListener('change', applySearchFilter);
 
   // ─── RENDER TABLE ─────────────────────────────────────────
   function hexToRgba(hex, a) {
@@ -423,8 +458,13 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
 
   function renderTable() {
     const tbody = document.getElementById('courses-tbody');
-    tbody.innerHTML = courses.map((c,i) => `
-      <tr data-name="${(c.name||'').toLowerCase()}" data-exam="${(c.exam||'').toLowerCase()}">
+    tbody.innerHTML = courses.map((c,i) => {
+      const stream = streams.find(s => s.id === c.stream_id);
+      const streamBadge = stream
+        ? `<span class="stream-badge">${stream.icon} ${stream.name}</span>`
+        : `<span style="color:#9ca3af;font-size:12px;">—</span>`;
+      return `
+      <tr data-name="${(c.name||'').toLowerCase()}" data-exam="${(c.exam||'').toLowerCase()}" data-stream_id="${c.stream_id||''}">
         <td style="color:#9ca3af;font-weight:700;">${i+1}</td>
         <td>
           <div class="course-cell">
@@ -432,6 +472,7 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
             <span style="font-weight:700;">${c.name}</span>
           </div>
         </td>
+        <td>${streamBadge}</td>
         <td><span class="exam-badge">${c.exam}</span></td>
         <td><span class="file-chip py">🐍 ${c.script||c.name.toLowerCase().replace(/[\s&]/g,'_')+'.py'}</span></td>
         <td><span class="file-chip pdf">📄 ${c.sample_input||'sample_input.pdf'}</span></td>
@@ -441,8 +482,8 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
           <button class="tbl-btn edit" onclick="showToast('✏️ Editing ${c.name}')">✏️ Edit</button>
           <button class="tbl-btn del" onclick="deleteCourse(${i},'${c.name}')">🗑️ Delete</button>
         </td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('');
     document.getElementById('stat-courses').textContent = courses.length;
     document.getElementById('results-count').textContent = `Showing ${courses.length} of ${courses.length}`;
 
@@ -487,6 +528,7 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
     formData.append('course_name', name);
     formData.append('course_exam', exam);
     formData.append('course_icon', icon);
+    formData.append('stream_id',   document.getElementById('course-stream').value);
     formData.append('script_file', scriptFile);
     formData.append('input_file',  inputFile);
     formData.append('output_file', outputFile);
@@ -546,6 +588,7 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
   }
 
   loadCourses();
+  loadStreams();
 
 
 

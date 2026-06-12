@@ -158,20 +158,30 @@
       ? "http://localhost:5000"
       : "https://careermyntra-portal-6.onrender.com";
 
-    const courses = [
-      { name:"11th FYJC",        sub:"Maharashtra",      icon:"🏫", color:"#4f46e5" },
-      { name:"Engineering",      sub:"MHT-CET / JEE",    icon:"⚙️", color:"#1565c0" },
-      { name:"Architecture",     sub:"JEE P2 / NATA",    icon:"🏛️", color:"#0891b2" },
-      { name:"Design",           sub:"CET / UCEED",      icon:"🎨", color:"#ea580c" },
-      { name:"Pharmacy",         sub:"MHT-CET GPAT",     icon:"💊", color:"#e11d48" },
-      { name:"Medical",          sub:"NEET",              icon:"🩺", color:"#7c3aed" },
-      { name:"Nursing",          sub:"CET / NEET",        icon:"🩹", color:"#0d9488" },
-      { name:"Animal & Fishery", sub:"MHT-CET / NEET",   icon:"🐟", color:"#0369a1" },
-      { name:"Agriculture",      sub:"MHT-CET",           icon:"🌾", color:"#16a34a" },
-      { name:"Law",              sub:"CET / CLAT",        icon:"⚖️", color:"#475569" },
-      { name:"Management",       sub:"MHT-CET CAT",      icon:"💼", color:"#d97706" },
-      { name:"Hotel Management", sub:"CET / NCHM JEE",   icon:"🏨", color:"#9333ea" },
-    ];
+    let courses = [];
+    const COURSE_COLORS = ["#4f46e5","#1565c0","#0891b2","#ea580c","#e11d48","#7c3aed","#0d9488","#0369a1","#16a34a","#475569","#d97706","#9333ea"];
+
+    async function loadCourses() {
+      const grid = document.getElementById('course-grid');
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af;font-size:14px;font-weight:600;">⏳ Loading courses...</div>`;
+      try {
+        const res = await fetch(`${BACKEND}/api/courses`);
+        const data = await res.json();
+        if (data.success && data.courses.length > 0) {
+          courses = data.courses.map((c, i) => ({
+            name:  c.name,
+            sub:   c.exam,
+            icon:  c.icon || '📁',
+            color: COURSE_COLORS[i % COURSE_COLORS.length]
+          }));
+          renderCourses();
+        } else {
+          grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af;font-size:14px;font-weight:600;">😕 No courses found. Add courses from Admin Panel.</div>`;
+        }
+      } catch(e) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#ef4444;font-size:14px;font-weight:600;">⚠️ Could not load courses. Check if backend is running.</div>`;
+      }
+    }
 
     let selectedCourse = null;
     let selectedFile   = null;   // ← tracks file from both picker AND drag-drop
@@ -323,7 +333,7 @@ document.querySelector('.user-chip span').textContent = userName.split(' ')[0];
 
 
 
-    renderCourses();
+    loadCourses();
   </script>
 </body>
 </html>
