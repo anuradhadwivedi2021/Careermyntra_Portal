@@ -68,20 +68,7 @@ def get_colleges():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-# ─── GET single college by code ───────────────────────────────────────────────
-@college_master_bp.route("/colleges/<code>", methods=["GET"])
-def get_college(code):
-    try:
-        conn = get_connection()
-        cur  = get_cursor(conn)
-        cur.execute("SELECT * FROM college_master WHERE LOWER(college_code) = LOWER(%s);", (code,))
-        row  = cur.fetchone()
-        cur.close(); conn.close()
-        if not row:
-            return jsonify({"success": False, "error": "College not found"}), 404
-        return jsonify({"success": True, "college": dict(row)})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+
 
 
 # ─── POST add single college ──────────────────────────────────────────────────
@@ -367,3 +354,18 @@ def upload_pdf_colleges():
         "preview":       [{"college_code": k, "college_name": v}
                           for k, v in list(found.items())[:10]]
     })
+
+    # ─── GET single college by code ───────────────────────────────────────────────
+@college_master_bp.route("/colleges/<code>", methods=["GET"])
+def get_college(code):
+    try:
+        conn = get_connection()
+        cur  = get_cursor(conn)
+        cur.execute("SELECT * FROM college_master WHERE LOWER(college_code) = LOWER(%s);", (code,))
+        row  = cur.fetchone()
+        cur.close(); conn.close()
+        if not row:
+            return jsonify({"success": False, "error": "College not found"}), 404
+        return jsonify({"success": True, "college": dict(row)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
