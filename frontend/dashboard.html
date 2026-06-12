@@ -18,6 +18,7 @@
     .user-chip span { font-size: 13px; font-weight: 700; color: #1565c0; }
     .btn-logout { padding: 7px 16px; background: #fff; border: 1.5px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 700; color: #ef4444; cursor: pointer; text-decoration: none; transition: all 0.2s; font-family: inherit; }
     .btn-logout:hover { background: #fef2f2; }
+
     .hero { background: linear-gradient(135deg, #1565c0 0%, #0d47a1 60%, #0a2f7a 100%); padding: 48px 32px 52px; text-align: center; position: relative; overflow: hidden; }
     .hero::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -200px; right: -100px; }
     .hero::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); bottom: -100px; left: -80px; }
@@ -28,6 +29,7 @@
     .hero-stat { text-align: center; }
     .hero-stat strong { display: block; font-size: 22px; font-weight: 800; color: #fff; }
     .hero-stat span { font-size: 12px; color: rgba(255,255,255,0.6); font-weight: 500; }
+
     .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
     .tab-section { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
     .tab-row { display: flex; gap: 8px; }
@@ -35,17 +37,44 @@
     .tab.active { background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(21,101,192,0.3); }
     .tab:hover:not(.active) { border-color: #1565c0; color: #1565c0; }
     .section-label { font-size: 14px; font-weight: 600; color: #6b7280; }
-    .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
-    .course-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; padding: 20px 18px 16px; cursor: pointer; transition: all 0.22s; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
-    .course-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--card-color); opacity: 0; transition: opacity 0.2s; }
-    .course-card:hover { border-color: var(--card-color); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.09); }
-    .course-card:hover::before { opacity: 1; }
-    .card-top { display: flex; align-items: center; gap: 13px; }
-    .card-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; background: var(--card-bg); }
-    .card-title { font-size: 14px; font-weight: 800; color: var(--card-color); margin-bottom: 3px; }
-    .card-sub { font-size: 11.5px; color: #9ca3af; font-weight: 500; }
-    .upload-btn { width: 100%; padding: 9px 0; background: #16a34a; color: #fff; border: none; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-    .upload-btn:hover { background: #15803d; box-shadow: 0 4px 12px rgba(22,163,74,0.3); transform: translateY(-1px); }
+
+    /* ── STREAM CARDS GRID ── */
+    .streams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 8px; }
+    .stream-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 18px 16px; cursor: pointer; transition: all 0.22s; user-select: none; display: flex; align-items: center; gap: 12px; }
+    .stream-card:hover { border-color: #1565c0; box-shadow: 0 0 0 3px rgba(21,101,192,0.07), 0 4px 16px rgba(0,0,0,0.08); }
+    .stream-card.active { border-color: #1565c0; background: #f0f6ff; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
+    .sc-icon { width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .sc-info { flex: 1; min-width: 0; }
+    .sc-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sc-count { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .sc-arrow { font-size: 12px; color: #6b7280; flex-shrink: 0; transition: transform 0.2s; }
+    .stream-card.active .sc-arrow { transform: rotate(180deg); color: #1565c0; }
+
+    /* ── COURSE PANEL ── */
+    .course-panel { display: none; background: #fff; border: 1.5px solid #1565c0; border-radius: 16px; margin-bottom: 24px; overflow: hidden; animation: panelIn 0.2s ease; }
+    .course-panel.show { display: block; }
+    @keyframes panelIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; background: linear-gradient(90deg, #f0f6ff, #f8fafc); border-bottom: 1px solid #e5e7eb; }
+    .panel-header-left { display: flex; align-items: center; gap: 12px; }
+    .panel-stream-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .panel-stream-name { font-size: 15px; font-weight: 800; color: #1565c0; }
+    .panel-course-count { font-size: 12px; color: #6b7280; }
+    .panel-close { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; color: #6b7280; transition: all 0.15s; }
+    .panel-close:hover { background: #fff5f5; color: #ef4444; border-color: #fca5a5; }
+
+    .course-list { padding: 8px 0; }
+    .course-row { display: flex; align-items: center; gap: 16px; padding: 13px 22px; border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
+    .course-row:last-child { border-bottom: none; }
+    .course-row:hover { background: #f8fafc; }
+    .course-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .course-info { flex: 1; min-width: 0; }
+    .course-name { font-size: 14px; font-weight: 700; color: #0d1b3e; }
+    .course-exam { font-size: 12px; color: #6b7280; margin-top: 1px; }
+
+    .btn-upload-row { padding: 8px 16px; background: #1565c0; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap; }
+    .btn-upload-row:hover { background: #0d47a1; }
+
+    /* ── MODAL ── */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,60,0.45); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
     .modal-overlay.open { display: flex; }
     .modal-box { background: #fff; border-radius: 20px; padding: 32px; width: 460px; max-width: 95vw; border: 1px solid #e5e7eb; animation: popIn 0.25s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
@@ -70,270 +99,327 @@
     .btn-start { width: 100%; padding: 13px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; }
     .btn-start:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(21,101,192,0.35); transform: translateY(-1px); }
     .btn-start:disabled { opacity: 0.45; cursor: not-allowed; }
+
     @media (max-width: 640px) { .hero h1 { font-size: 24px; } .hero-stats { gap: 20px; } .navbar { padding: 0 16px; } .container { padding: 20px 14px; } }
   </style>
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="nav-left">
-      <img src="images/logo.jpeg" alt="CareerMyntra" />
+<nav class="navbar">
+  <div class="nav-left"><img src="images/logo.jpeg" alt="CareerMyntra"/></div>
+  <div class="nav-right">
+    <a href="pages/college_master.html" class="nav-link">🏛️ College Master</a>
+    <a href="pages/stream_master.html" class="nav-link">🌊 Streams</a>
+    <a href="admin.html" class="nav-link">⚙️ Admin</a>
+    <div class="user-chip">
+      <div class="user-avatar" id="user-avatar">U</div>
+      <span id="user-name">User</span>
     </div>
-    <div class="nav-right">
+    <a href="index.html" class="btn-logout">Logout</a>
+  </div>
+</nav>
 
-      <a href="pages/college_master.html" class="nav-link">🏛️ College Master</a>
-      <a href="pages/stream_master.html" class="nav-link">🌊 Streams</a>
-      <a href="admin.html" class="nav-link">⚙️ Admin</a>
-      <div class="user-chip">
+<div class="hero">
+  <div class="hero-badge">🎓 Maharashtra CAP Round Portal</div>
+  <h1>Admission Data Processing System</h1>
+  <p>Upload CAP round PDFs & Excel files for any course. Get clean, structured Excel output in seconds.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><strong>12+</strong><span>Courses</span></div>
+    <div class="hero-stat"><strong>PDF & XLS</strong><span>Supported</span></div>
+    <div class="hero-stat"><strong>&lt; 30s</strong><span>Processing Time</span></div>
+    <div class="hero-stat"><strong>100%</strong><span>Clean Output</span></div>
+  </div>
+</div>
 
-        <div class="user-avatar">U</div>
-        <span>User</span>
-
-      </div>
-      <a href="index.html" class="btn-logout">Logout</a>
+<div class="container">
+  <div class="tab-section">
+    <div class="tab-row">
+      <button class="tab active" onclick="switchTab(this)">📋 Vacant Seats</button>
+      <button class="tab" onclick="switchTab(this)">✂️ Cut-offs</button>
     </div>
-  </nav>
-
-  <div class="hero">
-    <div class="hero-badge">🎓 Maharashtra CAP Round Portal</div>
-    <h1>Admission Data Processing System</h1>
-    <p>Upload CAP round PDFs & Excel files for any course. Get clean, structured Excel output in seconds.</p>
-    <div class="hero-stats">
-      <div class="hero-stat"><strong>12+</strong><span>Courses</span></div>
-      <div class="hero-stat"><strong>PDF & XLS</strong><span>Supported</span></div>
-      <div class="hero-stat"><strong>&lt; 30s</strong><span>Processing Time</span></div>
-      <div class="hero-stat"><strong>100%</strong><span>Clean Output</span></div>
-    </div>
+    <span class="section-label" id="section-label">Select a stream to upload data</span>
   </div>
 
-  <div class="container">
-    <div class="tab-section">
-      <div class="tab-row">
-        <button class="tab active" onclick="switchTab(this)">📋 Vacant Seats</button>
-        <button class="tab" onclick="switchTab(this)">✂️ Cut-offs</button>
-      </div>
-      <span class="section-label">Select a course to upload data</span>
-    </div>
-    <div class="course-grid" id="course-grid"></div>
+  <!-- Stream cards grid -->
+  <div class="streams-grid" id="streams-grid">
+    <div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af;font-size:14px;font-weight:600;">⏳ Loading streams...</div>
   </div>
 
-  <div class="modal-overlay" id="modal" onclick="closeOutside(event)">
-    <div class="modal-box">
-      <div class="modal-header">
+  <!-- Course panel -->
+  <div class="course-panel" id="course-panel">
+    <div class="panel-header">
+      <div class="panel-header-left">
+        <div class="panel-stream-icon" id="panel-icon"></div>
         <div>
-          <div class="modal-icon" id="modal-icon">⚙️</div>
-          <h3 id="modal-title">Upload File</h3>
-          <p id="modal-sub">Select your file below</p>
-        </div>
-        <button class="close-btn" onclick="closeModal()">✕</button>
-      </div>
-
-      <div class="drop-zone" id="drop-zone"
-           onclick="document.getElementById('file-input').click()"
-           ondragover="dragOver(event)"
-           ondragleave="dragLeave(event)"
-           ondrop="dropFile(event)">
-        <div class="drop-icon">📂</div>
-        <p class="drop-title">Click to browse or drag & drop</p>
-        <p class="drop-sub">Upload your CAP round data file</p>
-        <div class="format-badges">
-          <span class="fmt-badge pdf">PDF</span>
-          <span class="fmt-badge xls">XLS</span>
-          <span class="fmt-badge xlsx">XLSX</span>
+          <div class="panel-stream-name" id="panel-stream-name"></div>
+          <div class="panel-course-count" id="panel-course-count"></div>
         </div>
       </div>
-
-      <input type="file" id="file-input" accept=".pdf,.xls,.xlsx" style="display:none" onchange="fileSelected(this)"/>
-      <div class="file-preview" id="file-preview"></div>
-      <div id="upload-error" style="display:none; color:#ef4444; font-size:13px; font-weight:600; margin-bottom:10px; padding:8px 12px; background:#fef2f2; border-radius:8px; border:1px solid #fecaca;"></div>
-
-      <button class="btn-start" id="btn-start" onclick="goToProgress()" disabled>
-        🚀 Start Processing
-      </button>
+      <button class="panel-close" onclick="closePanel()">✕</button>
     </div>
+    <div class="course-list" id="course-list"></div>
   </div>
+</div>
 
-  <script>
-    const BACKEND = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-      ? "http://localhost:5000"
-      : "https://careermyntra-portal-6.onrender.com";
+<!-- Upload Modal -->
+<div class="modal-overlay" id="modal" onclick="closeOutside(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div class="modal-icon" id="modal-icon">⚙️</div>
+        <h3 id="modal-title">Upload File</h3>
+        <p id="modal-sub">Select your file below</p>
+      </div>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="drop-zone" id="drop-zone"
+         onclick="document.getElementById('file-input').click()"
+         ondragover="dragOver(event)"
+         ondragleave="dragLeave(event)"
+         ondrop="dropFile(event)">
+      <div class="drop-icon">📂</div>
+      <p class="drop-title">Click to browse or drag & drop</p>
+      <p class="drop-sub">Upload your CAP round data file</p>
+      <div class="format-badges">
+        <span class="fmt-badge pdf">PDF</span>
+        <span class="fmt-badge xls">XLS</span>
+        <span class="fmt-badge xlsx">XLSX</span>
+      </div>
+    </div>
+    <input type="file" id="file-input" accept=".pdf,.xls,.xlsx" style="display:none" onchange="fileSelected(this)"/>
+    <div class="file-preview" id="file-preview"></div>
+    <div id="upload-error" style="display:none; color:#ef4444; font-size:13px; font-weight:600; margin-bottom:10px; padding:8px 12px; background:#fef2f2; border-radius:8px; border:1px solid #fecaca;"></div>
+    <button class="btn-start" id="btn-start" onclick="goToProgress()" disabled>🚀 Start Processing</button>
+  </div>
+</div>
 
-    let courses = [];
-    const COURSE_COLORS = ["#4f46e5","#1565c0","#0891b2","#ea580c","#e11d48","#7c3aed","#0d9488","#0369a1","#16a34a","#475569","#d97706","#9333ea"];
+<script>
+  const BACKEND = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000"
+    : "https://careermyntra-portal-6.onrender.com";
 
-    async function loadCourses() {
-      const grid = document.getElementById('course-grid');
-      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af;font-size:14px;font-weight:600;">⏳ Loading courses...</div>`;
-      try {
-        const res = await fetch(`${BACKEND}/api/courses`);
-        const data = await res.json();
-        if (data.success && data.courses.length > 0) {
-          courses = data.courses.map((c, i) => ({
-            name:  c.name,
-            sub:   c.exam,
-            icon:  c.icon || '📁',
-            color: COURSE_COLORS[i % COURSE_COLORS.length]
-          }));
-          renderCourses();
-        } else {
-          grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af;font-size:14px;font-weight:600;">😕 No courses found. Add courses from Admin Panel.</div>`;
-        }
-      } catch(e) {
-        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#ef4444;font-size:14px;font-weight:600;">⚠️ Could not load courses. Check if backend is running.</div>`;
+  const STREAM_COLORS = [
+    { bg: '#e3f2fd', color: '#1565c0' },
+    { bg: '#e8f5e9', color: '#2e7d32' },
+    { bg: '#fce4ec', color: '#ad1457' },
+    { bg: '#fff3e0', color: '#e65100' },
+    { bg: '#f3e5f5', color: '#6a1b9a' },
+    { bg: '#e0f7fa', color: '#00695c' },
+    { bg: '#fff8e1', color: '#f57f17' },
+    { bg: '#fbe9e7', color: '#bf360c' },
+    { bg: '#e8eaf6', color: '#283593' },
+    { bg: '#f1f8e9', color: '#558b2f' },
+    { bg: '#e0f2f1', color: '#00695c' },
+    { bg: '#fce4ec', color: '#880e4f' },
+  ];
+
+  let streamsData = [];
+  let activeStream = null;
+  let selectedCourse = null;
+  let selectedFile = null;
+
+  // ── LOAD STREAMS WITH COURSES ─────────────────────────────
+  async function loadStreams() {
+    try {
+      const res = await fetch(`${BACKEND}/api/streams?with_courses=true`);
+      const data = await res.json();
+      if (data.success && data.streams.length > 0) {
+        streamsData = data.streams;
+        renderStreamCards();
+      } else {
+        // fallback: load plain courses grouped by no stream
+        loadCoursesAsFallback();
       }
+    } catch(e) {
+      loadCoursesAsFallback();
     }
+  }
 
-    let selectedCourse = null;
-    let selectedFile   = null;   // ← tracks file from both picker AND drag-drop
-
-    function hexToRgba(hex, alpha) {
-      const r = parseInt(hex.slice(1,3),16);
-      const g = parseInt(hex.slice(3,5),16);
-      const b = parseInt(hex.slice(5,7),16);
-      return `rgba(${r},${g},${b},${alpha})`;
+  async function loadCoursesAsFallback() {
+    try {
+      const res = await fetch(`${BACKEND}/api/courses`);
+      const data = await res.json();
+      if (data.success && data.courses.length > 0) {
+        // Group under one fake "All Courses" stream
+        streamsData = [{
+          id: 0, name: 'All Courses', icon: '📚',
+          courses: data.courses
+        }];
+        renderStreamCards();
+      } else {
+        document.getElementById('streams-grid').innerHTML =
+          `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af;font-size:14px;font-weight:600;">😕 No courses found. Add from Admin Panel.</div>`;
+      }
+    } catch(e) {
+      document.getElementById('streams-grid').innerHTML =
+        `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#ef4444;font-size:14px;font-weight:600;">⚠️ Backend not reachable.</div>`;
     }
+  }
 
-    function renderCourses() {
-      const grid = document.getElementById('course-grid');
-      grid.innerHTML = courses.map(c => `
-        <div class="course-card" style="--card-color:${c.color}; --card-bg:${hexToRgba(c.color,0.1)}">
-          <div class="card-top">
-            <div class="card-icon">${c.icon}</div>
-            <div>
-              <div class="card-title">${c.name}</div>
-              <div class="card-sub">${c.sub}</div>
-            </div>
+  // ── RENDER STREAM CARDS ───────────────────────────────────
+  function renderStreamCards() {
+    const grid = document.getElementById('streams-grid');
+    grid.innerHTML = streamsData.map((s, i) => {
+      const clr = STREAM_COLORS[i % STREAM_COLORS.length];
+      const count = s.courses ? s.courses.length : (s.course_count || 0);
+      return `
+        <div class="stream-card ${activeStream === s.id ? 'active' : ''}"
+             onclick="toggleStream(${s.id})">
+          <div class="sc-icon" style="background:${clr.bg}">${s.icon || '📚'}</div>
+          <div class="sc-info">
+            <div class="sc-name">${s.name}</div>
+            <div class="sc-count">${count} course${count !== 1 ? 's' : ''}</div>
           </div>
-          <button class="upload-btn" onclick="openModal('${c.name}','${c.sub}','${c.icon}')">
-            ⬆️ Upload PDF / Excel
-          </button>
-        </div>
-      `).join('');
-    }
+          <div class="sc-arrow">${activeStream === s.id ? '▲' : '▼'}</div>
+        </div>`;
+    }).join('');
+  }
 
-    function switchTab(el) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      el.classList.add('active');
-    }
+  // ── TOGGLE STREAM PANEL ───────────────────────────────────
+  function toggleStream(streamId) {
+    if (activeStream === streamId) { closePanel(); return; }
+    activeStream = streamId;
+    renderStreamCards();
 
-    function openModal(name, sub, icon) {
-      selectedCourse = { name, sub, icon };
-      selectedFile   = null;   // ← reset on each open
-      document.getElementById('modal-icon').textContent = icon;
-      document.getElementById('modal-title').textContent = name;
-      document.getElementById('modal-sub').textContent = sub;
-      document.getElementById('file-preview').textContent = '';
-      document.getElementById('btn-start').disabled = true;
-      document.getElementById('file-input').value = '';
-      document.getElementById('drop-zone').style.borderColor = '#c7d7f5';
-      document.getElementById('upload-error').style.display = 'none';
-      document.getElementById('modal').classList.add('open');
-    }
+    const stream = streamsData.find(s => s.id === streamId);
+    const i = streamsData.indexOf(stream);
+    const clr = STREAM_COLORS[i % STREAM_COLORS.length];
+    const courses = stream.courses || [];
 
-    function closeModal() {
-      document.getElementById('modal').classList.remove('open');
-    }
+    document.getElementById('panel-icon').innerHTML = stream.icon || '📚';
+    document.getElementById('panel-icon').style.background = clr.bg;
+    document.getElementById('panel-stream-name').textContent = stream.name;
+    document.getElementById('panel-course-count').textContent = `${courses.length} course${courses.length !== 1 ? 's' : ''}`;
 
-    function closeOutside(e) {
-      if (e.target.id === 'modal') closeModal();
-    }
+    document.getElementById('course-list').innerHTML = courses.length
+      ? courses.map(c => `
+          <div class="course-row">
+            <div class="course-icon" style="background:${clr.bg}">${c.icon || '📁'}</div>
+            <div class="course-info">
+              <div class="course-name">${c.name}</div>
+              <div class="course-exam">${c.exam}</div>
+            </div>
+            <button class="btn-upload-row" onclick="openModal('${c.name}','${c.exam}','${c.icon || '📁'}')">
+              📤 Upload PDF / Excel
+            </button>
+          </div>`).join('')
+      : `<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;">No courses in this stream yet.</div>`;
 
-    function fileSelected(input) {
-      if (input.files[0]) {
-        selectedFile = input.files[0];   // ← store it
-        document.getElementById('file-preview').textContent = '📎 ' + selectedFile.name;
-        document.getElementById('btn-start').disabled = false;
-        document.getElementById('drop-zone').style.borderColor = '#16a34a';
-      }
-    }
+    document.getElementById('course-panel').classList.add('show');
+    setTimeout(() => {
+      document.getElementById('course-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
 
-    function dragOver(e) {
-      e.preventDefault();
-      document.getElementById('drop-zone').classList.add('dragover');
-    }
+  function closePanel() {
+    activeStream = null;
+    document.getElementById('course-panel').classList.remove('show');
+    renderStreamCards();
+  }
 
-    function dragLeave(e) {
-      document.getElementById('drop-zone').classList.remove('dragover');
-    }
+  // ── TAB ───────────────────────────────────────────────────
+  function switchTab(el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
 
-    function dropFile(e) {
-      e.preventDefault();
-      document.getElementById('drop-zone').classList.remove('dragover');
-      const file = e.dataTransfer.files[0];
-      if (!file) return;
-      const ext = '.' + file.name.split('.').pop().toLowerCase();
-      if (!['.pdf','.xls','.xlsx'].includes(ext)) {
-        alert('❌ Only PDF, XLS, XLSX files allowed!');
-        return;
-      }
-      selectedFile = file;   // ← store it!
-      document.getElementById('file-preview').textContent = '📎 ' + file.name;
+  // ── MODAL ─────────────────────────────────────────────────
+  function openModal(name, sub, icon) {
+    selectedCourse = { name, sub, icon };
+    selectedFile = null;
+    document.getElementById('modal-icon').textContent = icon;
+    document.getElementById('modal-title').textContent = name;
+    document.getElementById('modal-sub').textContent = sub;
+    document.getElementById('file-preview').textContent = '';
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('file-input').value = '';
+    document.getElementById('drop-zone').style.borderColor = '#c7d7f5';
+    document.getElementById('upload-error').style.display = 'none';
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+  function closeOutside(e) { if (e.target.id === 'modal') closeModal(); }
+
+  function fileSelected(input) {
+    if (input.files[0]) {
+      selectedFile = input.files[0];
+      document.getElementById('file-preview').textContent = '📎 ' + selectedFile.name;
       document.getElementById('btn-start').disabled = false;
       document.getElementById('drop-zone').style.borderColor = '#16a34a';
     }
+  }
 
-    async function goToProgress() {
-      if (!selectedCourse) return;
-      const btn    = document.getElementById('btn-start');
-      const errDiv = document.getElementById('upload-error');
-      btn.disabled    = true;
-      btn.textContent = '⏳ Uploading...';
-      errDiv.style.display = 'none';
+  function dragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('dragover'); }
+  function dragLeave(e) { document.getElementById('drop-zone').classList.remove('dragover'); }
+  function dropFile(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!['.pdf','.xls','.xlsx'].includes(ext)) { alert('❌ Only PDF, XLS, XLSX allowed!'); return; }
+    selectedFile = file;
+    document.getElementById('file-preview').textContent = '📎 ' + file.name;
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('drop-zone').style.borderColor = '#16a34a';
+  }
 
-      // ← Use selectedFile (works for both file picker AND drag-drop)
-      const file = selectedFile || document.getElementById('file-input').files[0];
-      if (!file) return;
+  // ── UPLOAD & PROCESS ──────────────────────────────────────
+  async function goToProgress() {
+    if (!selectedCourse) return;
+    const btn = document.getElementById('btn-start');
+    const errDiv = document.getElementById('upload-error');
+    btn.disabled = true;
+    btn.textContent = '⏳ Uploading...';
+    errDiv.style.display = 'none';
 
-      try {
-        const formData = new FormData();
-        formData.append('file',        file);
-        formData.append('course_name', selectedCourse.name);
+    const file = selectedFile || document.getElementById('file-input').files[0];
+    if (!file) return;
 
-        const res  = await fetch(`${BACKEND}/api/upload`, { method: 'POST', body: formData });
-        const data = await res.json();
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('course_name', selectedCourse.name);
 
-        if (data.success) {
-          sessionStorage.setItem('task_id',     data.task_id);
-          sessionStorage.setItem('course',      selectedCourse.name);
-          sessionStorage.setItem('icon',        selectedCourse.icon);
-          sessionStorage.setItem('filename',    file.name);
-          sessionStorage.setItem('output_file', data.output_file);
-          window.location.href = 'pages/progress.html';
-        } else {
-          errDiv.textContent   = '❌ ' + (data.error || 'Upload failed');
-          errDiv.style.display = 'block';
-          btn.disabled         = false;
-          btn.textContent      = '🚀 Start Processing';
-        }
-      } catch(err) {
-        errDiv.textContent   = '❌ Backend not reachable! Flask chal raha hai?';
+      const res = await fetch(`${BACKEND}/api/upload`, { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (data.success) {
+        sessionStorage.setItem('task_id',     data.task_id);
+        sessionStorage.setItem('course',      selectedCourse.name);
+        sessionStorage.setItem('icon',        selectedCourse.icon);
+        sessionStorage.setItem('filename',    file.name);
+        sessionStorage.setItem('output_file', data.output_file);
+        window.location.href = 'pages/progress.html';
+      } else {
+        errDiv.textContent = '❌ ' + (data.error || 'Upload failed');
         errDiv.style.display = 'block';
-        btn.disabled         = false;
-        btn.textContent      = '🚀 Start Processing';
+        btn.disabled = false;
+        btn.textContent = '🚀 Start Processing';
       }
+    } catch(err) {
+      errDiv.textContent = '❌ Backend not reachable!';
+      errDiv.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = '🚀 Start Processing';
     }
+  }
 
+  // ── USER INFO ─────────────────────────────────────────────
+  const params = new URLSearchParams(window.location.search);
+  const userName = params.get('name') || sessionStorage.getItem('user_name') || 'User';
+  const userEmail = params.get('email') || '';
+  const userPicture = params.get('picture') || '';
+  if (params.get('name')) {
+    sessionStorage.setItem('user_name', userName);
+    sessionStorage.setItem('user_email', userEmail);
+    sessionStorage.setItem('user_picture', userPicture);
+  }
+  document.getElementById('user-avatar').textContent = userName.charAt(0).toUpperCase();
+  document.getElementById('user-name').textContent = userName.split(' ')[0];
 
-
-    // User info from Google OAuth
-const params = new URLSearchParams(window.location.search);
-const userName = params.get('name') || sessionStorage.getItem('user_name') || 'User';
-const userEmail = params.get('email') || '';
-const userPicture = params.get('picture') || '';
-
-if (params.get('name')) {
-  sessionStorage.setItem('user_name', userName);
-  sessionStorage.setItem('user_email', userEmail);
-  sessionStorage.setItem('user_picture', userPicture);
-}
-
-const firstLetter = userName.charAt(0).toUpperCase();
-document.querySelector('.user-avatar').textContent = firstLetter;
-document.querySelector('.user-chip span').textContent = userName.split(' ')[0];
-
-
-
-    loadCourses();
-  </script>
+  loadStreams();
+</script>
 </body>
 </html>
