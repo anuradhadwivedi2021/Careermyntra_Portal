@@ -39,7 +39,10 @@ def upload_file():
     file.save(saved_path)
 
     output_dir  = current_app.config["OUTPUT_DIR"]
-    output_name = f"{course_name.lower().replace(' ', '_')}_{task_id[:8]}_output.xlsx"
+    os.makedirs(output_dir, exist_ok=True)
+    import re as _re2
+    _safe = _re2.sub(r"[^a-z0-9]+", "_", course_name.lower().replace("&", "and")).strip("_")
+    output_name = f"{_safe}_{task_id[:8]}_output.xlsx"
     output_path = os.path.join(output_dir, output_name)
 
     TASKS[task_id] = {
