@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Verify OTP – CareerMyntra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      background: #f0f4ff;
+    }
+
+    .left {
+      flex: 1;
+      background: linear-gradient(145deg, #1565c0 0%, #0d47a1 50%, #0a2f7a 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .left::before {
+      content: '';
+      position: absolute;
+      width: 420px; height: 420px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      top: -100px; right: -100px;
+    }
+    .left::after {
+      content: '';
+      position: absolute;
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      bottom: -60px; left: -60px;
+    }
+    .left-inner { position: relative; z-index: 2; text-align: center; }
+    .left-inner img { height: 64px; filter: brightness(0) invert(1); margin-bottom: 32px; }
+    .shield { font-size: 72px; margin-bottom: 20px; display: block; }
+    .left-inner h2 { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .left-inner p { font-size: 15px; color: rgba(255,255,255,0.72); max-width: 320px; line-height: 1.7; }
+
+    .right {
+      width: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 40px;
+      background: #f0f4ff;
+    }
+    .card {
+      width: 100%;
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 36px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      border: 1px solid #e5e7eb;
+    }
+    .card-header { text-align: center; margin-bottom: 32px; }
+    .card-header .otp-icon {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, #1565c0, #0d47a1);
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+    .card-header h1 { font-size: 22px; font-weight: 800; color: #0d1b3e; margin-bottom: 8px; }
+    .card-header p { font-size: 14px; color: #6b7280; line-height: 1.6; }
+    .card-header .email-highlight {
+      color: #1565c0;
+      font-weight: 700;
+    }
+
+    .otp-inputs {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 28px 0;
+    }
+    .otp-inputs input {
+      width: 52px; height: 60px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 800;
+      font-family: inherit;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      color: #0d1b3e;
+      background: #f9fafb;
+      outline: none;
+      transition: all 0.2s;
+      caret-color: #1565c0;
+    }
+    .otp-inputs input:focus {
+      border-color: #1565c0;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(21,101,192,0.12);
+    }
+    .otp-inputs input.filled {
+      border-color: #1565c0;
+      background: #eff6ff;
+    }
+    .otp-inputs input.error-box {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .btn-verify {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #1565c0, #0d47a1);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(21,101,192,0.3);
+      letter-spacing: 0.3px;
+    }
+    .btn-verify:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(21,101,192,0.4); }
+    .btn-verify:active { transform: scale(0.98); }
+    .btn-verify:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .resend-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+    .btn-resend {
+      background: none;
+      border: none;
+      color: #1565c0;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: inherit;
+      padding: 0;
+    }
+    .btn-resend:disabled { color: #9ca3af; cursor: not-allowed; }
+
+    .timer { font-weight: 700; color: #ef4444; min-width: 36px; }
+
+    .error-msg {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #dc2626;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .success-msg {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #16a34a;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #6b7280;
+      font-size: 13px;
+      text-decoration: none;
+    }
+    .back-link:hover { color: #1565c0; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 820px) {
+      .left { display: none; }
+      .right { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="left">
+  <div class="left-inner">
+    <img src="images/logo.jpeg" alt="CareerMyntra"/>
+    <span class="shield">🔐</span>
+    <h2>Two-Factor Security</h2>
+    <p>We sent a 6-digit OTP to your email to make sure it's really you signing in to CareerMyntra.</p>
+  </div>
+</div>
+
+<div class="right">
+  <div class="card">
+    <div class="card-header">
+      <div class="otp-icon">🔑</div>
+      <h1>Enter OTP</h1>
+      <p>6-digit code bheja gaya hai<br>
+        <span class="email-highlight" id="email-display">aapki email pe</span>
+      </p>
+    </div>
+
+    <div class="otp-inputs" id="otp-inputs">
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+    <div class="success-msg" id="success-msg"></div>
+
+    <button class="btn-verify" id="verify-btn" onclick="verifyOTP()">
+      ✅ Verify & Login
+    </button>
+
+    <div class="resend-row">
+      <span>OTP nahi aaya?</span>
+      <button class="btn-resend" id="resend-btn" onclick="resendOTP()" disabled>Resend OTP</button>
+      <span class="timer" id="timer">00:30</span>
+    </div>
+
+    <a href="login.html" class="back-link">← Wapas login pe jaao</a>
+  </div>
+</div>
+
+<script>
+  const BACKEND = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "http://127.0.0.1:5000"
+    : "https://careermyntra-portal-6.onrender.com";
+
+  // URL se email aur name nikalo
+  const params = new URLSearchParams(window.location.search);
+  const userEmail = params.get("email") || "";
+  const userName  = params.get("name")  || "User";
+
+  if (!userEmail) {
+    window.location.href = "login.html";
+  }
+
+  document.getElementById("email-display").textContent = userEmail;
+
+  // ── OTP Input Box Logic ──────────────────────────
+  const inputs = document.querySelectorAll("#otp-inputs input");
+
+  inputs.forEach((inp, i) => {
+    inp.addEventListener("input", (e) => {
+      const val = e.target.value.replace(/\D/g, "");
+      inp.value = val;
+      inp.classList.toggle("filled", !!val);
+      clearErrors();
+      if (val && i < inputs.length - 1) inputs[i + 1].focus();
+    });
+
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !inp.value && i > 0) {
+        inputs[i - 1].focus();
+        inputs[i - 1].value = "";
+        inputs[i - 1].classList.remove("filled");
+      }
+      if (e.key === "Enter") verifyOTP();
+    });
+
+    inp.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+      pasted.split("").forEach((ch, j) => {
+        if (inputs[j]) {
+          inputs[j].value = ch;
+          inputs[j].classList.add("filled");
+        }
+      });
+      inputs[Math.min(pasted.length, inputs.length - 1)].focus();
+    });
+  });
+
+  inputs[0].focus();
+
+  function getOTP() {
+    return Array.from(inputs).map(i => i.value).join("");
+  }
+
+  function clearErrors() {
+    document.getElementById("error-msg").style.display = "none";
+    inputs.forEach(i => i.classList.remove("error-box"));
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("error-msg");
+    el.textContent = msg;
+    el.style.display = "block";
+    inputs.forEach(i => i.classList.add("error-box"));
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById("success-msg");
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+
+  // ── Verify OTP ───────────────────────────────────
+  async function verifyOTP() {
+    const otp = getOTP();
+    if (otp.length < 6) { showError("Pura 6-digit OTP daalo!"); return; }
+
+    const btn = document.getElementById("verify-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Verifying...';
+
+    try {
+      const res = await fetch(`${BACKEND}/api/auth/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userEmail, otp })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showSuccess("✅ OTP verified! Redirecting...");
+        sessionStorage.setItem("user_name",    data.name);
+        sessionStorage.setItem("user_email",   data.email);
+        sessionStorage.setItem("user_picture", data.picture);
+        setTimeout(() => {
+          window.location.href = `dashboard.html?name=${encodeURIComponent(data.name)}&email=${encodeURIComponent(data.email)}&picture=${encodeURIComponent(data.picture)}`;
+        }, 1000);
+      } else {
+        showError(data.error || "OTP galat hai!");
+        btn.disabled = false;
+        btn.innerHTML = "✅ Verify & Login";
+      }
+    } catch (err) {
+      showError("Network error. Dobara try karo.");
+      btn.disabled = false;
+      btn.innerHTML = "✅ Verify & Login";
+    }
+  }
+
+  // ── Resend OTP ───────────────────────────────────
+  async function resendOTP() {
+    const resendBtn = document.getElementById("resend-btn");
+    resendBtn.disabled = true;
+
+    try {
+      const res = await fetch(`${BACKEND}/api/auth/resend-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userEmail })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showSuccess("📧 Naya OTP bheja gaya!");
+        document.getElementById("error-msg").style.display = "none";
+        startTimer();
+      } else {
+        showError(data.error || "Resend failed");
+        resendBtn.disabled = false;
+      }
+    } catch (err) {
+      showError("Network error");
+      resendBtn.disabled = false;
+    }
+  }
+
+  // ── Countdown Timer ──────────────────────────────
+  let timerInterval;
+
+  function startTimer(seconds = 30) {
+    clearInterval(timerInterval);
+    const timerEl   = document.getElementById("timer");
+    const resendBtn = document.getElementById("resend-btn");
+    resendBtn.disabled = true;
+
+    let remaining = seconds;
+    timerEl.textContent = formatTime(remaining);
+
+    timerInterval = setInterval(() => {
+      remaining--;
+      timerEl.textContent = formatTime(remaining);
+      if (remaining <= 0) {
+        clearInterval(timerInterval);
+        timerEl.textContent = "";
+        resendBtn.disabled = false;
+      }
+    }, 1000);
+  }
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+  }
+
+  // Page load pe timer shuru
+  startTimer(30);
+</script>
+</body>
+</html>

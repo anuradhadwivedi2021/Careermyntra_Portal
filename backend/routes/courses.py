@@ -121,3 +121,45 @@ def delete_course(course_id):
         return jsonify({"success": True, "message": f'Course "{course["name"]}" deleted.'})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+@courses_bp.route("/courses/<int:course_id>", methods=["PUT"])
+def update_course(course_id):
+    try:
+        course_name = request.form.get("course_name", "").strip()
+        course_exam = request.form.get("course_exam", "").strip()
+        course_icon = request.form.get("course_icon", "📁").strip()
+        stream_id   = request.form.get("stream_id") or None
+
+        if not course_name or not course_exam:
+            return jsonify({"success": False, "error": "Course name aur exam required hai"}), 400
+
+        conn = get_connection()
+        cur  = conn.cursor()
+
+        # Optional: naya script file aya toh update karo
+        script_file = request.files.get("script_file")
+        input_file  = request.files.get("input_file")
+        output_file = request.files.get("output_file")
+
+        safe_name = course_name.lower().replace(" ", "_").replace("&", "and")
+
+        if script_file and script_file.filename.endswith(".py"):
+            script_content = script_file.read().decode("utf-8")
+            script_name    = safe_name + ".py"
+            cur.execute(
+                "UPDATE courses SET name=%s, exam=%s, icon=%s, stream_id=%s, script=%s, script_content=%s WHERE id=%s",
+                (course_name, course_exam, course_icon, stream_id, script_name, script_content, course_id)
+            )
+        else:
+            cur.execute(
+                "UPDATE courses SET name=%s, exam=%s, icon=%s, stream_id=%s WHERE id=%s",
+                (course_name, course_exam, course_icon, stream_id, course_id)
+            )
+
+        conn.commit()
+        cur.close(); conn.close()
+
+        return jsonify({"success": True, "message": f'Course "{course_name}" updated!'})
+    except Exception as e:
+        print(f"[UPDATE ERROR] {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
