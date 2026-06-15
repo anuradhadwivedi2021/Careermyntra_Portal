@@ -394,6 +394,13 @@ def upload_pdf_colleges():
     return jsonify({"success": True, "task_id": task_id})
 
 
+# ─── GET PDF processing status ──────────────────────────────────────────────────
+@college_master_bp.route("/colleges/pdf-status/<task_id>", methods=["GET"])
+def get_pdf_status(task_id):
+    """Return current status of PDF processing task."""
+    if task_id not in PDF_TASKS:
+        return jsonify({"success": False, "error": "Task not found"}), 404
+    return jsonify({"success": True, **PDF_TASKS[task_id]})
 
 
 # ─── POST Excel upload ────────────────────────────────────────────────────────
