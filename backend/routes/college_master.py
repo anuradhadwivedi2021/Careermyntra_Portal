@@ -394,9 +394,84 @@ def upload_pdf_colleges():
     return jsonify({"success": True, "task_id": task_id})
 
 
-@college_master_bp.route("/colleges/pdf-status/<task_id>", methods=["GET"])
-def pdf_status(task_id):
-    task = PDF_TASKS.get(task_id)
-    if not task:
-        return jsonify({"success": False, "error": "Task not found"}), 404
-    return jsonify({"success": True, **task})
+
+
+# ─── POST Excel upload ────────────────────────────────────────────────────────
+@college_master_bp.route("/colleges/upload-excel", methods=["POST"])
+def upload_excel_colleges():
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "No file uploaded"}), 400
+
+    f = request.files["file"]
+    if not (f.filename.lower().endswith(".xlsx") or f.filename.lower().endswith(".xls")):
+        return jsonify({"success": False, "error": "Only .xlsx or .xls files allowed"}), 400
+
+    try:
+        import pandas as pd
+        df = pd.read_excel(f, dtype=str)
+        df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+
+        if "college_code" not in df.columns or "college_name" not in df.columns:
+            return jsonify({"success": False, "error": "Excel mein 'college_code' aur 'college_name' columns hone chahiye"}), 400
+
+        df = df.fillna("")
+        conn = get_connection()
+        cur  = conn.cursor()
+        inserted = 0
+        skipped  = 0
+        errors   = []
+
+        for idx, row in df.iterrows():
+            code = str(row.get("college_code", "")).strip().upper()
+            name = str(row.get("college_name", "")).strip()
+            if not code or not name:
+                errors.append(f"Row {idx+2}: college_code ya college_name missing")
+                skipped += 1
+                continue
+            try:
+                cur.execute("""
+                    INSERT INTO college_master
+                      (college_code, college_name, district, city, university, college_type,
+                       management, minority_status, autonomy_status, website, phone, address, state)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (college_code) DO UPDATE SET
+                      college_name = EXCLUDED.college_name,
+                      district     = EXCLUDED.district,
+                      city         = EXCLUDED.city,
+                      university   = EXCLUDED.university,
+                      college_type = EXCLUDED.college_type,
+                      management   = EXCLUDED.management,
+                      updated_at   = CURRENT_TIMESTAMP;
+                """, (
+                    code, name,
+                    str(row.get("district", "")),
+                    str(row.get("city", "")),
+                    str(row.get("university", "")),
+                    str(row.get("college_type", "")),
+                    str(row.get("management", "")),
+                    str(row.get("minority_status", "")),
+                    str(row.get("autonomy_status", "")),
+                    str(row.get("website", "")),
+                    str(row.get("phone", "")),
+                    str(row.get("address", "")),
+                    str(row.get("state", "Maharashtra"))
+                ))
+                inserted += 1
+            except Exception as e2:
+                errors.append(f"Row {idx+2} ({code}): {str(e2)}")
+                skipped += 1
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            "success": True,
+            "message": f"{inserted} colleges imported/updated, {skipped} skipped.",
+            "inserted": inserted,
+            "skipped": skipped,
+            "errors": errors[:10]
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500

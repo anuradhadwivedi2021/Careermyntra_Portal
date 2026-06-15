@@ -223,7 +223,8 @@
     <button class="tab-btn active" onclick="switchTab('browse')">🔍 Browse & Manage</button>
     <button class="tab-btn" onclick="switchTab('add')">➕ Add College</button>
     <button class="tab-btn" onclick="switchTab('pdf')">📄 PDF Upload</button>
-    <button class="tab-btn" onclick="switchTab('bulk')">📥 Bulk JSON</button>
+   <button class="tab-btn" onclick="switchTab('bulk')">📥 Bulk JSON</button>
+   <button class="tab-btn" onclick="switchTab('excel')">📊 Excel Upload</button>
   </div>
 
   <!-- ── TAB: Browse ── -->
@@ -464,6 +465,45 @@
     </div>
   </div>
 
+<!-- ── TAB: Excel Upload ── -->
+  <div id="tab-excel" style="display:none;">
+    <div class="section-card">
+      <h3>📊 Import Colleges from Excel</h3>
+
+      <div class="bulk-info">
+        <b>Excel format:</b> File mein ye columns hone chahiye —
+        <b>college_code</b> aur <b>college_name</b> (required).
+        Optional: district, city, state, university, college_type, management, phone, website, address.<br/>
+        Existing college_code → <b>update</b> hoga. Naya → <b>insert</b> hoga.
+      </div>
+
+      <a href="#" onclick="downloadExcelTemplate()" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#1565c0;margin-bottom:20px;">
+        ⬇️ Download Sample Template
+      </a>
+
+      <div class="pdf-drop-zone" id="excel-drop-zone"
+           onclick="document.getElementById('excel-file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleExcelDrop(event)">
+        <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none;" onchange="handleExcelSelect(event)"/>
+        <div class="pdf-drop-icon">📊</div>
+        <div class="pdf-drop-title" id="excel-drop-title">Click or drag &amp; drop Excel file here</div>
+        <div class="pdf-drop-sub">.xlsx or .xls • Max 10MB</div>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-primary" id="btn-excel-upload" onclick="uploadExcel()" disabled>
+          📤 Import from Excel
+        </button>
+        <button class="btn-secondary" onclick="clearExcelUpload()">✕ Clear</button>
+        <span id="excel-file-name" style="font-size:13px;color:#16a34a;font-weight:600;"></span>
+      </div>
+
+      <div id="excel-result" style="display:none;margin-top:20px;padding:14px 18px;border-radius:10px;font-size:13px;"></div>
+    </div>
+  </div>
+
 </div><!-- /container -->
 
 <!-- ── Edit Modal ── -->
@@ -550,12 +590,12 @@
   }
 
   // ── Tab switching ──
-  function switchTab(tab) {
-    ['browse','add','pdf','bulk'].forEach(t => {
+  function switchTab(tab) {['browse','add','pdf','bulk','excel'].forEach(t => {
+    
       document.getElementById('tab-'+t).style.display = (t===tab) ? '' : 'none';
     });
     document.querySelectorAll('.tab-btn').forEach((b,i) => {
-      b.classList.toggle('active', ['browse','add','pdf','bulk'][i] === tab);
+      b.classList.toggle('active', ['browse','add','pdf','bulk','excel'][i] === tab);
     });
     if (tab === 'browse') loadColleges(currentPage);
   }
@@ -1037,8 +1077,111 @@
       }, 2000);
     });
   }
+// ═══════════════════════════════════════════
+  // EXCEL UPLOAD FUNCTIONS
+  // ═══════════════════════════════════════════
+  let selectedExcelFile = null;
 
+  function handleExcelSelect(evt) {
+    const file = evt.target.files[0];
+    if (file) setExcelFile(file);
+  }
 
+  function handleExcelDrop(evt) {
+    evt.preventDefault();
+    document.getElementById('excel-drop-zone').classList.remove('drag-over');
+    const file = evt.dataTransfer.files[0];
+    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+      setExcelFile(file);
+    } else {
+      toast('Only Excel files (.xlsx/.xls) allowed!', 'error');
+    }
+  }
+
+  function setExcelFile(file) {
+    selectedExcelFile = file;
+    const zone  = document.getElementById('excel-drop-zone');
+    const title = document.getElementById('excel-drop-title');
+    const label = document.getElementById('excel-file-name');
+    const btn   = document.getElementById('btn-excel-upload');
+    zone.classList.add('has-file');
+    title.textContent = '✅ ' + file.name;
+    label.textContent = (file.size / 1024).toFixed(0) + ' KB';
+    btn.disabled = false;
+    document.getElementById('excel-result').style.display = 'none';
+  }
+
+  function clearExcelUpload() {
+    selectedExcelFile = null;
+    document.getElementById('excel-file-input').value = '';
+    document.getElementById('excel-drop-zone').classList.remove('has-file');
+    document.getElementById('excel-drop-title').textContent = 'Click or drag & drop Excel file here';
+    document.getElementById('excel-file-name').textContent = '';
+    document.getElementById('btn-excel-upload').disabled = true;
+    document.getElementById('excel-result').style.display = 'none';
+  }
+
+  async function uploadExcel() {
+    if (!selectedExcelFile) return;
+    const btn    = document.getElementById('btn-excel-upload');
+    const result = document.getElementById('excel-result');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Importing...';
+    result.style.display = 'none';
+
+    try {
+      const fd = new FormData();
+      fd.append('file', selectedExcelFile);
+      const res  = await fetch(`${API}/colleges/upload-excel`, { method: 'POST', body: fd });
+      const data = await res.json();
+
+      result.style.display = 'block';
+      if (data.success) {
+        result.style.background = '#f0fdf4';
+        result.style.border = '1.5px solid #86efac';
+        result.style.color = '#15803d';
+        result.innerHTML = `<b>✅ Import Complete!</b><br/>
+          Inserted/Updated: <b>${data.inserted}</b> &nbsp;|&nbsp; Skipped: <b>${data.skipped}</b>
+          ${data.errors?.length ? '<br/><br/><b>Errors:</b><br/>' + data.errors.map(e=>'• '+e).join('<br/>') : ''}`;
+        toast(`✅ ${data.inserted} colleges imported from Excel!`, 'success');
+        loadMeta();
+        clearExcelUpload();
+      } else {
+        result.style.background = '#fef2f2';
+        result.style.border = '1.5px solid #fca5a5';
+        result.style.color = '#dc2626';
+        result.innerHTML = '❌ ' + (data.error || 'Import failed');
+        toast(data.error || 'Import failed', 'error');
+      }
+    } catch(e) {
+      toast('Network error: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '📤 Import from Excel';
+    }
+  }
+
+  function downloadExcelTemplate() {
+    const headers = ['college_code','college_name','district','city','state','university','college_type','management','phone','website','address'];
+    const sample  = ['6001','Govt. College of Engineering, Pune','Pune','Shivajinagar','Maharashtra','Savitribai Phule Pune University','Government','State Government','020-25500100','https://coep.org.in','Wellesley Rd, Shivajinagar'];
+    const csv = headers.join(',') + '\n' + sample.join(',');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'college_master_template.csv';
+    a.click();
+  }
 </script>
+
+
+
+
+
+
+
+
+
+
+
 </body>
 </html>
