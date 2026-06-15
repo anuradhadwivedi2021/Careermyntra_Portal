@@ -411,8 +411,24 @@ def upload_excel_colleges():
         df = pd.read_excel(f, dtype=str)
         df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
 
+        # ─── Column mapping: support alternative column names ───
+        column_mapping = {
+            'institute_code': 'college_code',
+            'institute_name': 'college_name'
+        }
+        
+        for old_name, new_name in column_mapping.items():
+            if old_name in df.columns and new_name not in df.columns:
+                df.rename(columns={old_name: new_name}, inplace=True)
+        
+        # ─── Validate required columns ───
         if "college_code" not in df.columns or "college_name" not in df.columns:
-            return jsonify({"success": False, "error": "Excel mein 'college_code' aur 'college_name' columns hone chahiye"}), 400
+            available = ", ".join(df.columns[:5])
+            return jsonify({
+                "success": False, 
+                "error": "Excel mein 'college_code' aur 'college_name' columns chahiye (ya 'institute_code' / 'institute_name')",
+                "available_columns": list(df.columns)
+            }), 400
 
         df = df.fillna("")
         conn = get_connection()
