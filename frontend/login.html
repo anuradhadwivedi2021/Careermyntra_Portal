@@ -370,50 +370,29 @@
         </button>
       </form>
 
-      <div class="divider"><span>or continue with</span></div>
-
-      <button class="btn-google" onclick="googleRedirectLogin()">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" alt="G" />
-        Sign in with Google
-      </button>
-
-      <p class="switch">
-        Don't have an account? <a href="register.html">Register here</a>
-        <span class="badge-new">FREE</span>
-      </p>
-    </div>
-  </div>
+     
 
   <script>
 
-  function googleRedirectLogin() {
-  const clientId = '461124697477-d39u0mt1u2of47fpue7264ls8saasi87.apps.googleusercontent.com';
+  const ALLOWED_EMAILS = [
+  "careermyntrapune@gmail.com",
+  "collegescutoff@gmail.com",
+  "khamgaonkarpawan@gmail.com",
+  "anuradha.dwivedi2021@gmail.com"
+];
 
-
-  const backendUrl = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-  ? "http://127.0.0.1:5000"
-  : "https://careermyntra-portal-6.onrender.com";
-
-
-  const redirectUri = encodeURIComponent(backendUrl + '/api/auth/google/callback');
-  const scope = encodeURIComponent('openid email profile');
-  const url = 'https://accounts.google.com/o/oauth2/v2/auth' +
-    '?client_id=' + clientId +
-    '&redirect_uri=' + redirectUri +
-    '&response_type=code' +
-    '&scope=' + scope +
-    '&access_type=offline';
-  window.location.href = url;
-}
-
-    function handleLogin(e) {
+function handleLogin(e) {
   e.preventDefault();
   const btn = document.getElementById('login-btn');
   const text = document.getElementById('login-text');
-  const email = document.getElementById('email').value;
-  const name = email.split('@')[0]; // email se naam nikalo
+  const email = document.getElementById('email').value.trim().toLowerCase();
 
-  // naam sessionStorage mein save karo
+  if (!ALLOWED_EMAILS.includes(email)) {
+    alert('⛔ Access denied. This email is not authorized.');
+    return;
+  }
+
+  const name = email.split('@')[0];
   sessionStorage.setItem('user_name', name);
   sessionStorage.setItem('user_email', email);
 
