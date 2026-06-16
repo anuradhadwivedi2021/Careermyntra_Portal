@@ -17,6 +17,8 @@ from routes.streams import streams_bp
 from routes.monitor import monitor_bp 
 
 from db import init_db
+from monitor_service import start_monitor
+start_monitor()
 
 # ─── App Setup ───────────────────────────────────────────────
 app = Flask(__name__)
