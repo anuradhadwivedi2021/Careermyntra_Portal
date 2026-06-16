@@ -8,3 +8,4 @@ pdfplumber
 requests
 gunicorn
 bcrypt
+beautifulsoup4
