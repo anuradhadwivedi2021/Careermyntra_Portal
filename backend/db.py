@@ -98,14 +98,15 @@ def init_db():
         );
     """)
     cur.execute("""
+        DELETE FROM monitor_snapshots;
+        DELETE FROM monitor_urls;
         INSERT INTO monitor_urls (url, label) VALUES
         ('https://mahafyjcadmissions.in/landing', 'MahaFYJC Admissions'),
         ('https://timesofindia.indiatimes.com/', 'Times of India'),
         ('https://indianexpress.com/', 'Indian Express'),
         ('https://www.ndtv.com/', 'NDTV'),
         ('https://www.thehindu.com/', 'The Hindu'),
-        ('https://www.hindustantimes.com/', 'Hindustan Times')
-        ON CONFLICT DO NOTHING;
+        ('https://www.hindustantimes.com/', 'Hindustan Times');
     """)
     conn.commit()
     cur.close()
