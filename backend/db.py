@@ -23,6 +23,7 @@ def get_cursor(conn):
 def init_db():
     conn = get_connection()
     cur = conn.cursor()
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS courses (
             id            SERIAL PRIMARY KEY,
@@ -39,6 +40,7 @@ def init_db():
     cur.execute("""
         ALTER TABLE courses ADD COLUMN IF NOT EXISTS script_content TEXT;
     """)
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS college_master (
             id              SERIAL PRIMARY KEY,
@@ -59,6 +61,7 @@ def init_db():
             updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id            SERIAL PRIMARY KEY,
@@ -72,6 +75,7 @@ def init_db():
             created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS monitor_config (
             id               SERIAL PRIMARY KEY,
@@ -83,6 +87,10 @@ def init_db():
         );
     """)
     cur.execute("""
+        ALTER TABLE monitor_config ADD COLUMN IF NOT EXISTS recipient_emails TEXT DEFAULT '';
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS monitor_urls (
             id         SERIAL PRIMARY KEY,
             url        TEXT NOT NULL,
@@ -91,6 +99,7 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS monitor_snapshots (
             url_id     INTEGER PRIMARY KEY REFERENCES monitor_urls(id),
@@ -98,6 +107,7 @@ def init_db():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
+
     cur.execute("""
         DELETE FROM monitor_snapshots;
         DELETE FROM monitor_urls;
@@ -107,13 +117,15 @@ def init_db():
         ('https://www.thehindu.com/', 'The Hindu'),
         ('https://www.hindustantimes.com/', 'Hindustan Times');
     """)
+
     cur.execute("""
         INSERT INTO monitor_config (alert_email, app_password, recipient_emails, interval_seconds)
-        SELECT 'anuradha.dwivedi2021@gmail.com', 'ootc qsfd tori cfcq', 
-        'careermyntrapune@gmail.com, collegescutoff@gmail.com, khamgaonkarpawan@gmail.com, anuradha.dwivedi2021@gmail.com', 
+        SELECT 'anuradha.dwivedi2021@gmail.com', 'ootc qsfd tori cfcq',
+        'careermyntrapune@gmail.com, collegescutoff@gmail.com, khamgaonkarpawan@gmail.com, anuradha.dwivedi2021@gmail.com',
         120
         WHERE NOT EXISTS (SELECT 1 FROM monitor_config);
     """)
+
     conn.commit()
     cur.close()
     conn.close()
