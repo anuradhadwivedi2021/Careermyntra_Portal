@@ -374,11 +374,11 @@
 
   <script>
 
-  const ALLOWED_EMAILS = [
-  { email: "careermyntrapune@gmail.com",        password: "Career@123" },
-  { email: "collegescutoff@gmail.com",          password: "Career@123" },
-  { email: "khamgaonkarpawan@gmail.com",        password: "Career@123" },
-  { email: "anuradha.dwivedi2021@gmail.com",    password: "Career@123" }
+  const ALLOWED_USERS = [
+  { email: "careermyntrapune@gmail.com",     password: "Career@123" },
+  { email: "collegescutoff@gmail.com",       password: "Career@123" },
+  { email: "khamgaonkarpawan@gmail.com",     password: "Career@123" },
+  { email: "anuradha.dwivedi2021@gmail.com", password: "Career@123" }
 ];
 
 function handleLogin(e) {
@@ -386,9 +386,12 @@ function handleLogin(e) {
   const btn = document.getElementById('login-btn');
   const text = document.getElementById('login-text');
   const email = document.getElementById('email').value.trim().toLowerCase();
+  const password = document.getElementById('password').value;
 
-  if (!ALLOWED_EMAILS.includes(email)) {
-    alert('⛔ Access denied. This email is not authorized.');
+  const user = ALLOWED_USERS.find(u => u.email === email && u.password === password);
+
+  if (!user) {
+    alert('⛔ Invalid email or password.');
     return;
   }
 
