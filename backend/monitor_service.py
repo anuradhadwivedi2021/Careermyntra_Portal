@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 from db import get_connection, get_cursor
 
-CHECK_INTERVAL = 120  # seconds
+CHECK_INTERVAL = 600  # 10 minutes
 
 # ── In-memory state ─────────────────────────────────────────
 _monitor_thread = None
