@@ -108,8 +108,10 @@ def init_db():
         ('https://www.hindustantimes.com/', 'Hindustan Times');
     """)
     cur.execute("""
-        INSERT INTO monitor_config (alert_email, app_password, interval_seconds)
-        SELECT 'anuradha.dwivedi2021@gmail.com', 'ootc qsfd tori cfcq', 120
+        INSERT INTO monitor_config (alert_email, app_password, recipient_emails, interval_seconds)
+        SELECT 'anuradha.dwivedi2021@gmail.com', 'ootc qsfd tori cfcq', 
+        'careermyntrapune@gmail.com, collegescutoff@gmail.com, khamgaonkarpawan@gmail.com, anuradha.dwivedi2021@gmail.com', 
+        120
         WHERE NOT EXISTS (SELECT 1 FROM monitor_config);
     """)
     conn.commit()
