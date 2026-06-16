@@ -34,7 +34,9 @@ def get_monitor_config():
         row = cur.fetchone()
         cur.close(); conn.close()
         return dict(row) if row else None
-    except: return None
+    except Exception as e:
+        _log(f"❌ Config DB error: {e}")
+        return None
 
 def get_monitor_urls():
     try:
@@ -44,7 +46,9 @@ def get_monitor_urls():
         rows = cur.fetchall()
         cur.close(); conn.close()
         return [dict(r) for r in rows]
-    except: return []
+    except Exception as e:
+        _log(f"❌ URLs DB error: {e}")
+        return []
 
 def get_saved_content(url_id):
     try:
@@ -54,7 +58,9 @@ def get_saved_content(url_id):
         row = cur.fetchone()
         cur.close(); conn.close()
         return row["content"] if row else None
-    except: return None
+    except Exception as e:
+        _log(f"❌ Snapshot DB error: {e}")
+        return None
 
 def save_content(url_id, content):
     try:
