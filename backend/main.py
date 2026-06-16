@@ -46,6 +46,9 @@ os.makedirs(SCRIPTS_DIR, exist_ok=True)
 
 init_db()
 
+from monitor_service import start_monitor
+start_monitor()
+
 # ─── Register Blueprints ─────────────────────────────────────
 app.register_blueprint(courses_bp,        url_prefix="/api")
 app.register_blueprint(auth_bp,           url_prefix="/api")
