@@ -4,6 +4,9 @@
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import os
+import os
+import sys
+sys.stdout.flush()
 import uuid
 import threading
 import time

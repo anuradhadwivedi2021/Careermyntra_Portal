@@ -23,7 +23,7 @@ def _log(msg):
     entry = f"[{ts}] {msg}"
     _status["log"].append(entry)
     _status["log"] = _status["log"][-50:]  # keep last 50 lines
-    print(entry)
+    print(entry, flush=True)
 
 # ── DB helpers ──────────────────────────────────────────────
 def get_monitor_config():
