@@ -466,7 +466,12 @@
     try {
       await fetch(`${BACKEND}/api/monitor/config`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alert_email: email, app_password: password, interval_seconds: 600 })
+        body: JSON.stringify({ 
+    alert_email: email, 
+    app_password: password, 
+    recipient_emails: 'careermyntrapune@gmail.com, collegescutoff@gmail.com, khamgaonkarpawan@gmail.com, anuradha.dwivedi2021@gmail.com',
+    interval_seconds: 600 
+})
       });
       const succ = document.getElementById("save-success");
       succ.style.display = "block";
