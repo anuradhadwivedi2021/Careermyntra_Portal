@@ -102,8 +102,9 @@ def init_db():
         DELETE FROM monitor_urls;
         INSERT INTO monitor_urls (url, label) VALUES
         ('https://mahafyjcadmissions.in/landing', 'MahaFYJC Admissions'),
-        ('https://cetcell.mahacet.org', 'CET Cell Maharashtra'),
-        ('https://mahacet.org', 'MahaCET');
+        ('https://timesofindia.indiatimes.com/', 'Times of India'),
+        ('https://www.thehindu.com/', 'The Hindu'),
+        ('https://www.hindustantimes.com/', 'Hindustan Times');
     """)
     conn.commit()
     cur.close()
