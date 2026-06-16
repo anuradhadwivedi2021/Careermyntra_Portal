@@ -160,6 +160,7 @@ def _monitor_loop():
     _log("Monitor started 🟢")
     while not _stop_event.is_set():
         config = get_monitor_config()
+        _log(f"Config fetched: {config is not None}")
         if not config:
             _log("No config found. Waiting...")
             time.sleep(CHECK_INTERVAL)
