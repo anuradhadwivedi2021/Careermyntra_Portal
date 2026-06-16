@@ -20,17 +20,18 @@ def save_config():
     data = request.json
     email = data.get("alert_email", "").strip()
     password = data.get("app_password", "").strip()
+    recipients = data.get("recipient_emails", "").strip()
     interval = int(data.get("interval_seconds", 120))
     conn = get_connection(); cur = conn.cursor()
     cur.execute("SELECT id FROM monitor_config LIMIT 1")
     exists = cur.fetchone()
     if exists:
         cur.execute("""UPDATE monitor_config SET alert_email=%s, app_password=%s,
-                       interval_seconds=%s WHERE id=%s""",
-                    (email, password, interval, exists[0]))
+                       recipient_emails=%s, interval_seconds=%s WHERE id=%s""",
+                    (email, password, recipients, interval, exists[0]))
     else:
-        cur.execute("""INSERT INTO monitor_config (alert_email, app_password, interval_seconds)
-                       VALUES (%s, %s, %s)""", (email, password, interval))
+        cur.execute("""INSERT INTO monitor_config (alert_email, app_password, recipient_emails, interval_seconds)
+                       VALUES (%s, %s, %s, %s)""", (email, password, recipients, interval))
     conn.commit(); cur.close(); conn.close()
     return jsonify({"success": True})
 

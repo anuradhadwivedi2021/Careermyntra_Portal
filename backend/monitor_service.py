@@ -147,14 +147,17 @@ def send_alert_email(config, all_updates):
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = "🔔 CareerMyntra Website Update Alert"
+        recipients = [e.strip() for e in config.get("recipient_emails", "").split(",") if e.strip()]
+        if not recipients:
+            recipients = [email]
         msg["From"] = email
-        msg["To"] = email
+        msg["To"] = ", ".join(recipients)
         msg.attach(MIMEText(html_body, "html", "utf-8"))
 
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
         server.login(email, app_password)
-        server.send_message(msg)
+        server.sendmail(email, recipients, msg.as_string())
         server.quit()
         _log("✅ Alert email sent!")
         _status["last_alert"] = current_time

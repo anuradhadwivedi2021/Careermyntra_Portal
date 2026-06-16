@@ -77,6 +77,7 @@ def init_db():
             id               SERIAL PRIMARY KEY,
             alert_email      VARCHAR(200) NOT NULL,
             app_password     VARCHAR(200) NOT NULL,
+            recipient_emails TEXT DEFAULT '',
             interval_seconds INTEGER DEFAULT 120,
             created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -105,6 +106,11 @@ def init_db():
         ('https://timesofindia.indiatimes.com/', 'Times of India'),
         ('https://www.thehindu.com/', 'The Hindu'),
         ('https://www.hindustantimes.com/', 'Hindustan Times');
+    """)
+    cur.execute("""
+        INSERT INTO monitor_config (alert_email, app_password, interval_seconds)
+        SELECT 'anuradha.dwivedi2021@gmail.com', 'ootc qsfd tori cfcq', 120
+        WHERE NOT EXISTS (SELECT 1 FROM monitor_config);
     """)
     conn.commit()
     cur.close()
