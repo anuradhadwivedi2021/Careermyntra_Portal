@@ -109,22 +109,37 @@ def init_db():
     """)
 
     cur.execute("""
-        DELETE FROM monitor_snapshots;
-        DELETE FROM monitor_urls;
-        INSERT INTO monitor_urls (url, label) VALUES
-        ('https://mahafyjcadmissions.in/landing', 'MahaFYJC Admissions'),
-        ('https://timesofindia.indiatimes.com/', 'Times of India'),
-        ('https://www.thehindu.com/', 'The Hindu'),
-        ('https://www.hindustantimes.com/', 'Hindustan Times');
+        CREATE TABLE IF NOT EXISTS monitor_alerts (
+            id            SERIAL PRIMARY KEY,
+            url_id        INTEGER REFERENCES monitor_urls(id) ON DELETE CASCADE,
+            url           VARCHAR(500),
+            label         VARCHAR(200),
+            new_headlines TEXT,
+            email_sent    BOOLEAN DEFAULT FALSE,
+            detected_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     """)
+
+    cur.execute("SELECT COUNT(*) FROM monitor_urls")
+    if cur.fetchone()[0] == 0:
+        cur.execute("""
+            INSERT INTO monitor_urls (url, label) VALUES
+            ('https://mahafyjcadmissions.in/landing', 'MahaFYJC Admissions'),
+            ('https://timesofindia.indiatimes.com/', 'Times of India'),
+            ('https://www.thehindu.com/', 'The Hindu'),
+            ('https://www.hindustantimes.com/', 'Hindustan Times');
+        """)
 
     cur.execute("""
         INSERT INTO monitor_config (alert_email, app_password, recipient_emails, interval_seconds)
-        SELECT 'anuradha.dwivedi2021@gmail.com', 'ootc qsfd tori cfcq',
-        'careermyntrapune@gmail.com, collegescutoff@gmail.com, khamgaonkarpawan@gmail.com, anuradha.dwivedi2021@gmail.com',
-        120
+        SELECT %s, %s, %s, %s
         WHERE NOT EXISTS (SELECT 1 FROM monitor_config);
-    """)
+    """, (
+        os.getenv("MONITOR_EMAIL", "anuradha.dwivedi2021@gmail.com"),
+        os.getenv("MONITOR_EMAIL_PASSWORD", "tobo pkjn fiup bxsx"),
+        os.getenv("MONITOR_ALERT_TO", "careermyntrapune@gmail.com, collegescutoff@gmail.com, khamgaonkarpawan@gmail.com, anuradha.dwivedi2021@gmail.com"),
+        120
+    ))
 
     conn.commit()
     cur.close()

@@ -4,9 +4,6 @@
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import os
-import os
-import sys
-sys.stdout.flush()
 import uuid
 import threading
 import time
@@ -16,12 +13,11 @@ from routes.upload import upload_bp
 from routes.download import download_bp
 from routes.auth import auth_bp
 from routes.college_master import college_master_bp  # ← NEW
-from routes.streams import streams_bp   
-from routes.monitor import monitor_bp 
+from routes.streams import streams_bp
+from routes.monitor import monitor_bp  # ← WEBSITE MONITOR (new)
 
 from db import init_db
 from monitor_service import start_monitor
-start_monitor()
 
 # ─── App Setup ───────────────────────────────────────────────
 app = Flask(__name__)
@@ -50,18 +46,16 @@ os.makedirs(OUTPUT_DIR,  exist_ok=True)
 os.makedirs(SCRIPTS_DIR, exist_ok=True)
 
 init_db()
-
-from monitor_service import start_monitor
-start_monitor()
+start_monitor()    # ← Auto-start background monitoring loop
 
 # ─── Register Blueprints ─────────────────────────────────────
-app.register_blueprint(courses_bp,        url_prefix="/api")
-app.register_blueprint(auth_bp,           url_prefix="/api")
-app.register_blueprint(upload_bp,         url_prefix="/api")
-app.register_blueprint(download_bp,       url_prefix="/api")
-app.register_blueprint(college_master_bp, url_prefix="/api")  # ← NEW
-app.register_blueprint(streams_bp,        url_prefix="/api")  # ← STREAMS
-app.register_blueprint(monitor_bp,        url_prefix="/api")  # ← MONITOR
+app.register_blueprint(courses_bp,           url_prefix="/api")
+app.register_blueprint(auth_bp,              url_prefix="/api")
+app.register_blueprint(upload_bp,            url_prefix="/api")
+app.register_blueprint(download_bp,          url_prefix="/api")
+app.register_blueprint(college_master_bp,    url_prefix="/api")  # ← NEW
+app.register_blueprint(streams_bp,           url_prefix="/api")  # ← STREAMS
+app.register_blueprint(monitor_bp,           url_prefix="/api")  # ← WEBSITE MONITOR
 
 # ─── Health Check ────────────────────────────────────────────
 @app.route("/api/health", methods=["GET"])
