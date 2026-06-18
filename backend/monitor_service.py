@@ -30,7 +30,7 @@ def get_website_content(url):
     """Extract headline+link pairs from anchor tags (text length > 30 chars)"""
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=20)
+        response = requests.get(url, headers=headers, timeout=(10, 20))  # (connect, read) timeout
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
 

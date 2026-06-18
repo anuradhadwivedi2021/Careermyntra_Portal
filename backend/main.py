@@ -49,7 +49,12 @@ os.makedirs(OUTPUT_DIR,  exist_ok=True)
 os.makedirs(SCRIPTS_DIR, exist_ok=True)
 
 init_db()
-start_monitor()    # ← Auto-start background monitoring loop
+
+def _delayed_start_monitor():
+    time.sleep(5)  # let gunicorn worker fully boot before first network call
+    start_monitor()
+
+threading.Thread(target=_delayed_start_monitor, daemon=True).start()
 
 # ─── Register Blueprints ─────────────────────────────────────
 app.register_blueprint(courses_bp,           url_prefix="/api")
