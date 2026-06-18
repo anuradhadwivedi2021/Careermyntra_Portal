@@ -15,9 +15,12 @@ from routes.auth import auth_bp
 from routes.college_master import college_master_bp  # ← NEW
 from routes.streams import streams_bp
 from routes.monitor import monitor_bp  # ← WEBSITE MONITOR (new)
+from routes.reminder import reminders_bp  # ← REMINDERS (new)
 
 from db import init_db
 from monitor_service import start_monitor
+
+
 
 # ─── App Setup ───────────────────────────────────────────────
 app = Flask(__name__)
@@ -56,6 +59,7 @@ app.register_blueprint(download_bp,          url_prefix="/api")
 app.register_blueprint(college_master_bp,    url_prefix="/api")  # ← NEW
 app.register_blueprint(streams_bp,           url_prefix="/api")  # ← STREAMS
 app.register_blueprint(monitor_bp,           url_prefix="/api")  # ← WEBSITE MONITOR
+app.register_blueprint(reminders_bp, url_prefix="/api")  # ← REMINDERS (new)
 
 # ─── Health Check ────────────────────────────────────────────
 @app.route("/api/health", methods=["GET"])

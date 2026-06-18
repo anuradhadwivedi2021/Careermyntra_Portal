@@ -141,6 +141,119 @@ def init_db():
         120
     ))
 
+    # ── Reminders Feature Tables ──────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reminder_categories (
+            id         SERIAL PRIMARY KEY,
+            name       VARCHAR(150) NOT NULL UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reminder_subcategories (
+            id          SERIAL PRIMARY KEY,
+            name        VARCHAR(150) NOT NULL UNIQUE,
+            category_id INTEGER REFERENCES reminder_categories(id) ON DELETE SET NULL,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reminder_events (
+            id              SERIAL PRIMARY KEY,
+            title           VARCHAR(300) NOT NULL,
+            category_id     INTEGER REFERENCES reminder_categories(id) ON DELETE SET NULL,
+            subcategory_id  INTEGER REFERENCES reminder_subcategories(id) ON DELETE SET NULL,
+            description     TEXT,
+            event_date      DATE NOT NULL,
+            event_time      TIME,
+            start_dt        TIMESTAMP,
+            end_dt          TIMESTAMP,
+            priority        VARCHAR(20) DEFAULT 'medium',
+            status          VARCHAR(20) DEFAULT 'upcoming',
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reminder_schedules (
+            id         SERIAL PRIMARY KEY,
+            event_id   INTEGER REFERENCES reminder_events(id) ON DELETE CASCADE,
+            remind_at  TIMESTAMP NOT NULL,
+            label      VARCHAR(50),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reminder_recipients (
+            id         SERIAL PRIMARY KEY,
+            event_id   INTEGER REFERENCES reminder_events(id) ON DELETE CASCADE,
+            type       VARCHAR(20) NOT NULL,
+            value      VARCHAR(200) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reminder_event_attachments (
+            id         SERIAL PRIMARY KEY,
+            event_id   INTEGER REFERENCES reminder_events(id) ON DELETE CASCADE,
+            filename   VARCHAR(300),
+            filepath   VARCHAR(500),
+            filesize   INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reminder_templates (
+            id         SERIAL PRIMARY KEY,
+            channel    VARCHAR(20) NOT NULL UNIQUE,
+            subject    VARCHAR(300),
+            body       TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reminder_notification_logs (
+            id          SERIAL PRIMARY KEY,
+            event_id    INTEGER REFERENCES reminder_events(id) ON DELETE CASCADE,
+            channel     VARCHAR(20),
+            recipient   VARCHAR(200),
+            status      VARCHAR(20),
+            error_msg   TEXT,
+            sent_at     TIMESTAMP,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reminder_email_logs (
+            id             SERIAL PRIMARY KEY,
+            to_email       VARCHAR(200),
+            subject        VARCHAR(300),
+            body           TEXT,
+            smtp_response  TEXT,
+            status         VARCHAR(20),
+            created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    # Seed default email template if none exists
+    cur.execute("SELECT COUNT(*) FROM reminder_templates")
+    if cur.fetchone()[0] == 0:
+        cur.execute("""
+            INSERT INTO reminder_templates (channel, subject, body) VALUES
+            ('email', 'Reminder: {{EventTitle}}',
+             'Dear User,%0A%0AThis is a reminder for: {{EventTitle}} ({{Category}})%0ADate: {{EventDate}} {{EventTime}}%0A%0A{{EventDescription}}%0A%0ARegards,%0ACareerMyntra Team'),
+            ('whatsapp', NULL,
+             'Reminder: {{EventTitle}} on {{EventDate}} {{EventTime}}. {{EventDescription}}');
+        """)
+
     conn.commit()
     cur.close()
     conn.close()
