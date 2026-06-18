@@ -8,4 +8,5 @@ pdfplumber
 requests
 gunicorn
 bcrypt
-beautifulsoup4APScheduler
+beautifulsoup4
+APScheduler
