@@ -9,6 +9,7 @@ import os
 import uuid
 import smtplib
 import threading
+import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -363,6 +364,21 @@ def save_template(channel):
     body = data.get("body", "").strip()
     if not body:
         return jsonify({"success": False, "error": "Body required"}), 400
+    
+    # ── Decode URL-encoded content if needed ──
+    import urllib.parse
+    if "%0A" in body or "%0D" in body:
+        body = urllib.parse.unquote(body)
+    
+    # ── Normalize line endings ──
+    body = body.replace("\r\n", "\n").replace("\r", "\n")
+    
+    subject = data.get("subject", "")
+    if subject and ("%0A" in subject or "%0D" in subject):
+        import urllib.parse
+        subject = urllib.parse.unquote(subject)
+    subject = subject.replace("\r\n", "\n").replace("\r", "\n")
+    
     try:
         conn = get_connection(); cur = conn.cursor()
         cur.execute("""
@@ -370,7 +386,7 @@ def save_template(channel):
             VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
             ON CONFLICT (channel) DO UPDATE
             SET subject = EXCLUDED.subject, body = EXCLUDED.body, updated_at = CURRENT_TIMESTAMP
-        """, (channel, data.get("subject", ""), body))
+        """, (channel, subject, body))
         conn.commit(); cur.close(); conn.close()
         return jsonify({"success": True})
     except Exception as e:
@@ -462,6 +478,14 @@ def send_reminder_now(event_id):
     # Fetch template
     cur.execute("SELECT * FROM reminder_templates WHERE channel = 'email' LIMIT 1")
     email_tpl = cur.fetchone()
+    if email_tpl:
+        email_tpl = dict(email_tpl)
+        # Decode URL-encoded content if present
+        if "%0A" in email_tpl.get("body", ""):
+            email_tpl["body"] = urllib.parse.unquote(email_tpl["body"])
+        if email_tpl.get("subject") and "%0A" in email_tpl["subject"]:
+            email_tpl["subject"] = urllib.parse.unquote(email_tpl["subject"])
+    
     cur.execute("SELECT * FROM reminder_templates WHERE channel = 'whatsapp' LIMIT 1")
     wa_tpl    = cur.fetchone()
 
