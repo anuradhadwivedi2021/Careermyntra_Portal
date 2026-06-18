@@ -407,35 +407,19 @@
               <label class="form-label">Category <span class="req">*</span></label>
               <div class="add-new-row">
                 <select class="form-select" id="ev-category">
-                  <option value="">Select Category</option>
-                  <option>Entrance Exam</option>
-                  <option>Admission Process</option>
-                  <option>CAP Round</option>
-                  <option>Counseling</option>
-                  <option>Document Verification</option>
-                  <option>Scholarship</option>
-                  <option>Fee Payment</option>
-                  <option>College Reporting</option>
-                  <option>Other</option>
+                  <option value="">Loading…</option>
                 </select>
+                <button class="btn-add-inline" onclick="promptAddCategory()" title="Add new category">+ New</button>
               </div>
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label class="form-label">Sub Category</label>
-              <select class="form-select" id="ev-subcategory">
-                <option value="">Select Sub Category</option>
-                <option>MHT-CET</option>
-                <option>JEE Main</option>
-                <option>JEE Advanced</option>
-                <option>NEET UG</option>
-                <option>FYJC</option>
-                <option>Polytechnic</option>
-                <option>Pharmacy</option>
-                <option>Engineering Admission</option>
-                <option>MBA/MCA</option>
-                <option>Law</option>
-                <option>Nursing</option>
-              </select>
+              <div class="add-new-row">
+                <select class="form-select" id="ev-subcategory">
+                  <option value="">Select Sub Category</option>
+                </select>
+                <button class="btn-add-inline" onclick="promptAddSubcategory()" title="Add new sub category">+ New</button>
+              </div>
             </div>
           </div>
 
@@ -962,75 +946,177 @@ Admission Guidance Team</textarea>
   }
   function removeFile(i) { attachedFiles.splice(i, 1); renderFileList(); }
 
-  // ── Save Event ─────────────────────────────────────────
-  function saveEvent() {
-    const title = document.getElementById("ev-title").value.trim();
-    const cat   = document.getElementById("ev-category").value;
-    const date  = document.getElementById("ev-date").value;
-    if (!title) { showToast("Event title is required", "error"); return; }
-    if (!cat)   { showToast("Please select a category", "error"); return; }
-    if (!date)  { showToast("Event date is required", "error"); return; }
-
-    // Collect selected reminder chips
-    const reminders = [];
-    document.querySelectorAll(".reminder-chip.active[data-val], .reminder-chip.mandatory").forEach(c => {
-      reminders.push(c.getAttribute("data-val") || "6h");
-    });
-
-    const ev = {
-      id: Date.now(),
-      title, category: cat,
-      subcategory: document.getElementById("ev-subcategory").value,
-      date, time: document.getElementById("ev-time").value,
-      startDt: document.getElementById("ev-start").value,
-      endDt: document.getElementById("ev-end").value,
-      priority: selectedPriority,
-      status: selectedStatus,
-      description: document.getElementById("ev-desc").value.trim(),
-      reminders, emails: [...emails], phones: [...phones],
-      channels: {...channels},
-      attachments: attachedFiles.map(f => f.name),
-      createdAt: new Date().toISOString()
-    };
-
-    events.push(ev);
-    updateHeroStats();
-    document.getElementById("tc-events").textContent = events.length;
-
-    // Simulate scheduling logs
-    scheduleNotifLogs(ev);
-
-    showToast("✅ Event saved & reminders scheduled!", "success");
-    clearForm();
-    switchTab("events");
+  // ── Category / SubCategory dropdowns ──────────────────
+  function renderCategoryDropdown(selectedName) {
+    const sel = document.getElementById("ev-category");
+    sel.innerHTML = `<option value="">Select Category</option>` +
+      categories.map(c => `<option value="${c.name}"${c.name === selectedName ? " selected" : ""}>${c.name}</option>`).join("");
+  }
+  function renderSubcategoryDropdown(selectedName) {
+    const sel = document.getElementById("ev-subcategory");
+    sel.innerHTML = `<option value="">Select Sub Category</option>` +
+      subcategories.map(s => `<option value="${s.name}"${s.name === selectedName ? " selected" : ""}>${s.name}</option>`).join("");
+  }
+  async function promptAddCategory() {
+    const name = prompt("New category name:");
+    if (!name || !name.trim()) return;
+    const trimmed = name.trim();
+    if (categories.find(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
+      showToast("Category already exists", "error"); return;
+    }
+    try {
+      const res  = await fetch(`${BACKEND}/api/reminders/categories`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed");
+      categories.push({ id: data.id, name: trimmed });
+      renderCategoryDropdown(trimmed);
+      document.getElementById("ev-category").value = trimmed;
+      showToast(`✅ Category "${trimmed}" added`, "success");
+    } catch(e) { showToast("❌ " + e.message, "error"); }
+  }
+  async function promptAddSubcategory() {
+    const name = prompt("New sub category name:");
+    if (!name || !name.trim()) return;
+    const trimmed = name.trim();
+    if (subcategories.find(s => s.name.toLowerCase() === trimmed.toLowerCase())) {
+      showToast("Sub category already exists", "error"); return;
+    }
+    const catName = document.getElementById("ev-category").value;
+    const cat     = categories.find(c => c.name === catName);
+    try {
+      const res  = await fetch(`${BACKEND}/api/reminders/subcategories`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed, category_id: cat?.id || null })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed");
+      subcategories.push({ id: data.id, name: trimmed, category_id: cat?.id || null });
+      renderSubcategoryDropdown(trimmed);
+      document.getElementById("ev-subcategory").value = trimmed;
+      showToast(`✅ Sub category "${trimmed}" added`, "success");
+    } catch(e) { showToast("❌ " + e.message, "error"); }
   }
 
-  function scheduleNotifLogs(ev) {
-    const channels_used = Object.entries(ev.channels).filter(([,v]) => v).map(([k]) => k);
-    const recipients = [...ev.emails.map(e => ({type:"Email", to:e})), ...ev.phones.map(p => ({type:"WhatsApp", to:p}))];
-    ev.reminders.forEach(r => {
-      recipients.forEach(rec => {
-        notifLogs.unshift({
-          event: ev.title,
-          channel: rec.type,
-          to: rec.to,
-          reminder: r,
-          status: "pending",
-          time: "—"
+  // ── Save Event ─────────────────────────────────────────
+  async function saveEvent() {
+    const title = document.getElementById("ev-title").value.trim();
+    const catVal = document.getElementById("ev-category").value;
+    const date  = document.getElementById("ev-date").value;
+    if (!title)  { showToast("Event title is required", "error"); return; }
+    if (!catVal) { showToast("Please select a category", "error"); return; }
+    if (!date)   { showToast("Event date is required", "error"); return; }
+
+    // Resolve category_id from loaded categories, else auto-create
+    let category_id = null;
+    const matchedCat = categories.find(c => c.name === catVal);
+    if (matchedCat) {
+      category_id = matchedCat.id;
+    } else {
+      try {
+        const cr = await fetch(`${BACKEND}/api/reminders/categories`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: catVal })
         });
-      });
+        const cd = await cr.json();
+        if (cd.id) { category_id = cd.id; categories.push({ id: cd.id, name: catVal }); }
+      } catch(e) { /* ignore */ }
+    }
+    if (!category_id) { showToast("Could not resolve category", "error"); return; }
+
+    // Resolve subcategory_id
+    let subcategory_id = null;
+    const subVal = document.getElementById("ev-subcategory").value;
+    if (subVal) {
+      const matchedSub = subcategories.find(s => s.name === subVal);
+      if (matchedSub) {
+        subcategory_id = matchedSub.id;
+      } else {
+        try {
+          const sr = await fetch(`${BACKEND}/api/reminders/subcategories`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: subVal, category_id })
+          });
+          const sd = await sr.json();
+          if (sd.id) { subcategory_id = sd.id; subcategories.push({ id: sd.id, name: subVal }); }
+        } catch(e) { /* ignore */ }
+      }
+    }
+
+    // Build reminder schedules — convert chip labels to remind_at datetimes
+    const reminderSchedules = [];
+    const eventDt = new Date(date + "T" + (document.getElementById("ev-time").value || "09:00") + ":00");
+    document.querySelectorAll(".reminder-chip.active[data-val], .reminder-chip.mandatory").forEach(c => {
+      const val = c.getAttribute("data-val") || "6h";
+      const num = parseInt(val);
+      const unit = val.replace(/[0-9]/g, "");
+      let offsetMs = 0;
+      if (unit === "d")  offsetMs = num * 86400000;
+      else if (unit === "h") offsetMs = num * 3600000;
+      else if (unit === "w") offsetMs = num * 7 * 86400000;
+      const remindAt = new Date(eventDt.getTime() - offsetMs);
+      reminderSchedules.push({ label: val, remind_at: remindAt.toISOString().slice(0,16) });
     });
+
+    const payload = {
+      title,
+      category_id,
+      subcategory_id,
+      event_date:   date,
+      event_time:   document.getElementById("ev-time").value || null,
+      start_dt:     document.getElementById("ev-start").value || null,
+      end_dt:       document.getElementById("ev-end").value || null,
+      priority:     selectedPriority,
+      status:       selectedStatus,
+      description:  document.getElementById("ev-desc").value.trim(),
+      reminders:    reminderSchedules,
+      emails:       [...emails],
+      phones:       [...phones]
+    };
+
+    const btn = document.querySelector(".btn-primary");
+    btn.disabled = true; btn.textContent = "Saving…";
+
+    try {
+      const res = await fetch(`${BACKEND}/api/reminders/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Save failed");
+
+      // Upload attachments if any
+      for (const file of attachedFiles) {
+        const fd = new FormData();
+        fd.append("file", file);
+        try {
+          await fetch(`${BACKEND}/api/reminders/events/${data.event_id}/attachments`, { method: "POST", body: fd });
+        } catch(e) { /* non-critical */ }
+      }
+
+      showToast("✅ Event saved & reminders scheduled!", "success");
+      clearForm();
+      await loadFromBackend();
+      switchTab("events");
+    } catch(e) {
+      showToast("❌ " + e.message, "error");
+    } finally {
+      btn.disabled = false; btn.textContent = "💾 Save Event & Schedule";
+    }
   }
 
   function clearForm() {
-    document.getElementById("ev-title").value = "";
-    document.getElementById("ev-category").value = "";
-    document.getElementById("ev-subcategory").value = "";
-    document.getElementById("ev-date").value = "";
-    document.getElementById("ev-time").value = "";
-    document.getElementById("ev-start").value = "";
-    document.getElementById("ev-end").value = "";
-    document.getElementById("ev-desc").value = "";
+    document.getElementById("ev-title").value  = "";
+    document.getElementById("ev-date").value   = "";
+    document.getElementById("ev-time").value   = "";
+    document.getElementById("ev-start").value  = "";
+    document.getElementById("ev-end").value    = "";
+    document.getElementById("ev-desc").value   = "";
+    renderCategoryDropdown();
+    renderSubcategoryDropdown();
     document.querySelectorAll(".reminder-chip:not(.mandatory)").forEach(c => c.classList.remove("active"));
     document.getElementById("custom-chips").innerHTML = "";
     document.getElementById("custom-val").value = "";
@@ -1043,30 +1129,37 @@ Admission Guidance Team</textarea>
   // ── Render Events ──────────────────────────────────────
   function renderEvents() {
     const container = document.getElementById("events-list");
+    const todayStr  = new Date().toISOString().split("T")[0];
     const upcoming  = events.filter(e => e.status === "upcoming").length;
     const completed = events.filter(e => e.status === "completed").length;
-    const today     = events.filter(e => e.date === new Date().toISOString().split("T")[0]).length;
-    const missed    = events.filter(e => e.status === "upcoming" && new Date(e.date) < new Date()).length;
+    const missed    = events.filter(e => e.status === "upcoming" && (e.event_date || e.date) < todayStr).length;
 
-    document.getElementById("st-total").textContent   = events.length;
+    document.getElementById("st-total").textContent    = events.length;
     document.getElementById("st-upcoming").textContent = upcoming;
-    document.getElementById("st-missed").textContent  = missed;
-    document.getElementById("st-done").textContent    = completed;
+    document.getElementById("st-missed").textContent   = missed;
+    document.getElementById("st-done").textContent     = completed;
 
     if (!events.length) {
       container.innerHTML = `<div class="empty-state"><div class="es-icon">📭</div><div class="es-title">No events yet</div><div class="es-sub">Create your first exam reminder from the New Event tab</div></div>`;
       return;
     }
 
-    const sorted = [...events].sort((a,b) => new Date(a.date) - new Date(b.date));
+    const sorted = [...events].sort((a,b) => new Date(a.event_date||a.date) - new Date(b.event_date||b.date));
     container.innerHTML = sorted.map(ev => {
-      const d    = new Date(ev.date + "T00:00:00");
+      const dateStr = ev.event_date || ev.date || "";
+      const d    = new Date(dateStr + "T00:00:00");
       const day  = d.getDate();
       const mon  = d.toLocaleDateString("en-IN", { month:"short" });
       const pc   = ev.priority === "high" ? "urgent" : ev.priority === "medium" ? "medium-priority" : "low-priority";
       const sc   = ev.status === "upcoming" ? "badge-upcoming" : ev.status === "completed" ? "badge-completed" : "badge-cancelled";
       const prio = ev.priority === "high" ? "badge-high" : ev.priority === "medium" ? "badge-medium" : "badge-low";
-      const chips = ev.reminders.map(r => `<span class="ev-chip pending">⏰ ${r}</span>`).join("");
+      const catName  = ev.category_name  || ev.category  || "";
+      const subName  = ev.subcategory_name || ev.subcategory || "";
+      const timeStr  = ev.event_time || ev.time || "";
+      const remCount = (ev.reminders  || []).length;
+      const emails_r = (ev.recipients || []).filter(r => r.type === "email");
+      const phones_r = (ev.recipients || []).filter(r => r.type === "whatsapp");
+      const chips    = (ev.reminders  || []).map(r => `<span class="ev-chip pending">⏰ ${r.label||r}</span>`).join("");
       return `
         <div class="event-card ${pc}">
           <div class="ev-date-box"><div class="ev-day">${day}</div><div class="ev-mon">${mon}</div></div>
@@ -1077,11 +1170,11 @@ Admission Guidance Team</textarea>
               <span class="badge ${prio}">${ev.priority}</span>
             </div>
             <div class="ev-meta">
-              <span>📂 ${ev.category}</span>
-              ${ev.subcategory ? `<span>🏷️ ${ev.subcategory}</span>` : ""}
-              ${ev.time ? `<span>🕐 ${ev.time}</span>` : ""}
-              <span>🔔 ${ev.reminders.length} reminder(s)</span>
-              <span>📧 ${ev.emails.length} • 💬 ${ev.phones.length}</span>
+              <span>📂 ${catName}</span>
+              ${subName ? `<span>🏷️ ${subName}</span>` : ""}
+              ${timeStr ? `<span>🕐 ${timeStr}</span>` : ""}
+              <span>🔔 ${remCount} reminder(s)</span>
+              <span>📧 ${emails_r.length} • 💬 ${phones_r.length}</span>
             </div>
             <div class="ev-reminder-chips">${chips}</div>
           </div>
@@ -1093,31 +1186,46 @@ Admission Guidance Team</textarea>
     }).join("");
   }
 
-  function deleteEvent(id) {
-    events = events.filter(e => e.id !== id);
-    updateHeroStats();
-    document.getElementById("tc-events").textContent = events.length;
-    renderEvents();
-    showToast("Event deleted", "");
+  async function deleteEvent(id) {
+    if (!confirm("Delete this event? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`${BACKEND}/api/reminders/events/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Delete failed");
+      events = events.filter(e => e.id !== id);
+      updateHeroStats();
+      document.getElementById("tc-events").textContent = events.length;
+      renderEvents();
+      showToast("Event deleted", "");
+    } catch(e) {
+      showToast("❌ " + e.message, "error");
+    }
   }
 
   function editEvent(id) {
     const ev = events.find(e => e.id === id);
     if (!ev) return;
-    document.getElementById("ev-title").value       = ev.title;
-    document.getElementById("ev-category").value    = ev.category;
-    document.getElementById("ev-subcategory").value = ev.subcategory || "";
-    document.getElementById("ev-date").value        = ev.date;
-    document.getElementById("ev-time").value        = ev.time || "";
-    document.getElementById("ev-desc").value        = ev.description || "";
-    selectedPriority = ev.priority;
-    selectedStatus   = ev.status;
+    document.getElementById("ev-title").value = ev.title;
+    document.getElementById("ev-date").value  = ev.event_date || ev.date || "";
+    document.getElementById("ev-time").value  = ev.event_time || ev.time || "";
+    document.getElementById("ev-start").value = ev.start_dt ? ev.start_dt.slice(0,16) : "";
+    document.getElementById("ev-end").value   = ev.end_dt   ? ev.end_dt.slice(0,16)   : "";
+    document.getElementById("ev-desc").value  = ev.description || "";
+    renderCategoryDropdown(ev.category_name || ev.category || "");
+    renderSubcategoryDropdown(ev.subcategory_name || ev.subcategory || "");
+    selectedPriority = ev.priority || "high";
+    selectedStatus   = ev.status   || "upcoming";
     document.querySelectorAll("#priority-group .pill").forEach(p => p.className = "pill");
     const pp = document.querySelector(`#priority-group .pill:nth-child(${ev.priority==="high"?1:ev.priority==="medium"?2:3})`);
     if (pp) pp.classList.add("selected-" + ev.priority);
     document.querySelectorAll("#status-group .pill").forEach(p => p.className = "pill");
     const sp = document.querySelector(`#status-group .pill:nth-child(${ev.status==="upcoming"?1:ev.status==="completed"?2:3})`);
     if (sp) sp.classList.add("selected-" + ev.status);
+    if (ev.recipients) {
+      emails = ev.recipients.filter(r => r.type === "email").map(r => r.value);
+      phones = ev.recipients.filter(r => r.type === "whatsapp").map(r => r.value);
+      renderEmails(); renderPhones();
+    }
     deleteEvent(id);
     switchTab("create");
     showToast("Event loaded for editing", "");
@@ -1131,31 +1239,46 @@ Admission Guidance Team</textarea>
       return;
     }
     tbody.innerHTML = notifLogs.slice(0, 50).map(l => {
-      const dot = l.status === "sent" ? "ok" : l.status === "failed" ? "fail" : "pending";
+      const dot    = l.status === "sent" ? "ok" : l.status === "failed" ? "fail" : "pending";
+      const evTitle = l.event_title || l.event || "—";
+      const timeStr = l.sent_at ? new Date(l.sent_at).toLocaleString("en-IN") : (l.created_at ? new Date(l.created_at).toLocaleString("en-IN") : "—");
       return `<tr>
         <td><span class="dot ${dot}"></span>${l.status}</td>
-        <td>${l.event}</td>
+        <td>${evTitle}</td>
         <td>${l.channel}</td>
-        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.to}</td>
-        <td>${l.time}</td>
+        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.recipient || l.to || "—"}</td>
+        <td>${timeStr}</td>
       </tr>`;
     }).join("");
   }
 
   // ── Hero Stats ─────────────────────────────────────────
-  function updateHeroStats() {
-    const todayStr  = new Date().toISOString().split("T")[0];
-    const upcoming  = events.filter(e => e.status === "upcoming" && new Date(e.date) >= new Date()).length;
-    const todayEvs  = events.filter(e => e.date === todayStr).length;
-    const sent      = notifLogs.filter(l => l.status === "sent").length;
-    const missed    = events.filter(e => e.status === "upcoming" && new Date(e.date) < new Date()).length;
-    document.getElementById("hs-upcoming").textContent = upcoming;
-    document.getElementById("hs-today").textContent   = todayEvs;
-    document.getElementById("hs-sent").textContent    = sent;
-    document.getElementById("hs-missed").textContent  = missed;
-    document.getElementById("sidebar-today").textContent = todayEvs;
-    document.getElementById("sidebar-sent").textContent  = sent;
-    document.getElementById("sidebar-failed").textContent = notifLogs.filter(l => l.status === "failed").length;
+  async function updateHeroStats() {
+    try {
+      const res  = await fetch(`${BACKEND}/api/reminders/stats`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      document.getElementById("hs-upcoming").textContent = data.upcoming    ?? 0;
+      document.getElementById("hs-today").textContent   = data.today       ?? 0;
+      document.getElementById("hs-sent").textContent    = data.sent_today  ?? 0;
+      document.getElementById("hs-missed").textContent  = data.missed      ?? 0;
+      document.getElementById("sidebar-today").textContent  = data.today      ?? 0;
+      document.getElementById("sidebar-sent").textContent   = data.sent_today ?? 0;
+      document.getElementById("sidebar-failed").textContent = data.failed_today ?? 0;
+    } catch(e) {
+      // fallback to local count if backend unavailable
+      const todayStr = new Date().toISOString().split("T")[0];
+      const upcoming = events.filter(e => e.status === "upcoming" && (e.event_date||e.date) >= todayStr).length;
+      const missed   = events.filter(e => e.status === "upcoming" && (e.event_date||e.date) < todayStr).length;
+      const todayEvs = events.filter(e => (e.event_date||e.date) === todayStr).length;
+      document.getElementById("hs-upcoming").textContent = upcoming;
+      document.getElementById("hs-today").textContent   = todayEvs;
+      document.getElementById("hs-sent").textContent    = 0;
+      document.getElementById("hs-missed").textContent  = missed;
+      document.getElementById("sidebar-today").textContent  = todayEvs;
+      document.getElementById("sidebar-sent").textContent   = 0;
+      document.getElementById("sidebar-failed").textContent = 0;
+    }
   }
 
   // ── Template helpers ───────────────────────────────────
@@ -1167,44 +1290,101 @@ Admission Guidance Team</textarea>
     el.focus();
     el.selectionStart = el.selectionEnd = start + variable.length;
   }
-  function saveTemplate(type) {
-    const key = type === "email" ? "tpl-email-body" : "tpl-wa-body";
-    const subKey = "tpl-email-subject";
-    const body = document.getElementById(key).value.trim();
+  async function saveTemplate(type) {
+    const channel = type === "wa" ? "whatsapp" : type;  // "wa" → "whatsapp"
+    const bodyId  = type === "wa" ? "tpl-wa-body" : "tpl-email-body";
+    const body    = document.getElementById(bodyId).value.trim();
     if (!body) { showToast("Template is empty", "error"); return; }
-    localStorage.setItem("cm_reminder_tpl_" + type, body);
-    if (type === "email") {
-      const subj = document.getElementById(subKey).value.trim();
-      localStorage.setItem("cm_reminder_tpl_email_subject", subj);
+    const subject = type === "email" ? (document.getElementById("tpl-email-subject").value.trim()) : "";
+    try {
+      const res = await fetch(`${BACKEND}/api/reminders/templates/${channel}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, body })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Save failed");
+      showToast(type === "email" ? "✅ Email template saved!" : "✅ WhatsApp template saved!", "success");
+    } catch(e) {
+      showToast("❌ " + e.message, "error");
     }
-    showToast(type === "email" ? "✅ Email template saved!" : "✅ WhatsApp template saved!", "success");
   }
-  // Load saved templates on init
-  function loadTemplates() {
-    const emailBody = localStorage.getItem("cm_reminder_tpl_email");
-    const emailSubj = localStorage.getItem("cm_reminder_tpl_email_subject");
-    const waBody    = localStorage.getItem("cm_reminder_tpl_wa");
-    if (emailBody) document.getElementById("tpl-email-body").value = emailBody;
-    if (emailSubj) document.getElementById("tpl-email-subject").value = emailSubj;
-    if (waBody)    document.getElementById("tpl-wa-body").value = waBody;
+  async function loadTemplates() {
+    try {
+      const res  = await fetch(`${BACKEND}/api/reminders/templates`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      data.forEach(tpl => {
+        if (tpl.channel === "email") {
+          if (tpl.body)    document.getElementById("tpl-email-body").value    = tpl.body;
+          if (tpl.subject) document.getElementById("tpl-email-subject").value = tpl.subject;
+        } else if (tpl.channel === "whatsapp") {
+          if (tpl.body) document.getElementById("tpl-wa-body").value = tpl.body;
+        }
+      });
+    } catch(e) {
+      // fallback: try localStorage if backend unreachable
+      const emailBody = localStorage.getItem("cm_reminder_tpl_email");
+      const emailSubj = localStorage.getItem("cm_reminder_tpl_email_subject");
+      const waBody    = localStorage.getItem("cm_reminder_tpl_wa");
+      if (emailBody) document.getElementById("tpl-email-body").value = emailBody;
+      if (emailSubj) document.getElementById("tpl-email-subject").value = emailSubj;
+      if (waBody)    document.getElementById("tpl-wa-body").value = waBody;
+    }
   }
 
   // ── Init ───────────────────────────────────────────────
+  let categories   = [];
+  let subcategories = [];
+
   renderEmails();
   renderPhones();
-  updateHeroStats();
-  loadTemplates();
 
-  // Load from backend when APIs are ready
   async function loadFromBackend() {
     try {
-      const res = await fetch(`${BACKEND}/api/reminders/events`);
-      if (!res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data)) { events = data; updateHeroStats(); document.getElementById("tc-events").textContent = events.length; }
-    } catch(e) { /* backend not ready yet */ }
+      // Load events
+      const evRes = await fetch(`${BACKEND}/api/reminders/events`);
+      if (evRes.ok) {
+        const evData = await evRes.json();
+        if (Array.isArray(evData)) {
+          events = evData;
+          document.getElementById("tc-events").textContent = events.length;
+        }
+      }
+    } catch(e) { /* backend not ready */ }
+
+    try {
+      // Load categories into state (for category_id resolution on save)
+      const catRes = await fetch(`${BACKEND}/api/reminders/categories`);
+      if (catRes.ok) {
+        categories = await catRes.json();
+        renderCategoryDropdown();
+      }
+    } catch(e) { /* ignore */ }
+
+    try {
+      // Load subcategories into state
+      const subRes = await fetch(`${BACKEND}/api/reminders/subcategories`);
+      if (subRes.ok) {
+        subcategories = await subRes.json();
+        renderSubcategoryDropdown();
+      }
+    } catch(e) { /* ignore */ }
+
+    try {
+      // Load notification logs
+      const logRes = await fetch(`${BACKEND}/api/reminders/logs`);
+      if (logRes.ok) {
+        const logData = await logRes.json();
+        if (Array.isArray(logData)) notifLogs = logData;
+      }
+    } catch(e) { /* ignore */ }
+
+    await updateHeroStats();
   }
-  loadFromBackend();
+
+  // Run init
+  loadFromBackend().then(() => loadTemplates());
 </script>
 </body>
 </html>

@@ -19,6 +19,7 @@ from routes.reminder import reminders_bp  # ← REMINDERS (new)
 
 from db import init_db
 from monitor_service import start_monitor
+from reminder_scheduler import start_reminder_scheduler
 
 
 
@@ -53,6 +54,7 @@ init_db()
 def _delayed_start_monitor():
     time.sleep(5)  # let gunicorn worker fully boot before first network call
     start_monitor()
+    start_reminder_scheduler()
 
 threading.Thread(target=_delayed_start_monitor, daemon=True).start()
 

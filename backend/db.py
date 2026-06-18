@@ -243,15 +243,30 @@ def init_db():
         );
     """)
 
-    # Seed default email template if none exists
+    # Seed default categories if none exist
+    cur.execute("SELECT COUNT(*) FROM reminder_categories")
+    if cur.fetchone()[0] == 0:
+        for cat in ['Entrance Exam','Admission Process','CAP Round','Counseling',
+                    'Document Verification','Scholarship','Fee Payment','College Reporting','Other']:
+            cur.execute("INSERT INTO reminder_categories (name) VALUES (%s) ON CONFLICT (name) DO NOTHING", (cat,))
+
+    # Seed default subcategories if none exist
+    cur.execute("SELECT COUNT(*) FROM reminder_subcategories")
+    if cur.fetchone()[0] == 0:
+        for sub in ['MHT-CET','JEE Main','JEE Advanced','NEET UG','FYJC',
+                    'Polytechnic','Pharmacy','Engineering Admission','MBA/MCA','Law','Nursing']:
+            cur.execute("INSERT INTO reminder_subcategories (name) VALUES (%s) ON CONFLICT (name) DO NOTHING", (sub,))
+
+    # Seed default templates if none exist
     cur.execute("SELECT COUNT(*) FROM reminder_templates")
     if cur.fetchone()[0] == 0:
         cur.execute("""
             INSERT INTO reminder_templates (channel, subject, body) VALUES
-            ('email', 'Reminder: {{EventTitle}}',
-             'Dear User,%0A%0AThis is a reminder for: {{EventTitle}} ({{Category}})%0ADate: {{EventDate}} {{EventTime}}%0A%0A{{EventDescription}}%0A%0ARegards,%0ACareerMyntra Team'),
+            ('email', 'Reminder: {{EventTitle}} on {{EventDate}}',
+             'Dear Student,\n\nThis is a reminder for:\n\nEvent: {{EventTitle}}\nCategory: {{Category}}\nDate: {{EventDate}}\nTime: {{EventTime}}\n\nDescription:\n{{EventDescription}}\n\nPlease complete the required action before the deadline.\n\nRegards,\nCareerMyntra Admission Guidance Team'),
             ('whatsapp', NULL,
-             'Reminder: {{EventTitle}} on {{EventDate}} {{EventTime}}. {{EventDescription}}');
+             '🔔 Reminder Alert\n\nEvent: {{EventTitle}}\n📅 Date: {{EventDate}}\n⏰ Time: {{EventTime}}\nCategory: {{Category}}\n\n{{EventDescription}}\n\nThis event is scheduled within the next {{ReminderDuration}}.\n\nCareerMyntra\nAdmission Guidance Team')
+            ON CONFLICT (channel) DO NOTHING;
         """)
 
     conn.commit()
