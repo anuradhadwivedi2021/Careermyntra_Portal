@@ -10,7 +10,7 @@ monitor_bp = Blueprint("monitor", __name__)
 @monitor_bp.route("/monitor/config", methods=["GET"])
 def get_config():
     conn = get_connection(); cur = get_cursor(conn)
-    cur.execute("SELECT id, alert_email, interval_seconds FROM monitor_config LIMIT 1")
+    cur.execute("SELECT id, alert_email, recipient_emails, interval_seconds FROM monitor_config LIMIT 1")
     row = cur.fetchone()
     cur.close(); conn.close()
     return jsonify(dict(row) if row else {})
@@ -82,4 +82,10 @@ def stop():
 
 @monitor_bp.route("/monitor/status", methods=["GET"])
 def status():
-    return jsonify(svc.get_status())
+    s = svc.get_status()
+    return jsonify({
+        "running": s.get("running"),
+        "last_checked": s.get("last_checked_at"),
+        "last_alert": s.get("last_alert"),
+        "log": s.get("log", [])
+    })

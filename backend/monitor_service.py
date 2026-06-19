@@ -22,7 +22,15 @@ _status = {
     "last_result": None,   # "updates_found" | "no_updates" | "error" | None
     "sites_checked": 0,
     "updates_found": 0,
+    "last_alert": None,
+    "log": [],
 }
+
+def _push_log(msg):
+    """Keep last 50 log lines for the frontend Live Log box."""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    _status["log"].append(f"[{timestamp}] {msg}")
+    _status["log"] = _status["log"][-50:]
 
 
 # ── get_website_content() — SAME LOGIC AS SIR'S CODE ──────────
@@ -240,6 +248,7 @@ def check_notifications():
         label  = site["label"] or url
 
         print(f"Checking: {url}")
+        _push_log(f"Checking: {url}")
         sites_checked += 1
 
         current_content = get_website_content(url)
@@ -268,6 +277,7 @@ def check_notifications():
 
         if current_content_str != old_content_str:
             print("New Website Update Found!")
+            _push_log(f"🔔 New update found: {url}")
 
             all_updates.append({
                 "url": url,
@@ -297,6 +307,8 @@ def check_notifications():
         if email_sent:
             cur.execute("UPDATE monitor_alerts SET email_sent = TRUE WHERE email_sent = FALSE")
             conn.commit()
+            _status["last_alert"] = datetime.now().strftime("%d-%m-%Y %I:%M %p")
+            _push_log("✅ Email Sent Successfully!")
         result = "updates_found"
     else:
         print("\nNo updates across any site. No email sent.")

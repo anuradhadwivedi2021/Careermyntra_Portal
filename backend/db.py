@@ -14,7 +14,7 @@ def get_connection():
         port=os.getenv("DB_PORT", "5432"),
         database=os.getenv("DB_NAME", "careermyntra_portal"),
         user=os.getenv("DB_USER", "postgres"),
-        password=os.getenv("DB_PASSWORD", "Anuradha1411")
+        password=os.getenv("DB_PASSWORD")
     )
 
 def get_cursor(conn):
@@ -136,7 +136,7 @@ def init_db():
         WHERE NOT EXISTS (SELECT 1 FROM monitor_config);
     """, (
         os.getenv("MONITOR_EMAIL", "anuradha.dwivedi2021@gmail.com"),
-        os.getenv("MONITOR_EMAIL_PASSWORD", "ootc qsfd tori cfcq"),
+        os.getenv("MONITOR_EMAIL_PASSWORD"),
         os.getenv("MONITOR_ALERT_TO", "careermyntrapune@gmail.com, collegescutoff@gmail.com, khamgaonkarpawan@gmail.com, anuradha.dwivedi2021@gmail.com"),
         120
     ))
