@@ -227,9 +227,9 @@ def _load_config():
 
 # ── check_notifications() — SAME LOGIC, DB INSTEAD OF .txt FILES ──
 def check_notifications():
-    print("\n========================================")
-    print("Checking Websites...")
-    print("========================================\n")
+    print("\n========================================", flush=True)
+    print("Checking Websites...", flush=True)
+    print("========================================\n", flush=True)
 
     config = _load_config()
 
