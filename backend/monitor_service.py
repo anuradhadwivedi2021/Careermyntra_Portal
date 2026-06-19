@@ -16,7 +16,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 # ── Global state ────────────────────────────────────────────
-_scheduler = None
+_state = {"scheduler": None}   # mutable dict — shared across all threads
 _lock = threading.Lock()
 _status = {
     "running": False,
@@ -339,17 +339,15 @@ def _scheduled_check():
 # ── Public Controls ────────────────────────────────────────────
 def start_monitor():
     """Start the APScheduler-based monitor. Returns False if already running."""
-    global _scheduler
-
     with _lock:
-        if _scheduler and _scheduler.running:
+        if _state["scheduler"] and _state["scheduler"].running:
             return False
 
         config = _load_config()
         interval = config.get("interval_seconds") or 120
 
-        _scheduler = BackgroundScheduler(daemon=True)
-        _scheduler.add_job(
+        scheduler = BackgroundScheduler(daemon=True)
+        scheduler.add_job(
             _scheduled_check,
             trigger=IntervalTrigger(seconds=interval),
             id="monitor_check",
@@ -357,30 +355,29 @@ def start_monitor():
             max_instances=1,
             misfire_grace_time=30
         )
-        _scheduler.start()
+        scheduler.start()
+        _state["scheduler"] = scheduler
         _status["running"] = True
-        print(f"[Monitor] APScheduler started — checking every {interval}s")
+        print(f"[Monitor] APScheduler started — checking every {interval}s", flush=True)
         return True
 
 
 def stop_monitor():
     """Stop the APScheduler monitor."""
-    global _scheduler
-
     with _lock:
-        if _scheduler and _scheduler.running:
-            _scheduler.shutdown(wait=False)
+        if _state["scheduler"] and _state["scheduler"].running:
+            _state["scheduler"].shutdown(wait=False)
+        _state["scheduler"] = None
         _status["running"] = False
-        print("[Monitor] Stopped")
+        print("[Monitor] Stopped", flush=True)
 
 
 def get_status():
-    global _scheduler
     running = False
     try:
-        running = _scheduler is not None and _scheduler.running
+        running = _state["scheduler"] is not None and _state["scheduler"].running
     except Exception:
         running = False
     _status["running"] = running
-    print(f"[Monitor] get_status called — scheduler={_scheduler}, running={running}", flush=True)
+    print(f"[Monitor] get_status — scheduler={_state['scheduler']}, running={running}", flush=True)
     return dict(_status)
