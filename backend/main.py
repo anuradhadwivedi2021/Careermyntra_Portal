@@ -51,8 +51,17 @@ init_db()
 
 def _delayed_start():
     time.sleep(5)  # let gunicorn fully boot first
-    start_monitor()
-    start_reminder_scheduler()
+    try:
+        print("[Startup] Calling start_monitor...", flush=True)
+        result = start_monitor()
+        print(f"[Startup] start_monitor returned: {result}", flush=True)
+    except Exception as e:
+        print(f"[Startup] start_monitor FAILED: {e}", flush=True)
+    try:
+        start_reminder_scheduler()
+        print("[Startup] Reminder scheduler started", flush=True)
+    except Exception as e:
+        print(f"[Startup] Reminder scheduler FAILED: {e}", flush=True)
 
 threading.Thread(target=_delayed_start, daemon=True).start()
 
