@@ -25,7 +25,13 @@ logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] [ReminderScheduler] %(levelname)s: %(message)s',
     handlers=[
-        logging.FileHandler('/tmp/reminder_scheduler.log'),
+       logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] [ReminderScheduler] %(levelname)s: %(message)s',
+    handlers=[
+        logging.StreamHandler()  # Only console, no file
+    ]
+),
         logging.StreamHandler()
     ]
 )
