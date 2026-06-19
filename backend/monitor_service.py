@@ -9,13 +9,15 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import json
 import threading
-import time
 from datetime import datetime
 from db import get_connection, get_cursor
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+
 # ── Global state ────────────────────────────────────────────
-_thread = None
-_stop_event = threading.Event()
+_scheduler = None
+_lock = threading.Lock()
 _status = {
     "running": False,
     "last_checked_at": None,
@@ -324,45 +326,55 @@ def check_notifications():
     return all_updates
 
 
-# ── Background Loop ────────────────────────────────────────────
-def _run_loop():
-    _status["running"] = True
-    while not _stop_event.is_set():
-        try:
-            check_notifications()
-        except Exception as e:
-            print("[Monitor] Loop error:", e)
-            _status["last_result"] = "error"
-
-        config = _load_config()
-        interval = config.get("interval_seconds") or 120
-
-        # Sleep in small chunks so stop_monitor() can interrupt quickly
-        waited = 0
-        while waited < interval and not _stop_event.is_set():
-            time.sleep(1)
-            waited += 1
-
-    _status["running"] = False
+# ── Scheduled Job (called by APScheduler) ──────────────────────
+def _scheduled_check():
+    """APScheduler calls this on interval. Wraps check_notifications with error handling."""
+    try:
+        check_notifications()
+    except Exception as e:
+        print("[Monitor] Scheduled check error:", e)
+        _status["last_result"] = "error"
 
 
 # ── Public Controls ────────────────────────────────────────────
 def start_monitor():
-    """Start the background monitor loop. Returns False if already running."""
-    global _thread
-    if _status["running"]:
-        return False
-    _stop_event.clear()
-    _thread = threading.Thread(target=_run_loop, daemon=True)
-    _thread.start()
-    return True
+    """Start the APScheduler-based monitor. Returns False if already running."""
+    global _scheduler
+
+    with _lock:
+        if _scheduler and _scheduler.running:
+            return False
+
+        config = _load_config()
+        interval = config.get("interval_seconds") or 120
+
+        _scheduler = BackgroundScheduler(daemon=True)
+        _scheduler.add_job(
+            _scheduled_check,
+            trigger=IntervalTrigger(seconds=interval),
+            id="monitor_check",
+            replace_existing=True,
+            max_instances=1,
+            misfire_grace_time=30
+        )
+        _scheduler.start()
+        _status["running"] = True
+        print(f"[Monitor] APScheduler started — checking every {interval}s")
+        return True
 
 
 def stop_monitor():
-    """Signal the background loop to stop."""
-    _stop_event.set()
-    _status["running"] = False
+    """Stop the APScheduler monitor."""
+    global _scheduler
+
+    with _lock:
+        if _scheduler and _scheduler.running:
+            _scheduler.shutdown(wait=False)
+        _status["running"] = False
+        print("[Monitor] Stopped")
 
 
 def get_status():
+    running = _scheduler is not None and _scheduler.running
+    _status["running"] = running
     return dict(_status)
