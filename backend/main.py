@@ -12,23 +12,21 @@ from routes.courses import courses_bp
 from routes.upload import upload_bp
 from routes.download import download_bp
 from routes.auth import auth_bp
-from routes.college_master import college_master_bp  # ← NEW
+from routes.college_master import college_master_bp
 from routes.streams import streams_bp
-from routes.monitor import monitor_bp  # ← WEBSITE MONITOR (new)
-from routes.reminder import reminders_bp  # ← REMINDERS (new)
+from routes.monitor import monitor_bp
+from routes.reminder import reminders_bp
 
 from db import init_db
 from monitor_service import start_monitor
 from reminder_scheduler import start_reminder_scheduler
-
-
 
 # ─── App Setup ───────────────────────────────────────────────
 app = Flask(__name__)
 
 CORS(app, origins=[
     "https://careermyntra-portal-4.onrender.com",
-     "https://careermyntra-portal-6.onrender.com",
+    "https://careermyntra-portal-6.onrender.com",
     "http://localhost:5500",
     "http://127.0.0.1:5500"
 ])
@@ -51,22 +49,22 @@ os.makedirs(SCRIPTS_DIR, exist_ok=True)
 
 init_db()
 
-def _delayed_start_monitor():
-    time.sleep(5)  # let gunicorn worker fully boot before first network call
+def _delayed_start():
+    time.sleep(5)  # let gunicorn fully boot first
     start_monitor()
     start_reminder_scheduler()
 
-threading.Thread(target=_delayed_start_monitor, daemon=True).start()
+threading.Thread(target=_delayed_start, daemon=True).start()
 
 # ─── Register Blueprints ─────────────────────────────────────
-app.register_blueprint(courses_bp,           url_prefix="/api")
-app.register_blueprint(auth_bp,              url_prefix="/api")
-app.register_blueprint(upload_bp,            url_prefix="/api")
-app.register_blueprint(download_bp,          url_prefix="/api")
-app.register_blueprint(college_master_bp,    url_prefix="/api")  # ← NEW
-app.register_blueprint(streams_bp,           url_prefix="/api")  # ← STREAMS
-app.register_blueprint(monitor_bp,           url_prefix="/api")  # ← WEBSITE MONITOR
-app.register_blueprint(reminders_bp, url_prefix="/api")  # ← REMINDERS (new)
+app.register_blueprint(courses_bp,        url_prefix="/api")
+app.register_blueprint(auth_bp,           url_prefix="/api")
+app.register_blueprint(upload_bp,         url_prefix="/api")
+app.register_blueprint(download_bp,       url_prefix="/api")
+app.register_blueprint(college_master_bp, url_prefix="/api")
+app.register_blueprint(streams_bp,        url_prefix="/api")
+app.register_blueprint(monitor_bp,        url_prefix="/api")
+app.register_blueprint(reminders_bp,      url_prefix="/api")
 
 # ─── Health Check ────────────────────────────────────────────
 @app.route("/api/health", methods=["GET"])
@@ -76,6 +74,7 @@ def health():
         "message": "CareerMyntra backend is running!",
         "version": "1.1.0"
     })
+
 # ─── Run ─────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("=" * 50)

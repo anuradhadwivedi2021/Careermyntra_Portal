@@ -9,4 +9,4 @@ requests
 gunicorn
 bcrypt
 beautifulsoup4
-APScheduler
+apscheduler

@@ -136,7 +136,7 @@ def init_db():
         WHERE NOT EXISTS (SELECT 1 FROM monitor_config);
     """, (
         os.getenv("MONITOR_EMAIL", "anuradha.dwivedi2021@gmail.com"),
-        os.getenv("MONITOR_EMAIL_PASSWORD", "tobo pkjn fiup bxsx"),
+        os.getenv("MONITOR_EMAIL_PASSWORD", "ootc qsfd tori cfcq"),
         os.getenv("MONITOR_ALERT_TO", "careermyntrapune@gmail.com, collegescutoff@gmail.com, khamgaonkarpawan@gmail.com, anuradha.dwivedi2021@gmail.com"),
         120
     ))
@@ -183,8 +183,16 @@ def init_db():
             event_id   INTEGER REFERENCES reminder_events(id) ON DELETE CASCADE,
             remind_at  TIMESTAMP NOT NULL,
             label      VARCHAR(50),
+            is_sent    BOOLEAN DEFAULT FALSE,
+            sent_at    TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+    """)
+    cur.execute("""
+        ALTER TABLE reminder_schedules ADD COLUMN IF NOT EXISTS is_sent BOOLEAN DEFAULT FALSE;
+    """)
+    cur.execute("""
+        ALTER TABLE reminder_schedules ADD COLUMN IF NOT EXISTS sent_at TIMESTAMP;
     """)
 
     cur.execute("""
@@ -243,30 +251,16 @@ def init_db():
         );
     """)
 
-    # Seed default categories if none exist
-    cur.execute("SELECT COUNT(*) FROM reminder_categories")
-    if cur.fetchone()[0] == 0:
-        for cat in ['Entrance Exam','Admission Process','CAP Round','Counseling',
-                    'Document Verification','Scholarship','Fee Payment','College Reporting','Other']:
-            cur.execute("INSERT INTO reminder_categories (name) VALUES (%s) ON CONFLICT (name) DO NOTHING", (cat,))
-
-    # Seed default subcategories if none exist
-    cur.execute("SELECT COUNT(*) FROM reminder_subcategories")
-    if cur.fetchone()[0] == 0:
-        for sub in ['MHT-CET','JEE Main','JEE Advanced','NEET UG','FYJC',
-                    'Polytechnic','Pharmacy','Engineering Admission','MBA/MCA','Law','Nursing']:
-            cur.execute("INSERT INTO reminder_subcategories (name) VALUES (%s) ON CONFLICT (name) DO NOTHING", (sub,))
-
-    # Seed default templates if none exist
     cur.execute("SELECT COUNT(*) FROM reminder_templates")
     if cur.fetchone()[0] == 0:
         cur.execute("""
             INSERT INTO reminder_templates (channel, subject, body) VALUES
-            ('email', 'Reminder: {{EventTitle}} on {{EventDate}}',
-             'Dear Student,\n\nThis is a reminder for:\n\nEvent: {{EventTitle}}\nCategory: {{Category}}\nDate: {{EventDate}}\nTime: {{EventTime}}\n\nDescription:\n{{EventDescription}}\n\nPlease complete the required action before the deadline.\n\nRegards,\nCareerMyntra Admission Guidance Team'),
-            ('whatsapp', NULL,
-             '🔔 Reminder Alert\n\nEvent: {{EventTitle}}\n📅 Date: {{EventDate}}\n⏰ Time: {{EventTime}}\nCategory: {{Category}}\n\n{{EventDescription}}\n\nThis event is scheduled within the next {{ReminderDuration}}.\n\nCareerMyntra\nAdmission Guidance Team')
-            ON CONFLICT (channel) DO NOTHING;
+            ('email',
+             'Reminder: {{EventTitle}} on {{EventDate}}',
+             'Dear Student,%0A%0AThis is a reminder for:%0A%0AEvent: {{EventTitle}}%0ACategory: {{Category}}%0ADate: {{EventDate}}%0ATime: {{EventTime}}%0A%0ADescription:%0A{{EventDescription}}%0A%0APlease complete the required action before the deadline.%0A%0ARegards,%0ACareerMyntra Admission Guidance Team'),
+            ('whatsapp',
+             NULL,
+             'Reminder Alert%0A%0AEvent: {{EventTitle}}%0ADate: {{EventDate}}%0ATime: {{EventTime}}%0ACategory: {{Category}}%0A%0A{{EventDescription}}%0A%0AThis event is scheduled within the next {{ReminderDuration}}.%0A%0ACareerMyntra%0AAdmission Guidance Team');
         """)
 
     conn.commit()
