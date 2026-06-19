@@ -375,6 +375,12 @@ def stop_monitor():
 
 
 def get_status():
-    running = _scheduler is not None and _scheduler.running
+    global _scheduler
+    running = False
+    try:
+        running = _scheduler is not None and _scheduler.running
+    except Exception:
+        running = False
     _status["running"] = running
+    print(f"[Monitor] get_status called — scheduler={_scheduler}, running={running}", flush=True)
     return dict(_status)
