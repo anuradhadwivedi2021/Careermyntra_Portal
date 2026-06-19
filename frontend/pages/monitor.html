@@ -301,7 +301,11 @@
           <button class="btn-add" onclick="addUrl()">+ Add URL</button>
         </div>
         <div class="url-list" id="url-list">
-          <div class="url-empty" id="url-empty">No URLs added yet. Add one above ↑</div>
+          <div class="url-empty" id="url-empty">
+  No URLs added yet. Add one above ↑
+  <br/>
+  <button class="btn-add" style="margin-top:10px;" onclick="loadDefaultUrls()">📋 Load Default Sites (6)</button>
+</div>
         </div>
       </div>
     </div>
@@ -344,6 +348,12 @@
         <div class="form-group">
           <label class="form-label">App Password <a href="https://myaccount.google.com/apppasswords" target="_blank" style="font-size:11px;color:#1565c0;font-weight:600;">Get one →</a></label>
           <input class="form-input" id="cfg-password" type="password" placeholder="xxxx xxxx xxxx xxxx"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Recipient Emails (comma separated)</label>
+          <input class="form-input" id="cfg-recipients" type="text"
+            placeholder="email1@gmail.com, email2@gmail.com"
+            value="careermyntrapune@gmail.com, collegescutoff@gmail.com, khamgaonkarpawan@gmail.com, anuradha.dwivedi2021@gmail.com"/>
         </div>
         <button class="btn-save" onclick="saveConfig()">💾 Save Config</button>
         <div class="save-success" id="save-success">✅ Config saved! Monitor will use this email.</div>
@@ -392,6 +402,35 @@
     document.getElementById("nav-name").textContent = user.first_name;
     document.getElementById("nav-avatar").textContent = user.first_name[0].toUpperCase();
   }
+const defaultUrls = [
+  "https://mahafyjcadmissions.in/landing",
+  "https://timesofindia.indiatimes.com/",
+  "https://indianexpress.com/",
+  "https://www.ndtv.com/",
+  "https://www.thehindu.com/",
+  "https://www.hindustantimes.com/"
+];
+
+async function loadDefaultUrls() {
+  addLog("Loading default monitored sites...", "info");
+  for (const url of defaultUrls) {
+    try {
+      await fetch(`${BACKEND}/api/monitor/urls`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, label: url })
+      });
+      addLog(`Added: ${url}`, "ok");
+    } catch (e) {
+      addLog(`Failed to add: ${url}`, "error");
+    }
+  }
+  loadUrls();
+}
+
+
+
+
+
 
   function addLog(msg, type = "info") {
     const box = document.getElementById("log-box");
@@ -403,11 +442,18 @@
     box.scrollTop = box.scrollHeight;
   }
 
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
   function renderUrlItem(row) {
+    const safeUrl = escapeHtml(row.url);
     return `
       <div class="url-item active-url" id="url-item-${row.id}">
         <div class="url-dot ${row.is_active ? 'green' : 'red'}"></div>
-        <div class="url-text">${row.url}</div>
+        <div class="url-text">${safeUrl}</div>
         <span class="url-badge ${row.is_active ? 'badge-ok' : 'badge-error'}">${row.is_active ? '✓ active' : '✕ inactive'}</span>
         <button class="btn-remove" onclick="removeUrl(${row.id})">🗑</button>
       </div>`;
@@ -418,10 +464,16 @@
       const res = await fetch(`${BACKEND}/api/monitor/urls`);
       const urls = await res.json();
       const list = document.getElementById("url-list");
-      const empty = document.getElementById("url-empty");
       document.getElementById("stat-urls").textContent = urls.filter(u => u.is_active).length;
-      if (!urls.length) { list.innerHTML = ""; empty.style.display = "block"; return; }
-      empty.style.display = "none";
+      if (!urls.length) {
+        list.innerHTML = `
+          <div class="url-empty" id="url-empty">
+            No URLs added yet. Add one above ↑
+            <br/>
+            <button class="btn-add" style="margin-top:10px;" onclick="loadDefaultUrls()">📋 Load Default Sites (6)</button>
+          </div>`;
+        return;
+      }
       list.innerHTML = urls.map(renderUrlItem).join("");
     } catch(e) {}
   }
@@ -455,21 +507,24 @@
       const res = await fetch(`${BACKEND}/api/monitor/config`);
       const cfg = await res.json();
       if (cfg.alert_email) document.getElementById("cfg-email").value = cfg.alert_email;
+      if (cfg.recipient_emails) document.getElementById("cfg-recipients").value = cfg.recipient_emails;
     } catch(e) {}
   }
 
   async function saveConfig() {
-    const email    = document.getElementById("cfg-email").value.trim();
-    const password = document.getElementById("cfg-password").value.trim();
-    if (!email)    { addLog("Please enter a Gmail address", "warn"); return; }
-    if (!password) { addLog("Please enter your App Password", "warn"); return; }
+    const email      = document.getElementById("cfg-email").value.trim();
+    const password    = document.getElementById("cfg-password").value.trim();
+    const recipients  = document.getElementById("cfg-recipients").value.trim();
+    if (!email)      { addLog("Please enter a Gmail address", "warn"); return; }
+    if (!password)   { addLog("Please enter your App Password", "warn"); return; }
+    if (!recipients) { addLog("Please enter at least one recipient email", "warn"); return; }
     try {
       await fetch(`${BACKEND}/api/monitor/config`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
     alert_email: email, 
     app_password: password, 
-    recipient_emails: 'careermyntrapune@gmail.com, collegescutoff@gmail.com, khamgaonkarpawan@gmail.com, anuradha.dwivedi2021@gmail.com',
+    recipient_emails: recipients,
     interval_seconds: 600 
 })
       });
