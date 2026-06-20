@@ -263,6 +263,50 @@ def init_db():
              'Reminder Alert%0A%0AEvent: {{EventTitle}}%0ADate: {{EventDate}}%0ATime: {{EventTime}}%0ACategory: {{Category}}%0A%0A{{EventDescription}}%0A%0AThis event is scheduled within the next {{ReminderDuration}}.%0A%0ACareerMyntra%0AAdmission Guidance Team');
         """)
 
+    # ── Seed Default Categories ───────────────────────────────
+    cur.execute("SELECT COUNT(*) FROM reminder_categories")
+    if cur.fetchone()[0] == 0:
+        cur.execute("""
+            INSERT INTO reminder_categories (name) VALUES
+            ('Entrance Exam'),
+            ('Admission Process'),
+            ('CAP Round'),
+            ('Counseling'),
+            ('Document Verification'),
+            ('Scholarship'),
+            ('Fee Payment'),
+            ('College Reporting'),
+            ('Other');
+        """)
+
+    # ── Seed Default Subcategories ────────────────────────────
+    cur.execute("SELECT COUNT(*) FROM reminder_subcategories")
+    if cur.fetchone()[0] == 0:
+        cur.execute("SELECT id, name FROM reminder_categories")
+        cat_map = {row[1]: row[0] for row in cur.fetchall()}
+
+        subcategories = [
+            ("MHT-CET",         "Entrance Exam"),
+            ("JEE Main",        "Entrance Exam"),
+            ("JEE Advanced",    "Entrance Exam"),
+            ("NEET",            "Entrance Exam"),
+            ("FYJC",            "Admission Process"),
+            ("CAP Round 1",     "CAP Round"),
+            ("CAP Round 2",     "CAP Round"),
+            ("CAP Round 3",     "CAP Round"),
+            ("Merit List",      "Admission Process"),
+            ("Document Upload", "Document Verification"),
+            ("Tuition Fee",     "Fee Payment"),
+            ("Development Fee", "Fee Payment"),
+        ]
+        for name, cat_name in subcategories:
+            cat_id = cat_map.get(cat_name)
+            if cat_id:
+                cur.execute(
+                    "INSERT INTO reminder_subcategories (name, category_id) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING",
+                    (name, cat_id)
+                )
+
     conn.commit()
     cur.close()
     conn.close()
