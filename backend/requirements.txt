@@ -10,3 +10,4 @@ gunicorn
 bcrypt
 beautifulsoup4
 apscheduler
+cryptography
