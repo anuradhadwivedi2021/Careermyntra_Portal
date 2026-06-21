@@ -239,6 +239,9 @@ def create_event():
             if not valid: return error_response("Validation error", f"Invalid email: {val}")
             validated_emails.append(val)
 
+        phones = data.get("phones", [])
+        validated_phones = [str(p).strip() for p in phones if str(p).strip()]
+
         conn = get_connection(); cur = conn.cursor()
         cur.execute("""
             INSERT INTO reminder_events (title, category_id, subcategory_id, description, event_date, event_time, priority, status)
@@ -254,6 +257,10 @@ def create_event():
         for email in validated_emails:
             cur.execute("INSERT INTO reminder_recipients (event_id, type, value) VALUES (%s, %s, %s)",
                 (event_id, "email", email))
+
+        for phone in validated_phones:
+            cur.execute("INSERT INTO reminder_recipients (event_id, type, value) VALUES (%s, %s, %s)",
+                (event_id, "whatsapp", phone))
 
         conn.commit(); cur.close(); conn.close()
         logger.info(f"Event created: {title} (ID: {event_id})")
