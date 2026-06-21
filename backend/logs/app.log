@@ -1,0 +1,20 @@
+2026-06-21 13:00:45,875 - __main__ - INFO - ==================================================
+2026-06-21 13:00:45,877 - __main__ - INFO -   CareerMyntra Backend Starting...
+2026-06-21 13:00:45,877 - __main__ - INFO -   URL: http://localhost:5000
+2026-06-21 13:00:45,878 - __main__ - INFO -   Health: http://localhost:5000/api/health
+2026-06-21 13:00:45,878 - __main__ - INFO - ==================================================
+2026-06-21 13:00:45,906 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.5.100:5000
+2026-06-21 13:00:45,908 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-06-21 13:00:50,855 - __main__ - INFO - [Startup] Calling start_monitor...
+2026-06-21 13:00:52,958 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-21 13:00:52,961 - apscheduler.scheduler - INFO - Added job "_scheduled_check" to job store "default"
+2026-06-21 13:00:52,962 - apscheduler.scheduler - INFO - Scheduler started
+2026-06-21 13:00:52,963 - __main__ - INFO - [Startup] start_monitor returned: True
+2026-06-21 13:00:52,965 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-21 13:00:52,965 - apscheduler.scheduler - INFO - Added job "fire_due_reminders" to job store "default"
+2026-06-21 13:00:52,966 - apscheduler.scheduler - INFO - Scheduler started
+2026-06-21 13:00:52,967 - reminder_scheduler - INFO - ✓ ReminderScheduler started - checking every 60 seconds
+2026-06-21 13:00:52,969 - __main__ - INFO - [Startup] Reminder scheduler started

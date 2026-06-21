@@ -1,6 +1,3 @@
-# routes/monitor.py — Monitor API endpoints
-# FIX: app_password ab DB mein encrypted store hoti hai (Fernet AES)
-
 from flask import Blueprint, jsonify, request
 from db import get_connection, get_cursor
 import monitor_service as svc

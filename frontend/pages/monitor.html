@@ -396,6 +396,27 @@
     ? "http://127.0.0.1:5000"
     : "https://careermyntra-portal-6.onrender.com";
 
+  // FIX: authFetch automatically attaches the JWT token to every request.
+  // If the token is missing/invalid, the user is redirected to login.
+  async function authFetch(url, options = {}) {
+    const token = localStorage.getItem("cm_token");
+    if (!token) {
+      window.location.href = "../login.html";
+      return Promise.reject(new Error("No token"));
+    }
+    options.headers = {
+      ...(options.headers || {}),
+      "Authorization": "Bearer " + token
+    };
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+      localStorage.removeItem("cm_token");
+      window.location.href = "../login.html";
+      return Promise.reject(new Error("Unauthorized"));
+    }
+    return res;
+  }
+
   // Navbar user
   const user = JSON.parse(localStorage.getItem("cm_user") || "{}");
   if (user.first_name) {
@@ -410,7 +431,7 @@ async function loadDefaultUrls() {
   addLog("Loading default monitored sites...", "info");
   for (const url of defaultUrls) {
     try {
-      await fetch(`${BACKEND}/api/monitor/urls`, {
+      await authFetch(`${BACKEND}/api/monitor/urls`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, label: url })
       });
@@ -456,7 +477,7 @@ async function loadDefaultUrls() {
 
   async function loadUrls() {
     try {
-      const res = await fetch(`${BACKEND}/api/monitor/urls`);
+      const res = await authFetch(`${BACKEND}/api/monitor/urls`);
       const urls = await res.json();
       const list = document.getElementById("url-list");
       document.getElementById("stat-urls").textContent = urls.filter(u => u.is_active).length;
@@ -479,7 +500,7 @@ async function loadDefaultUrls() {
     if (!url) return;
     if (!url.startsWith("http")) { addLog("URL must start with http:// or https://", "warn"); return; }
     try {
-      await fetch(`${BACKEND}/api/monitor/urls`, {
+      await authFetch(`${BACKEND}/api/monitor/urls`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, label: url })
       });
@@ -491,7 +512,7 @@ async function loadDefaultUrls() {
 
   async function removeUrl(id) {
     try {
-      await fetch(`${BACKEND}/api/monitor/urls/${id}`, { method: "DELETE" });
+      await authFetch(`${BACKEND}/api/monitor/urls/${id}`, { method: "DELETE" });
       addLog("URL removed", "warn");
       loadUrls();
     } catch(e) {}
@@ -499,7 +520,7 @@ async function loadDefaultUrls() {
 
   async function loadConfig() {
     try {
-      const res = await fetch(`${BACKEND}/api/monitor/config`);
+      const res = await authFetch(`${BACKEND}/api/monitor/config`);
       const cfg = await res.json();
       if (cfg.alert_email) document.getElementById("cfg-email").value = cfg.alert_email;
       if (cfg.recipient_emails) document.getElementById("cfg-recipients").value = cfg.recipient_emails;
@@ -514,7 +535,7 @@ async function loadDefaultUrls() {
     if (!password)   { addLog("Please enter your App Password", "warn"); return; }
     if (!recipients) { addLog("Please enter at least one recipient email", "warn"); return; }
     try {
-      await fetch(`${BACKEND}/api/monitor/config`, {
+      await authFetch(`${BACKEND}/api/monitor/config`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
     alert_email: email, 
@@ -532,7 +553,7 @@ async function loadDefaultUrls() {
 
   async function pollStatus() {
     try {
-      const res = await fetch(`${BACKEND}/api/monitor/status`);
+      const res = await authFetch(`${BACKEND}/api/monitor/status`);
       const s = await res.json();
       const bar   = document.getElementById("status-bar");
       const dot   = document.getElementById("status-dot");

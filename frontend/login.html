@@ -374,34 +374,53 @@
 
   <script>
 
-  const ALLOWED_USERS = [
-  { email: "careermyntrapune@gmail.com",     password: "Career@123" },
-  { email: "collegescutoff@gmail.com",       password: "Career@123" },
-  { email: "khamgaonkarpawan@gmail.com",     password: "Career@123" },
-  { email: "anuradha.dwivedi2021@gmail.com", password: "Career@123" }
-];
+  const BACKEND = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "http://127.0.0.1:5000"
+    : "https://careermyntra-portal-6.onrender.com";
 
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
   const btn = document.getElementById('login-btn');
   const text = document.getElementById('login-text');
   const email = document.getElementById('email').value.trim().toLowerCase();
   const password = document.getElementById('password').value;
 
-  const user = ALLOWED_USERS.find(u => u.email === email && u.password === password);
-
-  if (!user) {
-    alert('⛔ Invalid email or password.');
+  if (!email || !password) {
+    alert('⛔ Email aur password dono daalo.');
     return;
   }
 
-  const name = email.split('@')[0];
-  sessionStorage.setItem('user_name', name);
-  sessionStorage.setItem('user_email', email);
-
   btn.disabled = true;
   text.textContent = 'Logging in...';
-  setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+
+  try {
+    const res = await fetch(`${BACKEND}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      alert('⛔ ' + (data.error || 'Invalid email or password.'));
+      btn.disabled = false;
+      text.textContent = 'Login';
+      return;
+    }
+
+    // FIX: Real JWT token store karo, hardcoded list ki jagah
+    localStorage.setItem('cm_token', data.token);
+    sessionStorage.setItem('user_name', data.name);
+    sessionStorage.setItem('user_email', data.email);
+
+    text.textContent = 'Logging in...';
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+
+  } catch (err) {
+    alert('⛔ Login failed: ' + err.message);
+    btn.disabled = false;
+    text.textContent = 'Login';
+  }
 }
 
     function togglePwd(id, el) {

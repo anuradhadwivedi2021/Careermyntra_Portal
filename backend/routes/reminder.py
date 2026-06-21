@@ -3,6 +3,7 @@ import logging
 from flask import Blueprint, jsonify, request
 from datetime import datetime
 from db import get_connection, get_cursor
+from auth_utils import login_required
 
 reminders_bp = Blueprint("reminders", __name__)
 logger = logging.getLogger(__name__)
@@ -65,6 +66,7 @@ def error_response(error, message=None, status_code=400):
 
 # ── CATEGORIES ────────────────────────────────────────────────
 @reminders_bp.route("/reminders/categories", methods=["GET"])
+@login_required
 def get_categories():
     try:
         conn = get_connection(); cur = get_cursor(conn)
@@ -80,6 +82,7 @@ def get_categories():
 
 
 @reminders_bp.route("/reminders/categories", methods=["POST"])
+@login_required
 def create_category():
     try:
         data = request.json or {}
@@ -102,6 +105,7 @@ def create_category():
 
 
 @reminders_bp.route("/reminders/categories/<int:category_id>", methods=["DELETE"])
+@login_required
 def delete_category(category_id):
     try:
         conn = get_connection(); cur = conn.cursor()
@@ -114,6 +118,7 @@ def delete_category(category_id):
 
 # ── SUBCATEGORIES ─────────────────────────────────────────────
 @reminders_bp.route("/reminders/subcategories", methods=["GET"])
+@login_required
 def get_subcategories():
     try:
         conn = get_connection(); cur = get_cursor(conn)
@@ -133,6 +138,7 @@ def get_subcategories():
 
 
 @reminders_bp.route("/reminders/subcategories", methods=["POST"])
+@login_required
 def create_subcategory():
     try:
         data = request.json or {}
@@ -157,6 +163,7 @@ def create_subcategory():
 
 # ── EVENTS ────────────────────────────────────────────────────
 @reminders_bp.route("/reminders/events", methods=["GET"])
+@login_required
 def get_events():
     try:
         conn = get_connection(); cur = get_cursor(conn)
@@ -205,6 +212,7 @@ def get_events():
 
 
 @reminders_bp.route("/reminders/events", methods=["POST"])
+@login_required
 def create_event():
     try:
         data = request.json or {}
@@ -256,6 +264,7 @@ def create_event():
 
 
 @reminders_bp.route("/reminders/events/<int:event_id>", methods=["PUT"])
+@login_required
 def update_event(event_id):
     try:
         data = request.json or {}
@@ -286,6 +295,7 @@ def update_event(event_id):
 
 
 @reminders_bp.route("/reminders/events/<int:event_id>", methods=["DELETE"])
+@login_required
 def delete_event(event_id):
     try:
         conn = get_connection(); cur = conn.cursor()
@@ -297,6 +307,7 @@ def delete_event(event_id):
 
 
 @reminders_bp.route("/reminders/events/<int:event_id>/recipients", methods=["POST"])
+@login_required
 def add_recipient(event_id):
     try:
         data = request.json or {}
@@ -316,6 +327,7 @@ def add_recipient(event_id):
 
 
 @reminders_bp.route("/reminders/recipients/<int:recipient_id>", methods=["DELETE"])
+@login_required
 def delete_recipient(recipient_id):
     try:
         conn = get_connection(); cur = conn.cursor()
@@ -328,6 +340,7 @@ def delete_recipient(recipient_id):
 
 # ── TEMPLATES ─────────────────────────────────────────────────
 @reminders_bp.route("/reminders/templates", methods=["GET"])
+@login_required
 def get_templates():
     try:
         conn = get_connection(); cur = get_cursor(conn)
@@ -340,6 +353,7 @@ def get_templates():
 
 
 @reminders_bp.route("/reminders/templates/<channel>", methods=["PUT"])
+@login_required
 def save_template(channel):
     try:
         if channel not in ["email", "whatsapp", "sms"]:
@@ -361,6 +375,7 @@ def save_template(channel):
 
 # ── LOGS ──────────────────────────────────────────────────────
 @reminders_bp.route("/reminders/logs", methods=["GET"])
+@login_required
 def get_logs():
     try:
         conn = get_connection(); cur = get_cursor(conn)
@@ -380,11 +395,13 @@ def get_logs():
 
 # ── STATUS & STATS ────────────────────────────────────────────
 @reminders_bp.route("/reminders/status", methods=["GET"])
+@login_required
 def status():
     return success_response({"service": "reminder", "status": "ok", "timestamp": datetime.now().isoformat()})
 
 
 @reminders_bp.route("/reminders/stats", methods=["GET"])
+@login_required
 def get_stats():
     try:
         conn = get_connection(); cur = get_cursor(conn)

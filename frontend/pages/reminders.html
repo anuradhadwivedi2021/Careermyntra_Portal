@@ -807,6 +807,27 @@ Admission Guidance Team</textarea>
     ? "http://127.0.0.1:5000"
     : "https://careermyntra-portal-6.onrender.com";
 
+  // FIX: authFetch automatically attaches the JWT token to every request.
+  // If the token is missing/invalid, the user is redirected to login.
+  async function authFetch(url, options = {}) {
+    const token = localStorage.getItem("cm_token");
+    if (!token) {
+      window.location.href = "../login.html";
+      return Promise.reject(new Error("No token"));
+    }
+    options.headers = {
+      ...(options.headers || {}),
+      "Authorization": "Bearer " + token
+    };
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+      localStorage.removeItem("cm_token");
+      window.location.href = "../login.html";
+      return Promise.reject(new Error("Unauthorized"));
+    }
+    return res;
+  }
+
   // ── State ──────────────────────────────────────────────
   let emails = ["careermyntrapune@gmail.com", "collegescutoff@gmail.com", "khamgaonkarpawan@gmail.com"];
   let phones = ["+91 9860938338", "+91 9422203476"];
@@ -965,7 +986,7 @@ Admission Guidance Team</textarea>
       showToast("Category already exists", "error"); return;
     }
     try {
-      const res  = await fetch(`${BACKEND}/api/reminders/categories`, {
+      const res  = await authFetch(`${BACKEND}/api/reminders/categories`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: trimmed })
       });
@@ -987,7 +1008,7 @@ Admission Guidance Team</textarea>
     const catName = document.getElementById("ev-category").value;
     const cat     = categories.find(c => c.name === catName);
     try {
-      const res  = await fetch(`${BACKEND}/api/reminders/subcategories`, {
+      const res  = await authFetch(`${BACKEND}/api/reminders/subcategories`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: trimmed, category_id: cat?.id || null })
       });
@@ -1016,7 +1037,7 @@ Admission Guidance Team</textarea>
       category_id = matchedCat.id;
     } else {
       try {
-        const cr = await fetch(`${BACKEND}/api/reminders/categories`, {
+        const cr = await authFetch(`${BACKEND}/api/reminders/categories`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: catVal })
         });
@@ -1035,7 +1056,7 @@ Admission Guidance Team</textarea>
         subcategory_id = matchedSub.id;
       } else {
         try {
-          const sr = await fetch(`${BACKEND}/api/reminders/subcategories`, {
+          const sr = await authFetch(`${BACKEND}/api/reminders/subcategories`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name: subVal, category_id })
           });
@@ -1080,7 +1101,7 @@ Admission Guidance Team</textarea>
     btn.disabled = true; btn.textContent = "Saving…";
 
     try {
-      const res = await fetch(`${BACKEND}/api/reminders/events`, {
+      const res = await authFetch(`${BACKEND}/api/reminders/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -1093,7 +1114,7 @@ Admission Guidance Team</textarea>
         const fd = new FormData();
         fd.append("file", file);
         try {
-          await fetch(`${BACKEND}/api/reminders/events/${data.event_id}/attachments`, { method: "POST", body: fd });
+          await authFetch(`${BACKEND}/api/reminders/events/${data.event_id}/attachments`, { method: "POST", body: fd });
         } catch(e) { /* non-critical */ }
       }
 
@@ -1189,7 +1210,7 @@ Admission Guidance Team</textarea>
   async function deleteEvent(id) {
     if (!confirm("Delete this event? This cannot be undone.")) return;
     try {
-      const res = await fetch(`${BACKEND}/api/reminders/events/${id}`, { method: "DELETE" });
+      const res = await authFetch(`${BACKEND}/api/reminders/events/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Delete failed");
       events = events.filter(e => e.id !== id);
@@ -1255,7 +1276,7 @@ Admission Guidance Team</textarea>
   // ── Hero Stats ─────────────────────────────────────────
   async function updateHeroStats() {
     try {
-      const res  = await fetch(`${BACKEND}/api/reminders/stats`);
+      const res  = await authFetch(`${BACKEND}/api/reminders/stats`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       document.getElementById("hs-upcoming").textContent = data.upcoming    ?? 0;
@@ -1297,7 +1318,7 @@ Admission Guidance Team</textarea>
     if (!body) { showToast("Template is empty", "error"); return; }
     const subject = type === "email" ? (document.getElementById("tpl-email-subject").value.trim()) : "";
     try {
-      const res = await fetch(`${BACKEND}/api/reminders/templates/${channel}`, {
+      const res = await authFetch(`${BACKEND}/api/reminders/templates/${channel}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject, body })
@@ -1311,7 +1332,7 @@ Admission Guidance Team</textarea>
   }
   async function loadTemplates() {
     try {
-      const res  = await fetch(`${BACKEND}/api/reminders/templates`);
+      const res  = await authFetch(`${BACKEND}/api/reminders/templates`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       data.forEach(tpl => {
@@ -1343,7 +1364,7 @@ Admission Guidance Team</textarea>
   async function loadFromBackend() {
     try {
       // Load events
-      const evRes = await fetch(`${BACKEND}/api/reminders/events`);
+      const evRes = await authFetch(`${BACKEND}/api/reminders/events`);
       if (evRes.ok) {
         const evData = await evRes.json();
         if (Array.isArray(evData)) {
@@ -1355,7 +1376,7 @@ Admission Guidance Team</textarea>
 
     try {
       // Load categories into state (for category_id resolution on save)
-      const catRes = await fetch(`${BACKEND}/api/reminders/categories`);
+      const catRes = await authFetch(`${BACKEND}/api/reminders/categories`);
       if (catRes.ok) {
         categories = await catRes.json();
         renderCategoryDropdown();
@@ -1364,7 +1385,7 @@ Admission Guidance Team</textarea>
 
     try {
       // Load subcategories into state
-      const subRes = await fetch(`${BACKEND}/api/reminders/subcategories`);
+      const subRes = await authFetch(`${BACKEND}/api/reminders/subcategories`);
       if (subRes.ok) {
         subcategories = await subRes.json();
         renderSubcategoryDropdown();
@@ -1373,7 +1394,7 @@ Admission Guidance Team</textarea>
 
     try {
       // Load notification logs
-      const logRes = await fetch(`${BACKEND}/api/reminders/logs`);
+      const logRes = await authFetch(`${BACKEND}/api/reminders/logs`);
       if (logRes.ok) {
         const logData = await logRes.json();
         if (Array.isArray(logData)) notifLogs = logData;

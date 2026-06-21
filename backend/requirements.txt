@@ -11,3 +11,5 @@ bcrypt
 beautifulsoup4
 apscheduler
 cryptography
+PyJWT
+Flask-Limiter
