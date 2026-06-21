@@ -1367,10 +1367,10 @@ Admission Guidance Team</textarea>
       const evRes = await authFetch(`${BACKEND}/api/reminders/events`);
       if (evRes.ok) {
         const evData = await evRes.json();
-        if (Array.isArray(evData)) {
-          events = evData;
-          document.getElementById("tc-events").textContent = events.length;
-        }
+        // FIX: backend wraps the array in { success, data: [...] }
+        const list = Array.isArray(evData) ? evData : (evData.data || []);
+        events = list;
+        document.getElementById("tc-events").textContent = events.length;
       }
     } catch(e) { /* backend not ready */ }
 
