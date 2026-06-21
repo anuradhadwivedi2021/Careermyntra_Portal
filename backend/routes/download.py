@@ -2,11 +2,13 @@
 
 from flask import Blueprint, jsonify, send_file, current_app
 import os
+from auth_utils import login_required
 
 download_bp = Blueprint("download", __name__)
 
 # ─── GET /api/download/<filename> ────────────────────────────
 @download_bp.route("/download/<filename>", methods=["GET"])
+@login_required
 def download_file(filename):
     """
     Download the generated Excel output file.
@@ -75,6 +77,7 @@ def download_file(filename):
 
 # ─── GET /api/outputs — List all output files ────────────────
 @download_bp.route("/outputs", methods=["GET"])
+@login_required
 def list_outputs():
     """List all generated Excel output files with enhanced info."""
     output_dir = current_app.config["OUTPUT_DIR"]

@@ -5,6 +5,7 @@ import threading
 import importlib.util
 import tempfile
 from db import get_connection, get_cursor
+from auth_utils import login_required
 
 upload_bp = Blueprint("upload", __name__)
 
@@ -17,6 +18,7 @@ def allowed_file(filename):
 
 
 @upload_bp.route("/upload", methods=["POST"])
+@login_required
 def upload_file():
     if "file" not in request.files:
         return jsonify({"success": False, "error": "No file uploaded"}), 400
@@ -180,6 +182,7 @@ def run_processing(task_id, course_name, pdf_path, output_path, scripts_dir):
 
 
 @upload_bp.route("/progress/<task_id>", methods=["GET"])
+@login_required
 def get_progress(task_id):
     task = TASKS.get(task_id)
     if not task:

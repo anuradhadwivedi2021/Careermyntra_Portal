@@ -2,12 +2,14 @@ from flask import Blueprint, jsonify, request
 from db import get_connection, get_cursor
 import monitor_service as svc
 from routes.crypto_utils import encrypt_password, decrypt_password
+from auth_utils import login_required
 
 monitor_bp = Blueprint("monitor", __name__)
 
 
 # ── Config (email + password) ────────────────────────────────
 @monitor_bp.route("/monitor/config", methods=["GET"])
+@login_required
 def get_config():
     conn = get_connection(); cur = get_cursor(conn)
     # FIX: app_password SELECT mein shamil NAHI — frontend ko kabhi bhi
@@ -26,6 +28,7 @@ def get_config():
 
 
 @monitor_bp.route("/monitor/config", methods=["POST"])
+@login_required
 def save_config():
     data       = request.json
     email      = data.get("alert_email", "").strip()
@@ -69,6 +72,7 @@ def save_config():
 
 # ── URLs ─────────────────────────────────────────────────────
 @monitor_bp.route("/monitor/urls", methods=["GET"])
+@login_required
 def get_urls():
     conn = get_connection(); cur = get_cursor(conn)
     cur.execute("SELECT * FROM monitor_urls ORDER BY id")
@@ -78,6 +82,7 @@ def get_urls():
 
 
 @monitor_bp.route("/monitor/urls", methods=["POST"])
+@login_required
 def add_url():
     data  = request.json
     url   = data.get("url", "").strip()
@@ -89,6 +94,7 @@ def add_url():
 
 
 @monitor_bp.route("/monitor/urls/<int:uid>", methods=["DELETE"])
+@login_required
 def delete_url(uid):
     conn = get_connection(); cur = conn.cursor()
     cur.execute("DELETE FROM monitor_urls WHERE id = %s", (uid,))
@@ -98,6 +104,7 @@ def delete_url(uid):
 
 
 @monitor_bp.route("/monitor/urls/<int:uid>/toggle", methods=["POST"])
+@login_required
 def toggle_url(uid):
     conn = get_connection(); cur = conn.cursor()
     cur.execute("UPDATE monitor_urls SET is_active = NOT is_active WHERE id = %s", (uid,))
@@ -107,18 +114,21 @@ def toggle_url(uid):
 
 # ── Start / Stop / Status ────────────────────────────────────
 @monitor_bp.route("/monitor/start", methods=["POST"])
+@login_required
 def start():
     ok = svc.start_monitor()
     return jsonify({"success": ok, "message": "Monitor started" if ok else "Already running"})
 
 
 @monitor_bp.route("/monitor/stop", methods=["POST"])
+@login_required
 def stop():
     svc.stop_monitor()
     return jsonify({"success": True, "message": "Monitor stopped"})
 
 
 @monitor_bp.route("/monitor/status", methods=["GET"])
+@login_required
 def status():
     s = svc.get_status()
     return jsonify({

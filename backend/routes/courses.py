@@ -2,11 +2,13 @@ from flask import Blueprint, jsonify, request, current_app
 import os
 import re
 from db import get_connection, get_cursor
+from auth_utils import login_required
 
 courses_bp = Blueprint("courses", __name__)
 
 
 @courses_bp.route("/courses", methods=["GET"])
+@login_required
 def get_courses():
     try:
         stream_id = request.args.get("stream_id")
@@ -25,6 +27,7 @@ def get_courses():
 
 
 @courses_bp.route("/courses/new", methods=["GET", "POST"])
+@login_required
 def add_course():
     if request.method == "GET":
         return jsonify({"success": True, "message": "✅ /api/courses/new route is working!"})
@@ -89,6 +92,7 @@ def add_course():
 
 
 @courses_bp.route("/courses/<int:course_id>", methods=["GET"])
+@login_required
 def get_course(course_id):
     try:
         conn = get_connection()
@@ -105,6 +109,7 @@ def get_course(course_id):
 
 
 @courses_bp.route("/courses/<int:course_id>", methods=["DELETE"])
+@login_required
 def delete_course(course_id):
     try:
         conn = get_connection()
@@ -124,6 +129,7 @@ def delete_course(course_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 @courses_bp.route("/courses/<int:course_id>", methods=["PUT"])
+@login_required
 def update_course(course_id):
     try:
         course_name = request.form.get("course_name", "").strip()

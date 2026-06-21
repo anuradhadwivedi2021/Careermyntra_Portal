@@ -5,12 +5,14 @@
 from flask import Blueprint, jsonify, request
 import json
 from db import get_connection, get_cursor
+from auth_utils import login_required
 
 college_master_bp = Blueprint("college_master", __name__)
 
 
 # ─── GET all colleges (with optional search/filter) ───────────────────────────
 @college_master_bp.route("/colleges", methods=["GET"])
+@login_required
 def get_colleges():
     try:
         search   = request.args.get("search", "").strip()
@@ -70,6 +72,7 @@ def get_colleges():
 
 # ─── GET single college by code ───────────────────────────────────────────────
 @college_master_bp.route("/colleges/<code>", methods=["GET"])
+@login_required
 def get_college(code):
     try:
         conn = get_connection()
@@ -86,6 +89,7 @@ def get_college(code):
 
 # ─── POST add single college ──────────────────────────────────────────────────
 @college_master_bp.route("/colleges", methods=["POST"])
+@login_required
 def add_college():
     try:
         data = request.get_json()
@@ -133,6 +137,7 @@ def add_college():
 
 # ─── PUT update college ───────────────────────────────────────────────────────
 @college_master_bp.route("/colleges/<int:college_id>", methods=["PUT"])
+@login_required
 def update_college(college_id):
     try:
         data = request.get_json()
@@ -174,6 +179,7 @@ def update_college(college_id):
 
 # ─── DELETE college ───────────────────────────────────────────────────────────
 @college_master_bp.route("/colleges/<int:college_id>", methods=["DELETE"])
+@login_required
 def delete_college(college_id):
     try:
         conn = get_connection()
@@ -196,6 +202,7 @@ def delete_college(college_id):
 
 # ─── POST bulk import (JSON array) ────────────────────────────────────────────
 @college_master_bp.route("/colleges/bulk", methods=["POST"])
+@login_required
 def bulk_import():
     try:
         data = request.get_json()
@@ -260,6 +267,7 @@ def bulk_import():
 
 # ─── GET distinct filter options ──────────────────────────────────────────────
 @college_master_bp.route("/colleges/meta/filters", methods=["GET"])
+@login_required
 def get_filters():
     try:
         conn = get_connection()
@@ -366,6 +374,7 @@ def process_pdf_background(task_id, pdf_bytes):
 
 
 @college_master_bp.route("/colleges/upload-pdf", methods=["POST"])
+@login_required
 def upload_pdf_colleges():
     if "file" not in request.files:
         return jsonify({"success": False, "error": "No file uploaded"}), 400
@@ -396,6 +405,7 @@ def upload_pdf_colleges():
 
 # ─── GET PDF processing status ──────────────────────────────────────────────────
 @college_master_bp.route("/colleges/pdf-status/<task_id>", methods=["GET"])
+@login_required
 def get_pdf_status(task_id):
     """Return current status of PDF processing task."""
     if task_id not in PDF_TASKS:
@@ -405,6 +415,7 @@ def get_pdf_status(task_id):
 
 # ─── POST Excel upload ────────────────────────────────────────────────────────
 @college_master_bp.route("/colleges/upload-excel", methods=["POST"])
+@login_required
 def upload_excel_colleges():
     if "file" not in request.files:
         return jsonify({"success": False, "error": "No file uploaded"}), 400

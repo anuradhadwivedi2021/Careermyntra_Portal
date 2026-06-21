@@ -201,6 +201,23 @@
     ? "http://localhost:5000"
     : "https://careermyntra-portal-6.onrender.com";
 
+  // Attaches the JWT token to every backend call; redirects to login if missing/invalid.
+  async function authFetch(url, options = {}) {
+    const token = localStorage.getItem("cm_token");
+    if (!token) {
+      window.location.href = "login.html";
+      return Promise.reject(new Error("No token"));
+    }
+    options.headers = { ...(options.headers || {}), "Authorization": "Bearer " + token };
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+      localStorage.removeItem("cm_token");
+      window.location.href = "login.html";
+      return Promise.reject(new Error("Unauthorized"));
+    }
+    return res;
+  }
+
   const STREAM_COLORS = [
     { bg: '#e3f2fd', color: '#1565c0' },
     { bg: '#e8f5e9', color: '#2e7d32' },
@@ -224,7 +241,7 @@
   // ── LOAD STREAMS WITH COURSES ─────────────────────────────
   async function loadStreams() {
     try {
-      const res = await fetch(`${BACKEND}/api/streams?with_courses=true`);
+      const res = await authFetch(`${BACKEND}/api/streams?with_courses=true`);
       const data = await res.json();
       if (data.success && data.streams.length > 0) {
         streamsData = data.streams;
@@ -240,7 +257,7 @@
 
   async function loadCoursesAsFallback() {
     try {
-      const res = await fetch(`${BACKEND}/api/courses`);
+      const res = await authFetch(`${BACKEND}/api/courses`);
       const data = await res.json();
       if (data.success && data.courses.length > 0) {
         // Group under one fake "All Courses" stream
@@ -385,7 +402,7 @@
       formData.append('file', file);
       formData.append('course_name', selectedCourse.name);
 
-      const res = await fetch(`${BACKEND}/api/upload`, { method: 'POST', body: formData });
+      const res = await authFetch(`${BACKEND}/api/upload`, { method: 'POST', body: formData });
       const data = await res.json();
 
       if (data.success) {

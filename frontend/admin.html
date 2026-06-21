@@ -348,6 +348,23 @@
 const BACKEND = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
   ? "http://127.0.0.1:5000"
   : "https://careermyntra-portal-6.onrender.com";
+
+// Attaches the JWT token to every backend call; redirects to login if missing/invalid.
+async function authFetch(url, options = {}) {
+  const token = localStorage.getItem("cm_token");
+  if (!token) {
+    window.location.href = "login.html";
+    return Promise.reject(new Error("No token"));
+  }
+  options.headers = { ...(options.headers || {}), "Authorization": "Bearer " + token };
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    localStorage.removeItem("cm_token");
+    window.location.href = "login.html";
+    return Promise.reject(new Error("Unauthorized"));
+  }
+  return res;
+}
   
   const courses = [];
   let streams = [];
@@ -355,7 +372,7 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
   // ─── LOAD STREAMS ─────────────────────────────────────────
   async function loadStreams() {
     try {
-      const res = await fetch(`${BACKEND}/api/streams`);
+      const res = await authFetch(`${BACKEND}/api/streams`);
       const data = await res.json();
       if (data.success) {
         streams = data.streams;
@@ -552,7 +569,7 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
   // ─── LOAD COURSES ─────────────────────────────────────────
   async function loadCourses() {
     try {
-      const res = await fetch(`${BACKEND}/api/courses`);
+      const res = await authFetch(`${BACKEND}/api/courses`);
       const data = await res.json();
       if (data.success) {
         courses.length = 0;
@@ -591,7 +608,7 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
     btn.disabled = true;
 
     try {
-      const response = await fetch(`${BACKEND}/api/courses/new`, {method:'POST', body:formData});
+      const response = await authFetch(`${BACKEND}/api/courses/new`, {method:'POST', body:formData});
       const data = await response.json();
       if (data.success) {
         courses.push(data.course);
@@ -622,7 +639,7 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
     const course = courses[idx];
     if (course.id) {
       try {
-        const res = await fetch(`${BACKEND}/api/courses/${course.id}`, {method:'DELETE'});
+        const res = await authFetch(`${BACKEND}/api/courses/${course.id}`, {method:'DELETE'});
         const data = await res.json();
         if (!data.success) { showToast(`❌ ${data.error}`,'error'); return; }
       } catch(err) { showToast(`❌ Network error`,'error'); return; }
@@ -703,7 +720,7 @@ const BACKEND = (window.location.hostname === "localhost" || window.location.hos
     btn.innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px;"></span> Saving...';
 
     try {
-      const res  = await fetch(`${BACKEND}/api/courses/${id}`, { method: 'PUT', body: formData });
+      const res  = await authFetch(`${BACKEND}/api/courses/${id}`, { method: 'PUT', body: formData });
       const data = await res.json();
       if (data.success) {
         // Local update

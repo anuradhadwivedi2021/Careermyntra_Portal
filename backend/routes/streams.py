@@ -10,6 +10,7 @@
 
 from flask import Blueprint, jsonify, request
 from db import get_connection, get_cursor
+from auth_utils import login_required
 
 streams_bp = Blueprint("streams", __name__)
 
@@ -44,6 +45,7 @@ def _ensure_streams_table(conn):
 
 # ── GET /api/streams  ────────────────────────────────────────
 @streams_bp.route("/streams", methods=["GET"])
+@login_required
 def get_streams():
     """Return all streams.  ?with_courses=true nests courses inside each stream."""
     try:
@@ -105,6 +107,7 @@ def get_streams():
 
 # ── GET /api/streams/grouped  ────────────────────────────────
 @streams_bp.route("/streams/grouped", methods=["GET"])
+@login_required
 def get_grouped():
     """Return courses grouped by stream — perfect for dropdowns & reports."""
     try:
@@ -151,6 +154,7 @@ def get_grouped():
 
 # ── GET /api/streams/<id>  ───────────────────────────────────
 @streams_bp.route("/streams/<int:stream_id>", methods=["GET"])
+@login_required
 def get_stream(stream_id):
     try:
         conn = get_connection()
@@ -175,6 +179,7 @@ def get_stream(stream_id):
 
 # ── POST /api/streams  ───────────────────────────────────────
 @streams_bp.route("/streams", methods=["POST"])
+@login_required
 def add_stream():
     """Create a new stream. Body: { name, icon, description, color }"""
     try:
@@ -216,6 +221,7 @@ def add_stream():
 
 # ── PUT /api/streams/<id>  ───────────────────────────────────
 @streams_bp.route("/streams/<int:stream_id>", methods=["PUT"])
+@login_required
 def edit_stream(stream_id):
     """Update stream details. Body: { name, icon, description, color }"""
     try:
@@ -260,6 +266,7 @@ def edit_stream(stream_id):
 
 # ── DELETE /api/streams/<id>  ────────────────────────────────
 @streams_bp.route("/streams/<int:stream_id>", methods=["DELETE"])
+@login_required
 def delete_stream(stream_id):
     """Delete stream. Courses mapped to it will have stream_id set to NULL."""
     try:
@@ -289,6 +296,7 @@ def delete_stream(stream_id):
 
 # ── POST /api/courses/<id>/stream  ──────────────────────────
 @streams_bp.route("/courses/<int:course_id>/stream", methods=["POST"])
+@login_required
 def assign_course_stream(course_id):
     """Assign (or unassign) a course to a stream.
        Body: { stream_id: 3 }  OR  { stream_id: null } to unassign.
@@ -332,6 +340,7 @@ def assign_course_stream(course_id):
 
 # ── POST /api/streams/<id>/courses/bulk  ────────────────────
 @streams_bp.route("/streams/<int:stream_id>/courses/bulk", methods=["POST"])
+@login_required
 def bulk_assign(stream_id):
     """Bulk assign multiple courses to a stream.
        Body: { course_ids: [1, 2, 3] }
@@ -370,6 +379,7 @@ def bulk_assign(stream_id):
 
 # ── GET /api/streams/<id>/courses  ──────────────────────────
 @streams_bp.route("/streams/<int:stream_id>/courses", methods=["GET"])
+@login_required
 def get_stream_courses(stream_id):
     """Get all courses belonging to a stream."""
     try:
@@ -398,6 +408,7 @@ def get_stream_courses(stream_id):
 
 # ── GET /api/courses/unmapped  ──────────────────────────────
 @streams_bp.route("/courses/unmapped", methods=["GET"])
+@login_required
 def get_unmapped_courses():
     """Get all courses not yet assigned to any stream."""
     try:

@@ -4,6 +4,23 @@ const BACKEND = window.location.hostname === "localhost" || window.location.host
   ? "http://127.0.0.1:5000"
   : "https://careermyntra-portal-6.onrender.com";
 
+// Attaches the JWT token to every backend call; redirects to login if missing/invalid.
+async function authFetch(url, options = {}) {
+  const token = localStorage.getItem("cm_token");
+  if (!token) {
+    window.location.href = "login.html";
+    return Promise.reject(new Error("No token"));
+  }
+  options.headers = { ...(options.headers || {}), "Authorization": "Bearer " + token };
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    localStorage.removeItem("cm_token");
+    window.location.href = "login.html";
+    return Promise.reject(new Error("Unauthorized"));
+  }
+  return res;
+}
+
 const courses = [
   { name:"11th FYJC",        sub:"Maharashtra",      icon:"🏫", color:"#4f46e5" },
   { name:"Engineering",      sub:"MHT-CET / JEE",    icon:"⚙️", color:"#1565c0" },
@@ -132,7 +149,7 @@ async function goToProgress() {
     formData.append("course_name", selectedCourse.name);
 
     // POST /api/upload
-    const res  = await fetch(`${BACKEND}/api/upload`, {
+    const res  = await authFetch(`${BACKEND}/api/upload`, {
       method: "POST",
       body:   formData
     });
