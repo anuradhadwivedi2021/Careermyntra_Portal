@@ -378,7 +378,7 @@
 
     <!-- TABS -->
     <div class="tab-row">
-      <button class="tab active" onclick="switchTab('create')" id="tab-create">➕ New Event</button>
+      <button class="tab active" onclick="cancelEdit(); clearForm(); switchTab('create')" id="tab-create">➕ New Event</button>
       <button class="tab" onclick="switchTab('events')" id="tab-events">📅 Events <span class="tab-count" id="tc-events">0</span></button>
       <button class="tab" onclick="switchTab('log')" id="tab-log">📋 Notification Log</button>
     </div>
@@ -1098,34 +1098,81 @@ Admission Guidance Team</textarea>
     };
 
     const btn = document.querySelector(".btn-primary");
-    btn.disabled = true; btn.textContent = "Saving…";
+    btn.disabled = true; btn.textContent = editingEventId ? "Updating…" : "Saving…";
 
     try {
-      const res = await authFetch(`${BACKEND}/api/reminders/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Save failed");
+      let eventId;
+      if (editingEventId) {
+        // Editing an existing event: update its fields via PUT, then
+        // diff recipients against what was originally loaded so we only
+        // add/remove what actually changed (no delete-and-recreate).
+        eventId = editingEventId;
+        const res = await authFetch(`${BACKEND}/api/reminders/events/${eventId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || "Update failed");
+
+        const origEmails = editingOriginalRecipients.filter(r => r.type === "email");
+        const origPhones = editingOriginalRecipients.filter(r => r.type === "whatsapp");
+
+        for (const email of emails) {
+          if (!origEmails.some(r => r.value === email)) {
+            await authFetch(`${BACKEND}/api/reminders/events/${eventId}/recipients`, {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ type: "email", value: email })
+            });
+          }
+        }
+        for (const phone of phones) {
+          if (!origPhones.some(r => r.value === phone)) {
+            await authFetch(`${BACKEND}/api/reminders/events/${eventId}/recipients`, {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ type: "whatsapp", value: phone })
+            });
+          }
+        }
+        for (const r of origEmails) {
+          if (!emails.includes(r.value)) {
+            await authFetch(`${BACKEND}/api/reminders/recipients/${r.id}`, { method: "DELETE" });
+          }
+        }
+        for (const r of origPhones) {
+          if (!phones.includes(r.value)) {
+            await authFetch(`${BACKEND}/api/reminders/recipients/${r.id}`, { method: "DELETE" });
+          }
+        }
+      } else {
+        const res = await authFetch(`${BACKEND}/api/reminders/events`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || "Save failed");
+        eventId = data.event_id;
+      }
 
       // Upload attachments if any
       for (const file of attachedFiles) {
         const fd = new FormData();
         fd.append("file", file);
         try {
-          await authFetch(`${BACKEND}/api/reminders/events/${data.event_id}/attachments`, { method: "POST", body: fd });
+          await authFetch(`${BACKEND}/api/reminders/events/${eventId}/attachments`, { method: "POST", body: fd });
         } catch(e) { /* non-critical */ }
       }
 
-      showToast("✅ Event saved & reminders scheduled!", "success");
+      showToast(editingEventId ? "✅ Event updated!" : "✅ Event saved & reminders scheduled!", "success");
+      cancelEdit();
       clearForm();
       await loadFromBackend();
       switchTab("events");
     } catch(e) {
       showToast("❌ " + e.message, "error");
     } finally {
-      btn.disabled = false; btn.textContent = "💾 Save Event & Schedule";
+      btn.disabled = false; btn.textContent = editingEventId ? "💾 Update Event" : "💾 Save Event & Schedule";
     }
   }
 
@@ -1223,9 +1270,14 @@ Admission Guidance Team</textarea>
     }
   }
 
+  let editingEventId = null;
+  let editingOriginalRecipients = [];
+
   function editEvent(id) {
     const ev = events.find(e => e.id === id);
     if (!ev) return;
+    editingEventId = id;
+    editingOriginalRecipients = ev.recipients ? [...ev.recipients] : [];
     document.getElementById("ev-title").value = ev.title;
     document.getElementById("ev-date").value  = ev.event_date || ev.date || "";
     document.getElementById("ev-time").value  = ev.event_time || ev.time || "";
@@ -1247,10 +1299,19 @@ Admission Guidance Team</textarea>
       phones = ev.recipients.filter(r => r.type === "whatsapp").map(r => r.value);
       renderEmails(); renderPhones();
     }
-    deleteEvent(id);
     switchTab("create");
+    const saveBtn = document.querySelector(".btn-primary");
+    if (saveBtn) saveBtn.textContent = "💾 Update Event";
     showToast("Event loaded for editing", "");
   }
+
+  function cancelEdit() {
+    editingEventId = null;
+    editingOriginalRecipients = [];
+    const saveBtn = document.querySelector(".btn-primary");
+    if (saveBtn) saveBtn.textContent = "💾 Save Event & Schedule";
+  }
+
 
   // ── Render Log ─────────────────────────────────────────
   function renderLog() {

@@ -291,10 +291,35 @@ def update_event(event_id):
         if "description" in data:
             updates.append("description = %s"); params.append(data["description"])
 
+        if "category_id" in data:
+            updates.append("category_id = %s"); params.append(data["category_id"])
+
+        if "subcategory_id" in data:
+            updates.append("subcategory_id = %s"); params.append(data["subcategory_id"])
+
+        if "event_date" in data:
+            updates.append("event_date = %s"); params.append(data["event_date"])
+
+        if "event_time" in data:
+            updates.append("event_time = %s"); params.append(data["event_time"])
+
+        if "priority" in data:
+            updates.append("priority = %s"); params.append(data["priority"])
+
         if not updates: return error_response("Validation error", "No fields to update")
         updates.append("updated_at = CURRENT_TIMESTAMP")
         params.append(event_id)
         cur.execute(f"UPDATE reminder_events SET {', '.join(updates)} WHERE id = %s", params)
+
+        # Reminder schedules: replace only the ones not yet sent, so edits
+        # don't erase the history of reminders that already fired.
+        if "reminders" in data:
+            cur.execute("DELETE FROM reminder_schedules WHERE event_id = %s AND is_sent = FALSE", (event_id,))
+            for reminder in data["reminders"]:
+                if reminder.get("remind_at"):
+                    cur.execute("INSERT INTO reminder_schedules (event_id, remind_at, label) VALUES (%s, %s, %s)",
+                        (event_id, reminder["remind_at"], reminder.get("label", "")))
+
         conn.commit(); cur.close(); conn.close()
         return success_response(message="Event updated")
     except Exception as e:
