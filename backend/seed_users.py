@@ -1,15 +1,21 @@
-# seed_users.py — Insert the 4 allowed CareerMyntra users into the DB
-# Run this ONCE: python seed_users.py
+# seed_users.py — Insert allowed CareerMyntra users into the DB
+# Run this: python seed_users.py
 # Place this file in: backend/seed_users.py
+# NOTE: Safe to run multiple times — existing users just get their password updated.
 
 import bcrypt
 from db import get_connection
 
 USERS = [
-    {"email": "careermyntrapune@gmail.com",     "first_name": "CareerMyntra", "password": "Career@123"},
+    {"email": "careermyntrapune@gmail.com",     "first_name": "CareerMyntra",  "password": "Career@123"},
     {"email": "collegescutoff@gmail.com",       "first_name": "CollegeCutoff", "password": "Career@123"},
-    {"email": "khamgaonkarpawan@gmail.com",     "first_name": "Pawan",        "password": "Career@123"},
-    {"email": "anuradha.dwivedi2021@gmail.com", "first_name": "Anuradha",     "password": "Career@123"},
+    {"email": "khamgaonkarpawan@gmail.com",     "first_name": "Pawan",         "password": "Career@123"},
+    {"email": "anuradha.dwivedi2021@gmail.com", "first_name": "Anuradha",      "password": "Career@123"},
+
+    # ── NEW: Testing users (added on Sir's request) ──────────
+    {"email": "aaru20864@gmail.com",            "first_name": "Aaru",          "password": "Testing@123"},
+    {"email": "dagalepragati@gmail.com",        "first_name": "Pragati",       "password": "Testing@123"},
+    {"email": "nidhikate05@gmail.com",          "first_name": "Nidhi",         "password": "Testing@123"},
 ]
 
 def seed():
