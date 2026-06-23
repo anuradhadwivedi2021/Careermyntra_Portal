@@ -48,6 +48,7 @@ CORS(app, origins=[
     "http://127.0.0.1:5500",
     "http://187.127.185.32",
     "http://187.127.185.32:5000"
+    "https://edtechmyntra.com"
 ])
 
 # FIX: Rate limiting — prevents API abuse / spam
