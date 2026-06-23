@@ -2,7 +2,7 @@
 // Connected to Flask backend at localhost:5000
 const BACKEND = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://127.0.0.1:5000"
-  : "http://187.127.185.32:5000";
+ : "https://edtechmyntra.com";
 
 // Attaches the JWT token to every backend call; redirects to login if missing/invalid.
 async function authFetch(url, options = {}) {

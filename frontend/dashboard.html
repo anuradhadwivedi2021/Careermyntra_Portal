@@ -199,7 +199,8 @@
 <script>
   const BACKEND = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5000"
-   : 'http://187.127.185.32:5000/api';
+   : "https://edtechmyntra.com";
+   
   // Attaches the JWT token to every backend call; redirects to login if missing/invalid.
   async function authFetch(url, options = {}) {
     const token = localStorage.getItem("cm_token");
