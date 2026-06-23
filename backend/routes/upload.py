@@ -9,8 +9,66 @@ from auth_utils import login_required
 
 upload_bp = Blueprint("upload", __name__)
 
-TASKS = {}
 ALLOWED_EXTENSIONS = {".pdf", ".xls", ".xlsx"}
+
+# ─── DB-backed task helpers (fixes in-memory loss on VPS restart) ────────────
+
+def _ensure_tasks_table():
+    """Create tasks table if not exists — called once on first use."""
+    try:
+        conn = get_connection()
+        cur  = get_cursor(conn)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS processing_tasks (
+                task_id     TEXT PRIMARY KEY,
+                percent     INTEGER DEFAULT 0,
+                message     TEXT    DEFAULT 'Queued...',
+                status      TEXT    DEFAULT 'pending',
+                output_file TEXT,
+                course      TEXT,
+                records     INTEGER DEFAULT 0,
+                created_at  TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"[DB] tasks table ensure error: {e}")
+
+def task_create(task_id, output_file, course):
+    _ensure_tasks_table()
+    conn = get_connection(); cur = get_cursor(conn)
+    cur.execute(
+        "INSERT INTO processing_tasks (task_id, output_file, course) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING;",
+        (task_id, output_file, course)
+    )
+    conn.commit(); cur.close(); conn.close()
+
+def task_update(task_id, percent=None, message=None, status=None, records=None):
+    try:
+        fields, vals = [], []
+        if percent  is not None: fields.append("percent = %s");  vals.append(percent)
+        if message  is not None: fields.append("message = %s");  vals.append(message)
+        if status   is not None: fields.append("status = %s");   vals.append(status)
+        if records  is not None: fields.append("records = %s");  vals.append(records)
+        if not fields: return
+        vals.append(task_id)
+        conn = get_connection(); cur = get_cursor(conn)
+        cur.execute(f"UPDATE processing_tasks SET {', '.join(fields)} WHERE task_id = %s;", vals)
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        print(f"[DB] task_update error: {e}")
+
+def task_get(task_id):
+    try:
+        conn = get_connection(); cur = get_cursor(conn)
+        cur.execute("SELECT * FROM processing_tasks WHERE task_id = %s;", (task_id,))
+        row = cur.fetchone(); cur.close(); conn.close()
+        return dict(row) if row else None
+    except Exception as e:
+        print(f"[DB] task_get error: {e}")
+        return None
 
 def allowed_file(filename):
     ext = os.path.splitext(filename)[1].lower()
@@ -47,13 +105,7 @@ def upload_file():
     output_name = f"{_safe}_{task_id[:8]}_output.xlsx"
     output_path = os.path.join(output_dir, output_name)
 
-    TASKS[task_id] = {
-        "percent":     0,
-        "message":     "Queued...",
-        "status":      "pending",
-        "output_file": output_name,
-        "course":      course_name
-    }
+    task_create(task_id, output_name, course_name)
 
     scripts_dir = current_app.config["SCRIPTS_DIR"]
     thread = threading.Thread(
@@ -93,14 +145,13 @@ def get_script_from_db(course_name):
 def run_processing(task_id, course_name, pdf_path, output_path, scripts_dir):
 
     def update(percent, message):
-        TASKS[task_id]["percent"] = percent
-        TASKS[task_id]["message"] = message
+        task_update(task_id, percent=percent, message=message)
         print(f"[Task {task_id[:8]}] [{percent}%] {message}")
 
     temp_script_path = None
 
     try:
-        TASKS[task_id]["status"] = "processing"
+        task_update(task_id, status="processing")
         update(5, "Uploading file...")
 
         import re as _re
@@ -161,18 +212,14 @@ def run_processing(task_id, course_name, pdf_path, output_path, scripts_dir):
         result = module.process(pdf_path, output_path, progress_callback=update)
 
         if result["success"]:
-            TASKS[task_id]["status"]  = "completed"
-            TASKS[task_id]["percent"] = 100
-            TASKS[task_id]["message"] = f"Done! {result['records']} records extracted."
-            TASKS[task_id]["records"] = result["records"]
+            task_update(task_id, status="completed", percent=100,
+                        message=f"Done! {result['records']} records extracted.",
+                        records=result["records"])
         else:
-            TASKS[task_id]["status"]  = "error"
-            TASKS[task_id]["message"] = result["error"]
+            task_update(task_id, status="error", message=result["error"])
 
     except Exception as e:
-        TASKS[task_id]["status"]  = "error"
-        TASKS[task_id]["message"] = f"Processing failed: {str(e)}"
-        TASKS[task_id]["percent"] = 0
+        task_update(task_id, status="error", message=f"Processing failed: {str(e)}", percent=0)
         print(f"[ERROR] Task {task_id}: {e}")
 
     finally:
@@ -184,7 +231,7 @@ def run_processing(task_id, course_name, pdf_path, output_path, scripts_dir):
 @upload_bp.route("/progress/<task_id>", methods=["GET"])
 @login_required
 def get_progress(task_id):
-    task = TASKS.get(task_id)
+    task = task_get(task_id)
     if not task:
         return jsonify({"success": False, "error": "Task not found"}), 404
 
