@@ -377,11 +377,8 @@
 
       updateSteps(pct);
 
-      if (status === "completed") {
-        setTimeout(() => {
-          window.location.href = "download.html";
-        }, 1400);
-      }
+      // Redirect is handled in pollProgress after sessionStorage is set
+      // (removed from here to avoid race condition)
 
       if (status === "error") {
         document.getElementById("error-box").style.display = "block";
@@ -410,14 +407,18 @@
             updateUI(data.percent, data.message, data.status);
 
             if (data.status === "completed") {
+              isPolling = false;
+              clearInterval(interval);
               // Store output info BEFORE redirect
               sessionStorage.setItem("records",     data.records     || 0);
               sessionStorage.setItem("output_file", data.output_file || "");
               sessionStorage.setItem("course",      course);
               console.log("[SUCCESS] output_file:", data.output_file);
               console.log("[SUCCESS] records:",     data.records);
-              isPolling = false;
-              clearInterval(interval);
+              // Redirect after sessionStorage is confirmed written
+              setTimeout(() => {
+                window.location.href = "download.html";
+              }, 800);
             }
 
             if (data.status === "error") {

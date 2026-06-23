@@ -268,7 +268,11 @@
       } else {
         document.getElementById("dl-filename").textContent = "output.xlsx (fallback)";
         document.getElementById("download-btn").disabled = true;
+        document.getElementById("download-btn").textContent = "⚠️ File not ready — go back and retry";
         console.error("[ERROR] No output file found in sessionStorage");
+        // Show a helpful message to the user
+        const sub = document.querySelector(".success-sub");
+        if (sub) sub.innerHTML = "⚠️ Output file not found. Processing may have been interrupted.<br/>Please go back and re-upload the file.";
       }
     })();
 
