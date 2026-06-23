@@ -221,7 +221,7 @@
 
    const BACKEND = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://localhost:5000"
-  : "https://careermyntra-portal-6.onrender.com";
+ : 'http://187.127.185.32:5000/api';
 
     // ✅ FIX: Initialize with empty values, update as soon as data is available
     let course     = sessionStorage.getItem("course")      || "Engineering";
@@ -271,16 +271,46 @@
       }
     })();
 
-    function downloadFile(e) {
+    async function downloadFile(e) {
       e.preventDefault();
-      
-      if (outputFile) {
-        console.log("[DOWNLOAD] Starting download:", outputFile);
-        const downloadUrl = `${BACKEND}/api/download/${outputFile}`;
-        console.log("[DOWNLOAD] URL:", downloadUrl);
-        window.location.href = downloadUrl;
-      } else {
+
+      if (!outputFile) {
         alert("❌ Output file not found. Please check that:\n\n1. Backend is running\n2. File processing completed successfully\n3. Try refreshing the page\n\nIf problem persists, click 'Process Another File' to retry.");
+        return;
+      }
+
+      const token = localStorage.getItem("cm_token");
+      if (!token) { window.location.href = "../login.html"; return; }
+
+      try {
+        const res = await fetch(`${BACKEND}/download/${outputFile}`, {
+          method: "GET",
+          headers: { "Authorization": "Bearer " + token }
+        });
+
+        if (res.status === 401) {
+          localStorage.removeItem("cm_token");
+          window.location.href = "../login.html";
+          return;
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert("❌ Download failed: " + (err.error || res.statusText));
+          return;
+        }
+
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href     = url;
+        a.download = outputFile;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+      } catch (err) {
+        alert("❌ Download error: " + err.message);
       }
     }
 

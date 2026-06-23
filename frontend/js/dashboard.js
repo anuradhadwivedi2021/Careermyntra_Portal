@@ -2,7 +2,7 @@
 // Connected to Flask backend at localhost:5000
 const BACKEND = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://127.0.0.1:5000"
-  : "https://careermyntra-portal-6.onrender.com";
+  : "http://187.127.185.32:5000";
 
 // Attaches the JWT token to every backend call; redirects to login if missing/invalid.
 async function authFetch(url, options = {}) {
@@ -143,12 +143,10 @@ async function goToProgress() {
   btn.textContent  = "⏳ Uploading...";
 
   try {
-    // Build FormData
     const formData = new FormData();
     formData.append("file",        selectedFile);
     formData.append("course_name", selectedCourse.name);
 
-    // POST /api/upload
     const res  = await authFetch(`${BACKEND}/api/upload`, {
       method: "POST",
       body:   formData
@@ -157,14 +155,12 @@ async function goToProgress() {
     const data = await res.json();
 
     if (data.success) {
-      // Save to sessionStorage for progress page
       sessionStorage.setItem("task_id",     data.task_id);
       sessionStorage.setItem("course",      selectedCourse.name);
       sessionStorage.setItem("icon",        selectedCourse.icon);
       sessionStorage.setItem("filename",    selectedFile.name);
       sessionStorage.setItem("output_file", data.output_file);
 
-      // Go to progress page
       window.location.href = "pages/progress.html";
 
     } else {
@@ -182,6 +178,3 @@ async function goToProgress() {
 }
 
 renderCourses();
-
-// NOTE: index.html modal mein ye div add karo btn-start se pehle:
-// <div id="upload-error" style="display:none; color:#ef4444; font-size:13px; font-weight:600; margin-bottom:10px; padding:8px 12px; background:#fef2f2; border-radius:8px; border:1px solid #fecaca;"></div>

@@ -127,8 +127,8 @@ def process(pdf_path: str, output_path: str, progress_callback=None) -> dict:
                 status     = status_match.group(1).strip() if status_match else "Unknown"
                 university = home_match.group(1).strip()   if home_match   else "Unknown"
 
-                # ── Course codes from word positions ──
-                words = page.extract_words()
+                # ── Course codes from word positions (only if college found) ──
+                words = page.extract_words(x_tolerance=3, y_tolerance=3)
                 course_positions = [
                     (w["top"], w["text"].strip())
                     for w in words
@@ -145,8 +145,16 @@ def process(pdf_path: str, output_path: str, progress_callback=None) -> dict:
                     for m in course_full_re.finditer(text)
                 }
 
-                # ── Tables ──
-                found_tables = page.find_tables()
+                # ── Tables (lazy — only when course positions found) ──
+                found_tables = page.find_tables(table_settings={
+                    "vertical_strategy": "lines",
+                    "horizontal_strategy": "lines",
+                    "snap_tolerance": 3,
+                    "join_tolerance": 3,
+                    "edge_min_length": 3,
+                    "min_words_vertical": 1,
+                    "min_words_horizontal": 1,
+                })
                 for ft in found_tables:
                     table_top  = ft.bbox[1]
                     table_data = ft.extract()

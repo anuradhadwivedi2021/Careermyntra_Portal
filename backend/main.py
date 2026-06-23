@@ -41,10 +41,13 @@ logger = get_logger(__name__)
 app = Flask(__name__)
 
 CORS(app, origins=[
+
     "https://careermyntra-portal-4.onrender.com",
     "https://careermyntra-portal-6.onrender.com",
     "http://localhost:5500",
-    "http://127.0.0.1:5500"
+    "http://127.0.0.1:5500",
+    "http://187.127.185.32",
+    "http://187.127.185.32:5000"
 ])
 
 # FIX: Rate limiting — prevents API abuse / spam
