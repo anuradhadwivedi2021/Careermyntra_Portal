@@ -47,23 +47,22 @@ CORS(app, origins=[
     "http://localhost:5500",
     "http://127.0.0.1:5500",
     "http://187.127.185.32",
-    "http://187.127.185.32:5000"
+    "http://187.127.185.32:5000",
     "https://edtechmyntra.com"
 ])
 
 # FIX: Rate limiting — prevents API abuse / spam
+# main.py mein change karo:
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["2000 per day", "500 per hour"],  
     storage_uri="memory://"
 )
 
 # Stricter limit on login — prevents brute-force password guessing
-limiter.limit("10 per minute")(auth_bp)
-
-# Stricter limit on event creation/email-sending — prevents spam
-limiter.limit("20 per hour")(reminders_bp)
+limiter.exempt(upload_bp)
+limiter.exempt(download_bp)
 # NOTE: monitor_bp is NOT blanket-limited here anymore — monitor.html polls
 # /monitor/status every 5s and /monitor/urls every 10s, so a shared "10 per
 # hour" limit across the whole blueprint was exhausted within the first
