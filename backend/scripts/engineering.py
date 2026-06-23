@@ -193,33 +193,40 @@ def process(pdf_path: str, output_path: str, progress_callback=None) -> dict:
         df["percentile"]     = pd.to_numeric(df["percentile"],     errors="coerce")
         df["cap round"]      = pd.to_numeric(df["cap round"],      errors="coerce").astype("Int64")
 
-        update(93, "Applying Excel formatting...")
+        update(93, f"Writing {len(df)} rows to Excel...")
 
-        # ── Write Excel with formatting ──
+        # ── Write Excel (fast path: write data first, no per-cell styling) ──
         with pd.ExcelWriter(output_path, engine="openpyxl") as writer:
             df.to_excel(writer, index=False, sheet_name="Cut-off Data")
 
             wb = writer.book
             ws = writer.sheets["Cut-off Data"]
 
+            n_rows = ws.max_row
+            n_cols = ws.max_column
+
+            update(95, "Applying formatting...")
+
             from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
             from openpyxl.utils import get_column_letter
 
-            # Header style
+            # ── Header style (only 1 row — cheap either way) ──
             header_fill = PatternFill("solid", fgColor="1565C0")
             header_font = Font(color="FFFFFF", bold=True, size=11)
-            thin = Side(style="thin", color="D0D7E3")
+            thin   = Side(style="thin", color="D0D7E3")
             border = Border(left=thin, right=thin, top=thin, bottom=thin)
+            center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            center_nowrap = Alignment(horizontal="center", vertical="center")
 
             for cell in ws[1]:
                 cell.fill      = header_fill
                 cell.font      = header_font
-                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                cell.alignment = center
                 cell.border    = border
 
             ws.row_dimensions[1].height = 30
 
-            # Column widths
+            # ── Column widths (only 15 columns — cheap) ──
             col_widths = {
                 "institute code": 14, "institute name": 40, "branch code": 14,
                 "course name": 35,    "status": 22,         "university": 28,
@@ -230,14 +237,50 @@ def process(pdf_path: str, output_path: str, progress_callback=None) -> dict:
             for i, col in enumerate(COLUMNS, 1):
                 ws.column_dimensions[get_column_letter(i)].width = col_widths.get(col, 14)
 
-            # Alternate row colors
-            light = PatternFill("solid", fgColor="EFF4FF")
-            for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
-                for cell in row:
-                    if cell.row % 2 == 0:
-                        cell.fill = light
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
-                    cell.border = border
+            # ── Fast path for large datasets: skip per-cell border/fill/
+            #     alignment looping (O(rows*cols), very slow on 1000s of
+            #     rows) and instead apply a much cheaper conditional
+            #     formatting rule for the alternate-row banding, plus a
+            #     single default style for alignment via column-level
+            #     application where possible.
+            LARGE_FILE_ROW_THRESHOLD = 2000
+
+            if n_rows > LARGE_FILE_ROW_THRESHOLD:
+                update(96, f"Large file ({n_rows} rows) — using fast formatting...")
+
+                # Conditional formatting banded fill (1 rule instead of
+                # n_rows * n_cols individual cell writes).
+                from openpyxl.formatting.rule import FormulaRule
+                last_col_letter = get_column_letter(n_cols)
+                band_range = f"A2:{last_col_letter}{n_rows}"
+                ws.conditional_formatting.add(
+                    band_range,
+                    FormulaRule(
+                        formula=["MOD(ROW(),2)=0"],
+                        fill=PatternFill("solid", fgColor="EFF4FF")
+                    )
+                )
+
+                # Apply alignment + border at the column level using a
+                # named style won't propagate automatically, so we still
+                # need to touch each cell once for border — but we avoid
+                # creating a brand-new Alignment/Border object on every
+                # iteration (object creation overhead) and avoid the
+                # extra fill assignment entirely (handled above).
+                for row in ws.iter_rows(min_row=2, max_row=n_rows):
+                    for cell in row:
+                        cell.alignment = center_nowrap
+                        cell.border    = border
+            else:
+                # Small/medium files: original full per-cell styling is
+                # fine and gives identical visual output.
+                light = PatternFill("solid", fgColor="EFF4FF")
+                for row in ws.iter_rows(min_row=2, max_row=n_rows):
+                    for cell in row:
+                        if cell.row % 2 == 0:
+                            cell.fill = light
+                        cell.alignment = center_nowrap
+                        cell.border = border
 
             # Freeze header
             ws.freeze_panes = "A2"
