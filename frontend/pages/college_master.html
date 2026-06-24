@@ -572,10 +572,11 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:5000/api'
-    : 'https://edtechmyntra.com';
-    
+ // college_master.html (line 577) aur stream_master.html (line 533)
+const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000/api'
+  : 'https://edtechmyntra.com/api';  // ← /api add karo
+
   // Attaches the JWT token to every backend call; redirects to login if missing/invalid.
   async function authFetch(url, options = {}) {
     const token = localStorage.getItem('cm_token');

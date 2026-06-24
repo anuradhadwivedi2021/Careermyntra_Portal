@@ -410,8 +410,9 @@ async function handleLogin(e) {
 
     // FIX: Real JWT token store karo, hardcoded list ki jagah
     localStorage.setItem('cm_token', data.token);
-    sessionStorage.setItem('user_name', data.name);
-    sessionStorage.setItem('user_email', data.email);
+    localStorage.setItem('cm_user', JSON.stringify({ name: data.name, first_name: data.name, email: data.email }));
+sessionStorage.setItem('user_name', data.name);
+sessionStorage.setItem('user_email', data.email);
 
     text.textContent = 'Logging in...';
     setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
