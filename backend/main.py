@@ -153,4 +153,6 @@ if __name__ == "__main__":
     logger.info("  URL: http://localhost:5000")
     logger.info("  Health: http://localhost:5000/api/health")
     logger.info("=" * 50)
-    app.run(debug=False, host="0.0.0.0", port=5000)
+    
+    # Only for local testing
+    app.run(debug=True, host="127.0.0.1", port=5000)

@@ -122,6 +122,8 @@ def process(pdf_path: str, output_path: str, progress_callback=None) -> dict:
     Returns:
         dict with keys: success, records, output_path, error
     """
+    import gc
+
     extracted_data = []
 
     def update(pct, msg):
@@ -146,11 +148,14 @@ def process(pdf_path: str, output_path: str, progress_callback=None) -> dict:
                 # ── Extract text ──
                 text = page.extract_text()
                 if not text:
+                    # FIX: release this page's cached objects even when skipped
+                    page.flush_cache()
                     continue
 
                 # ── College info ──
                 college_match = college_pattern.search(text)
                 if not college_match:
+                    page.flush_cache()
                     continue
 
                 institute_code  = int(college_match.group(1).strip())
@@ -173,6 +178,7 @@ def process(pdf_path: str, output_path: str, progress_callback=None) -> dict:
                 course_positions.sort(key=lambda x: x[0])
 
                 if not course_positions:
+                    page.flush_cache()
                     continue
 
                 # ── Course name map ──
@@ -208,10 +214,27 @@ def process(pdf_path: str, output_path: str, progress_callback=None) -> dict:
                     )
                     extracted_data.extend(rows)
 
+                # FIX: pdfplumber caches each page's parsed objects (chars, lines,
+                # rects, etc.) internally — for a 500+ page PDF this adds up to
+                # gigabytes of RAM. flush_cache() releases that page's cache
+                # once we're done reading it, since we never need to re-read it.
+                page.flush_cache()
+
+                # FIX: every 25 pages, force Python's garbage collector to run.
+                # pdfplumber/pdfminer create a lot of short-lived objects per
+                # page; without an explicit gc.collect(), memory can stay
+                # fragmented and "used" even after objects are unreferenced.
+                if (page_num + 1) % 25 == 0:
+                    gc.collect()
+
                 # ── Progress update ──
                 pct = 10 + int(((page_num + 1) / total) * 75)
                 if (page_num + 1) % 50 == 0 or page_num == total - 1:
                     update(pct, f"Processing page {page_num+1}/{total} — {len(extracted_data)} records")
+
+        # FIX: PDF is now closed — drop any remaining references and collect
+        # before the memory-heavy DataFrame/Excel-writing stage begins.
+        gc.collect()
 
         update(88, "Building Excel file...")
 
