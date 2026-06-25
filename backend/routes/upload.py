@@ -7,6 +7,8 @@ import tempfile
 from db import get_connection, get_cursor
 from auth_utils import login_required
 
+from flask import Blueprint, jsonify, request, current_app
+
 upload_bp = Blueprint("upload", __name__)
 
 ALLOWED_EXTENSIONS = {".pdf", ".xls", ".xlsx"}
@@ -229,7 +231,7 @@ def run_processing(task_id, course_name, pdf_path, output_path, scripts_dir):
 
 
 @upload_bp.route("/progress/<task_id>", methods=["GET"])
-@login_required
+
 def get_progress(task_id):
     task = task_get(task_id)
     if not task:

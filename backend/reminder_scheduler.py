@@ -81,32 +81,149 @@ def validate_email(email: str) -> bool:
 def fill_template(template: str, event: dict, duration_label: str = "") -> str:
     """
     Replace template placeholders with actual values
-    
-    Placeholders supported:
+
+    Legacy placeholders (still supported, kept for backward compatibility):
     - {{EventTitle}} → event title
     - {{Category}} → category name
     - {{EventDate}} → event date
     - {{EventTime}} → event time
     - {{EventDescription}} → event description
     - {{ReminderDuration}} → custom duration label
+
+    New CareerMyntra-branded placeholders (per Developer Instructions doc):
+    - {{LOGO_URL}}      → CareerMyntra logo image URL
+    - {{EVENT_NAME}}    → event title
+    - {{CATEGORY}}      → category name
+    - {{SUBCATEGORY}}   → subcategory name
+    - {{END_DATE}}      → event/deadline date
+    - {{DESCRIPTION}}   → event description
+    - {{REGISTER_URL}}  → registration link (falls back to site homepage)
+    - {{NAME}}          → recipient name (falls back to "Student")
+    - {{CURRENT_YEAR}}  → current year, for footer copyright
     """
     if not template:
         return ""
-    
+
+    logo_url = os.getenv("SITE_URL", "https://edtechmyntra.com").rstrip("/") + "/images/logo.jpeg"
+
     replacements = {
-        "{{EventTitle}}": str(event.get("title", "")),
-        "{{Category}}": str(event.get("category_name", "")),
-        "{{EventDate}}": str(event.get("event_date", "")),
-        "{{EventTime}}": str(event.get("event_time", "") or "N/A"),
+        # legacy
+        "{{EventTitle}}":       str(event.get("title", "")),
+        "{{Category}}":         str(event.get("category_name", "")),
+        "{{EventDate}}":        str(event.get("event_date", "")),
+        "{{EventTime}}":        str(event.get("event_time", "") or "N/A"),
         "{{EventDescription}}": str(event.get("description", "")),
         "{{ReminderDuration}}": str(duration_label or ""),
+
+        # new branded template
+        "{{LOGO_URL}}":     logo_url,
+        "{{EVENT_NAME}}":   str(event.get("title", "")),
+        "{{CATEGORY}}":     str(event.get("category_name", "")),
+        "{{SUBCATEGORY}}":  str(event.get("subcategory_name", "") or ""),
+        "{{END_DATE}}":     str(event.get("event_date", "")),
+        "{{DESCRIPTION}}":  str(event.get("description", "") or ""),
+        "{{REGISTER_URL}}": str(event.get("register_url", "") or os.getenv("SITE_URL", "https://edtechmyntra.com")),
+        "{{NAME}}":         str(event.get("recipient_name", "") or "Student"),
+        "{{CURRENT_YEAR}}": str(datetime.now().year),
     }
-    
+
     result = template
     for key, val in replacements.items():
         result = result.replace(key, val or "")
-    
+
     return result
+
+
+# ─────────────────────────────────────────────────────────────────
+# CAREERMYNTRA BRANDED HTML EMAIL TEMPLATE
+# Per "Developer Instructions – CareerMyntra Event Reminder Email
+# Template" doc. Placeholders are filled in by fill_template().
+# ─────────────────────────────────────────────────────────────────
+
+_CAREERMYNTRA_HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{margin:0;padding:0;background:#f5f7fa;font-family:Arial, Helvetica, sans-serif;}
+.container{max-width:600px;margin:20px auto;background:#ffffff;border-radius:8px;overflow:hidden;}
+.header{background:#0A4D8C;padding:20px;text-align:center;}
+.header img{max-width:180px;}
+.tagline{color:#ffffff;margin-top:10px;font-size:14px;}
+.content{padding:30px;color:#333333;}
+.event-card{border-left:5px solid #F7941D;background:#f9fafc;padding:20px;margin:20px 0;}
+.event-title{color:#0A4D8C;font-size:24px;font-weight:bold;margin-bottom:15px;}
+.label{font-weight:bold;color:#0A4D8C;}
+.button{display:inline-block;background:#F7941D;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:5px;margin-top:20px;font-weight:bold;}
+.footer{background:#0A4D8C;color:#ffffff;text-align:center;padding:20px;font-size:13px;line-height:1.7;}
+@media only screen and (max-width:600px){.content{padding:20px;}.event-title{font-size:20px;}}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <img src="{{LOGO_URL}}" alt="CareerMyntra">
+        <div class="tagline">Right Guidance. Right College. Bright Future.</div>
+    </div>
+    <div class="content">
+        <p>Dear {{NAME}},</p>
+        <p>This is a friendly reminder about an upcoming opportunity that may help you achieve your academic and career goals.</p>
+        <div class="event-card">
+            <div class="event-title">{{EVENT_NAME}}</div>
+            <p><span class="label">Category:</span> {{CATEGORY}}</p>
+            <p><span class="label">Sub Category:</span> {{SUBCATEGORY}}</p>
+            <p><span class="label">Deadline:</span> {{END_DATE}}</p>
+            <p><span class="label">Description:</span></p>
+            <p>{{DESCRIPTION}}</p>
+        </div>
+        <center>
+            <a href="{{REGISTER_URL}}" class="button">Register Now</a>
+        </center>
+        <p>Don't miss this opportunity. Complete your registration before the deadline.</p>
+        <p>Best Regards,<br>Team CareerMyntra</p>
+    </div>
+    <div class="footer">
+        <strong>CareerMyntra</strong><br>
+        Admission Guidance | Career Counselling | Skill Development | Placements<br><br>
+        1st Floor, Sunny Pride, Above Hairline Salon,<br>
+        JM Road, Near Z Bridge,<br>
+        Deccan Gymkhana, Pune &ndash; 411004<br>
+        Phone: +91 98609 38338<br>
+        &copy; {{CURRENT_YEAR}} CareerMyntra. All Rights Reserved.
+    </div>
+</div>
+</body>
+</html>
+"""
+
+
+def get_branded_html_template() -> Optional[str]:
+    """
+    Returns the CareerMyntra branded HTML email template.
+
+    Checks the database first (reminder_templates.html_body, in case
+    Sir wants to edit the design from the admin panel later) and falls
+    back to the built-in constant above if the DB doesn't have one yet.
+    """
+    try:
+        conn = get_connection()
+        cur = get_cursor(conn)
+        cur.execute("""
+            SELECT html_body FROM reminder_templates
+            WHERE channel = 'email' AND html_body IS NOT NULL
+            ORDER BY id DESC LIMIT 1
+        """)
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if row and row.get("html_body"):
+            return row["html_body"]
+    except Exception as e:
+        logger.warning(f"Could not load HTML template from DB, using built-in default: {e}")
+
+    return _CAREERMYNTRA_HTML_TEMPLATE
 
 
 def calculate_next_retry_time(retry_count: int) -> datetime:
@@ -140,10 +257,19 @@ class EmailSender:
             time.sleep(min_delay - elapsed)
         self.last_send_time = datetime.now()
     
-    def send(self, to_email: str, subject: str, body: str) -> Tuple[bool, str]:
+    def send(self, to_email: str, subject: str, body: str, html_body: str = None) -> Tuple[bool, str]:
         """
         Send email with comprehensive error handling
-        
+
+        Args:
+            to_email:  recipient address
+            subject:   email subject line
+            body:      plain-text fallback body (always required)
+            html_body: optional fully-rendered HTML body (e.g. the
+                       CareerMyntra branded template). If not provided,
+                       falls back to wrapping `body` in a simple <pre> tag
+                       (legacy behavior).
+
         Returns: (success: bool, message: str)
         """
         # Validate recipient
@@ -169,9 +295,12 @@ class EmailSender:
             text_part = MIMEText(body, "plain", "utf-8")
             msg.attach(text_part)
             
-            # Add HTML version (optional)
-            html_body = f"<pre style='font-family: Arial, sans-serif;'>{body.replace(chr(10), '<br>')}</pre>"
-            html_part = MIMEText(html_body, "html", "utf-8")
+            # FIX: use the real branded HTML template when provided,
+            # instead of always wrapping plain text in a bare <pre> tag.
+            final_html = html_body if html_body else (
+                f"<pre style='font-family: Arial, sans-serif;'>{body.replace(chr(10), '<br>')}</pre>"
+            )
+            html_part = MIMEText(final_html, "html", "utf-8")
             msg.attach(html_part)
             
             # Send via SMTP
@@ -503,9 +632,16 @@ def fire_due_reminders():
                     # Fill template
                     subject = fill_template(email_template["subject"], schedule, schedule["label"])
                     body = fill_template(email_template["body"], schedule, schedule["label"])
-                    
+
+                    # FIX: render the CareerMyntra branded HTML template
+                    # (stored separately, see get_branded_html_template())
+                    # so emails arrive with the logo/colors/footer, not as
+                    # plain text wrapped in a bare <pre> tag.
+                    html_template = get_branded_html_template()
+                    html_body = fill_template(html_template, schedule, schedule["label"]) if html_template else None
+
                     # Send email
-                    success, message = sender.send(to_email, subject, body)
+                    success, message = sender.send(to_email, subject, body, html_body=html_body)
                     
                     if success:
                         log_send_attempt(

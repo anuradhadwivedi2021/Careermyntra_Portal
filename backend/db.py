@@ -222,8 +222,16 @@ def init_db():
             channel    VARCHAR(20) NOT NULL UNIQUE,
             subject    VARCHAR(300),
             body       TEXT NOT NULL,
+            html_body  TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+    """)
+
+    # FIX: html_body was added after this table already existed in
+    # production — ADD COLUMN IF NOT EXISTS makes this safe to re-run.
+    cur.execute("""
+        ALTER TABLE reminder_templates
+        ADD COLUMN IF NOT EXISTS html_body TEXT;
     """)
 
     cur.execute("""
