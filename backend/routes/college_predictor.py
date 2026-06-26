@@ -54,6 +54,39 @@ def upload_cutoff():
     # Normalize column names
     df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
 
+    # ── Column alias mapping — handle different CSV formats ──
+    ALIASES = {
+        "institute_code": "college_code", "inst_code": "college_code",
+        "institute_name": "college_name", "inst_name": "college_name",
+        "course_name": "branch_name", "course": "branch_name", "branch": "branch_name",
+        "category(1)": "category",
+        "percentile": "cutoff_percentile", "cutoff": "cutoff_percentile",
+        "year": "cap_year",
+        "cap_round": "cap_round", "round": "cap_round",
+        "rank": "cutoff_score",
+        "quota": "seat_type",
+    }
+    df.rename(columns={k: v for k, v in ALIASES.items() if k in df.columns}, inplace=True)
+
+    # Drop duplicate columns keeping last (renamed ones take priority)
+    df = df.loc[:, ~df.columns.duplicated(keep="last")]
+
+    # Format cap_round: 1 -> "Round I"
+    if "cap_round" in df.columns:
+        roman = {1:"Round I",2:"Round II",3:"Round III",4:"Round IV",5:"Round V"}
+        df["cap_round"] = df["cap_round"].apply(lambda v: roman.get(int(float(str(v))), f"Round {v}") if str(v).strip().isdigit() else (str(v) if v else "Round I"))
+
+    # Format cap_year: 2025 -> "2025-26"
+    if "cap_year" in df.columns:
+        def fmt_year(v):
+            try:
+                s = str(v).strip()
+                if "-" in s: return s
+                y = int(float(s))
+                return f"{y}-{str(y+1)[2:]}"
+            except: return str(v)
+        df["cap_year"] = df["cap_year"].apply(fmt_year)
+
     required = {"college_name", "branch_name", "cap_year", "cap_round",
                 "category", "cutoff_percentile"}
     missing = required - set(df.columns)
