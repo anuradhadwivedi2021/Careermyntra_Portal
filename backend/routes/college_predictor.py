@@ -343,6 +343,18 @@ def predict():
     })
 
 
+# ─── DEBUG: See exact values stored in DB ───────────────────
+@college_predictor_bp.route("/college-predictor/debug-values", methods=["GET"])
+def debug_values():
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute("SELECT DISTINCT cap_year, cap_round, category, exam_type FROM cap_cutoff_data ORDER BY cap_year, cap_round LIMIT 50")
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify(rows)
+
+
 # ─── 4. GET /college-predictor/stats ── admin stats ─────────
 @college_predictor_bp.route("/college-predictor/stats", methods=["GET"])
 def stats():
