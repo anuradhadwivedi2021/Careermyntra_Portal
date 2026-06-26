@@ -46,6 +46,9 @@ CORS(app, origins=[
     
    "https://edtechmyntra.com",
     "https://www.edtechmyntra.com",   # ← ADD KARO
+
+    "http://edtechmyntra.com",        # ← ADD KARO
+    "http://www.edtechmyntra.com",    # ← ADD KARO
     "http://localhost:5500",
     "http://127.0.0.1:5500",
     "http://187.127.185.32",
