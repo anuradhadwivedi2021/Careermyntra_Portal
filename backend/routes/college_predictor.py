@@ -209,6 +209,37 @@ def predict():
     branches    = data.get("branches", [])
     districts   = data.get("districts", [])
 
+    # Normalize frontend display values to DB values
+    CATEGORY_MAP = {
+        "General (Open)": "OPEN", "general (open)": "OPEN", "open": "OPEN",
+        "OBC": "OBC", "SC": "SC", "ST": "ST",
+        "NT1": "NT1", "NT2": "NT2", "NT3": "NT3",
+        "VJ": "VJ", "EWS": "EWS", "SEBC": "SEBC",
+        "PWD": "PWD", "TFWS": "TFWS", "ORPHAN": "ORPHAN",
+    }
+    category = CATEGORY_MAP.get(category, category.upper() if category else "OPEN")
+
+    CAP_ROUND_MAP = {
+        "CAP Round 1": "Round I", "CAP Round 2": "Round II",
+        "CAP Round 3": "Round III", "Round 1": "Round I",
+        "Round 2": "Round II", "Round 3": "Round III",
+        "1": "Round I", "2": "Round II", "3": "Round III",
+    }
+    cap_round = CAP_ROUND_MAP.get(cap_round, cap_round)
+
+    # cap_year: "2025 (2025-2026)" -> "2025-26"
+    if cap_year and "(" in cap_year:
+        import re
+        m = re.search(r"(\d{4})-(\d{4})", cap_year)
+        if m:
+            cap_year = f"{m.group(1)}-{m.group(2)[2:]}"
+
+    EXAM_MAP = {
+        "MHT CET – Maharashtra Common Entrance Test": "MHT-CET",
+        "MHT CET": "MHT-CET", "JEE Main": "JEE Main",
+    }
+    exam_type = EXAM_MAP.get(exam_type, exam_type)
+
     if percentile is None:
         return jsonify({"error": "Percentile is required"}), 400
 
