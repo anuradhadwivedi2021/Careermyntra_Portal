@@ -315,6 +315,48 @@ def init_db():
                     (name, cat_id)
                 )
 
+    # ── College Predictor Table ───────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS cap_cutoff_data (
+            id                SERIAL PRIMARY KEY,
+            college_code      VARCHAR(30),
+            college_name      VARCHAR(300) NOT NULL,
+            branch_name       VARCHAR(200) NOT NULL,
+            district          VARCHAR(100),
+            university        VARCHAR(300),
+            cap_year          VARCHAR(20)  NOT NULL,
+            cap_round         VARCHAR(50)  NOT NULL,
+            category          VARCHAR(50)  NOT NULL,
+            seat_type         VARCHAR(50)  DEFAULT 'AI',
+            exam_type         VARCHAR(50)  DEFAULT 'MHT-CET',
+            cutoff_percentile NUMERIC(7,4),
+            cutoff_score      NUMERIC(8,2),
+            fees              NUMERIC(10,2),
+            naac_grade        VARCHAR(10),
+            nba_accredited    VARCHAR(10)  DEFAULT 'No',
+            placement_highest NUMERIC(12,2),
+            placement_average NUMERIC(8,2),
+            website           VARCHAR(300),
+            address           TEXT,
+            created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT cap_cutoff_unique
+                UNIQUE (college_name, branch_name, cap_year, cap_round, category, seat_type)
+        );
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_cap_cutoff_filter
+            ON cap_cutoff_data (exam_type, category, cap_year);
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_cap_cutoff_district
+            ON cap_cutoff_data (district);
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_cap_cutoff_branch
+            ON cap_cutoff_data (branch_name);
+    """)
+
     conn.commit()
     cur.close()
     conn.close()
