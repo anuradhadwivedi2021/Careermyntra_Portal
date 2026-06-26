@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>College Predictor – CareerMyntra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f4ff; min-height: 100vh; color: #0d1b3e; }
+
+    /* ── Navbar ── */
+    .navbar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 500; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+    .nav-left img { height: 42px; object-fit: contain; }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .btn-back { padding: 7px 18px; background: #f0f4ff; border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 13px; font-weight: 700; color: #1565c0; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .btn-back:hover { background: #dbeafe; }
+    .btn-logout { padding: 7px 16px; background: #fff; border: 1.5px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 700; color: #ef4444; cursor: pointer; text-decoration: none; }
+    .btn-logout:hover { background: #fef2f2; }
+
+    /* ── Hero ── */
+    .hero { background: linear-gradient(135deg, #1565c0 0%, #0d47a1 60%, #0a2f7a 100%); padding: 36px 32px 40px; text-align: center; position: relative; overflow: hidden; }
+    .hero::before { content:''; position:absolute; width:500px; height:500px; border-radius:50%; background:rgba(255,255,255,0.04); top:-200px; right:-100px; }
+    .hero-badge { display:inline-block; background:rgba(105,240,174,0.15); border:1px solid rgba(105,240,174,0.3); color:#69f0ae; font-size:12px; font-weight:700; padding:5px 14px; border-radius:20px; margin-bottom:12px; letter-spacing:0.5px; position:relative; z-index:2; }
+    .hero h1 { font-size:28px; font-weight:800; color:#fff; letter-spacing:-0.5px; margin-bottom:8px; position:relative; z-index:2; }
+    .hero p { font-size:14px; color:rgba(255,255,255,0.72); max-width:500px; margin:0 auto; line-height:1.6; position:relative; z-index:2; }
+
+    /* ── Page ── */
+    .page { max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; }
+
+    /* ── Form Card ── */
+    .form-card { background: #fff; border-radius: 16px; border: 1.5px solid #e5e7eb; overflow: visible; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+    .form-card-header { background: linear-gradient(135deg, #1565c0, #0d47a1); padding: 20px 28px; border-radius: 14px 14px 0 0; display: flex; align-items: center; gap: 12px; }
+    .form-card-header .icon { font-size: 22px; }
+    .form-card-header h2 { font-size: 17px; font-weight: 800; color: #fff; }
+    .form-card-header p { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+    .form-body { padding: 28px; display: flex; flex-direction: column; gap: 22px; }
+
+    /* Section label */
+    .section-title { font-size: 11px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.8px; padding-bottom: 10px; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; }
+
+    /* 2-col grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    /* Field */
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 12px; font-weight: 700; color: #374151; display: flex; align-items: center; gap: 5px; }
+    .field label .req { color: #ef4444; }
+    .field label .ficon { font-size: 13px; }
+    .field .help { font-size: 11px; color: #9ca3af; line-height: 1.4; margin-top: 2px; }
+
+    /* Native select */
+    .field select, .field input[type="number"], .field input[type="text"] {
+      width: 100%; padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px;
+      font-size: 14px; font-family: inherit; color: #0d1b3e; background: #fafafa;
+      transition: border-color 0.2s, box-shadow 0.2s; outline: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+    }
+    .field input[type="number"], .field input[type="text"] { background-image: none; }
+    .field select:focus, .field input:focus { border-color: #1565c0; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); background-color: #fff; }
+
+    /* Radio */
+    .radio-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .radio-pill input { display: none; }
+    .radio-pill label { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 13px; font-weight: 600; color: #374151; cursor: pointer; transition: all 0.15s; user-select: none; }
+    .radio-pill input:checked + label { background: #eff6ff; border-color: #1565c0; color: #1565c0; }
+    .radio-pill label:hover { border-color: #93c5fd; }
+
+    /* ── Custom Multi-Select (chips style) ── */
+    .ms-wrap { position: relative; }
+    .ms-box {
+      min-height: 44px; border: 1.5px solid #e5e7eb; border-radius: 10px;
+      padding: 6px 40px 6px 8px; background: #fafafa; cursor: pointer;
+      display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+      transition: border-color 0.2s, box-shadow 0.2s; position: relative;
+    }
+    .ms-box:focus-within, .ms-box.open { border-color: #1565c0; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); background: #fff; }
+    .ms-arrow { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 10px; color: #6b7280; pointer-events: none; transition: transform 0.2s; }
+    .ms-box.open .ms-arrow { transform: translateY(-50%) rotate(180deg); }
+    .ms-placeholder { font-size: 14px; color: #9ca3af; padding: 2px 4px; }
+
+    /* Chip */
+    .chip { display: inline-flex; align-items: center; gap: 4px; background: #1565c0; color: #fff; border-radius: 6px; padding: 3px 8px 3px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .chip.district { background: #7c3aed; }
+    .chip-x { cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.8; margin-left: 2px; }
+    .chip-x:hover { opacity: 1; }
+
+    /* Dropdown panel */
+    .ms-panel {
+      display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+      background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12); z-index: 400; overflow: hidden;
+    }
+    .ms-panel.open { display: block; }
+    .ms-search-wrap { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 8px; }
+    .ms-search-wrap span { font-size: 14px; color: #9ca3af; }
+    .ms-search { width: 100%; border: none; outline: none; font-size: 13px; font-family: inherit; color: #0d1b3e; background: transparent; }
+    .ms-options { max-height: 200px; overflow-y: auto; padding: 6px; }
+    .ms-option { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: background 0.12s; font-size: 13px; font-weight: 500; color: #374151; }
+    .ms-option:hover { background: #f0f4ff; }
+    .ms-option.selected { background: #eff6ff; color: #1565c0; font-weight: 700; }
+    .ms-option .ms-check { width: 16px; height: 16px; border: 2px solid #d1d5db; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .ms-option.selected .ms-check { background: #1565c0; border-color: #1565c0; }
+    .ms-option.selected .ms-check::after { content: '✓'; font-size: 10px; color: #fff; font-weight: 800; }
+    .ms-option .featured-badge { font-size: 10px; font-weight: 700; background: #fef3c7; color: #d97706; border-radius: 4px; padding: 1px 6px; margin-left: auto; }
+    .ms-footer { padding: 8px 12px; border-top: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; }
+    .ms-count { font-size: 11px; color: #6b7280; font-weight: 600; }
+    .ms-actions { display: flex; gap: 8px; }
+    .ms-btn { font-size: 12px; font-weight: 700; cursor: pointer; border: none; background: none; font-family: inherit; padding: 4px 8px; border-radius: 6px; }
+    .ms-btn.clear { color: #ef4444; }
+    .ms-btn.clear:hover { background: #fef2f2; }
+    .ms-btn.done { color: #1565c0; background: #eff6ff; }
+    .ms-btn.done:hover { background: #dbeafe; }
+
+    /* ── Info box ── */
+    .info-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 14px 16px; display: flex; gap: 10px; align-items: flex-start; }
+    .info-box .iicon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .info-box h4 { font-size: 13px; font-weight: 800; color: #0369a1; margin-bottom: 3px; }
+    .info-box p { font-size: 12px; color: #0c4a6e; line-height: 1.5; }
+
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: 12px; align-items: center; }
+    .btn-predict { flex: 1; padding: 14px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+    .btn-predict:hover { box-shadow: 0 6px 20px rgba(21,101,192,0.35); transform: translateY(-1px); }
+    .btn-predict:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-reset { padding: 14px 20px; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; font-size: 14px; font-weight: 700; color: #6b7280; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .btn-reset:hover { border-color: #d1d5db; color: #374151; }
+
+    /* ── Results ── */
+    .results-section { margin-top: 28px; display: flex; flex-direction: column; gap: 18px; }
+
+    .summary-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .sbox { background:#fff; border:1.5px solid #e5e7eb; border-radius:14px; padding:18px; text-align:center; }
+    .sbox.safe { border-color:#bbf7d0; background:#f0fdf4; }
+    .sbox.moderate { border-color:#fde68a; background:#fffbeb; }
+    .sbox.dream { border-color:#fecaca; background:#fef2f2; }
+    .sbox strong { font-size:30px; font-weight:800; display:block; }
+    .sbox.safe strong { color:#16a34a; }
+    .sbox.moderate strong { color:#d97706; }
+    .sbox.dream strong { color:#dc2626; }
+    .sbox span { font-size:12px; font-weight:700; color:#6b7280; }
+
+    .results-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+    .results-count { font-size:14px; font-weight:700; color:#374151; }
+    .filter-tabs { display:flex; gap:6px; flex-wrap:wrap; }
+    .ftab { padding:6px 14px; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid #e5e7eb; background:#fff; color:#6b7280; transition:all 0.2s; font-family:inherit; }
+    .ftab.active { background:#1565c0; color:#fff; border-color:#1565c0; }
+    .ftab.s-active { background:#16a34a; color:#fff; border-color:#16a34a; }
+    .ftab.m-active { background:#d97706; color:#fff; border-color:#d97706; }
+    .ftab.d-active { background:#dc2626; color:#fff; border-color:#dc2626; }
+
+    /* College card */
+    .cards-list { display:flex; flex-direction:column; gap:14px; }
+    .college-card { background:#fff; border:1.5px solid #e5e7eb; border-radius:16px; overflow:hidden; transition:box-shadow 0.2s; }
+    .college-card:hover { box-shadow:0 6px 24px rgba(0,0,0,0.09); }
+    .college-card.Safe     { border-left:5px solid #16a34a; }
+    .college-card.Moderate { border-left:5px solid #d97706; }
+    .college-card.Dream    { border-left:5px solid #dc2626; }
+    .card-top { display:flex; align-items:flex-start; justify-content:space-between; padding:16px 18px 10px; gap:12px; }
+    .card-top-left { flex:1; min-width:0; }
+    .college-name { font-size:15px; font-weight:800; color:#0d1b3e; line-height:1.3; }
+    .branch-name { font-size:13px; font-weight:600; color:#1565c0; margin-top:3px; }
+    .card-meta { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+    .mpill { font-size:11px; font-weight:600; background:#f3f4f6; color:#374151; padding:3px 9px; border-radius:20px; }
+    .mpill.blue { background:#eff6ff; color:#1565c0; }
+    .mpill.green { background:#f0fdf4; color:#16a34a; }
+    .chance-badge { flex-shrink:0; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:800; }
+    .chance-badge.Safe     { background:#dcfce7; color:#15803d; }
+    .chance-badge.Moderate { background:#fef9c3; color:#92400e; }
+    .chance-badge.Dream    { background:#fee2e2; color:#991b1b; }
+    .card-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#f3f4f6; border-top:1px solid #f3f4f6; }
+    .stat-box { background:#fff; padding:12px; text-align:center; }
+    .stat-box strong { display:block; font-size:14px; font-weight:800; color:#0d1b3e; }
+    .stat-box span { font-size:10px; font-weight:600; color:#9ca3af; text-transform:uppercase; letter-spacing:0.3px; }
+    .card-footer { display:flex; align-items:center; justify-content:space-between; padding:10px 18px; border-top:1px solid #f3f4f6; flex-wrap:wrap; gap:8px; }
+    .card-district { font-size:12px; color:#6b7280; font-weight:600; }
+    .card-actions { display:flex; gap:8px; }
+    .btn-sm { padding:6px 14px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid; text-decoration:none; transition:all 0.15s; font-family:inherit; display:inline-flex; align-items:center; gap:4px; }
+    .btn-website { border-color:#1565c0; color:#1565c0; background:#fff; }
+    .btn-website:hover { background:#eff6ff; }
+    .btn-save { border-color:#e5e7eb; color:#6b7280; background:#fff; }
+    .btn-save:hover { border-color:#f59e0b; color:#f59e0b; }
+    .btn-save.saved { border-color:#f59e0b; color:#f59e0b; background:#fffbeb; }
+
+    /* Admin upload */
+    .admin-card { background:#fff; border:1.5px solid #fde68a; border-radius:16px; overflow:hidden; margin-top:24px; }
+    .admin-header { background:#fffbeb; padding:14px 20px; border-bottom:1px solid #fde68a; display:flex; align-items:center; gap:10px; }
+    .admin-header h3 { font-size:14px; font-weight:800; color:#92400e; }
+    .admin-body { padding:18px 20px; display:flex; flex-direction:column; gap:12px; }
+    .admin-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .astat { background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px; text-align:center; }
+    .astat strong { display:block; font-size:18px; font-weight:800; color:#0d1b3e; }
+    .astat span { font-size:11px; color:#9ca3af; font-weight:600; }
+    .upload-zone { border:2px dashed #e5e7eb; border-radius:10px; padding:22px; text-align:center; cursor:pointer; transition:all 0.2s; }
+    .upload-zone:hover { border-color:#1565c0; background:#f0f6ff; }
+    .upload-zone input { display:none; }
+    .upload-zone p { font-size:12px; color:#9ca3af; margin-top:4px; }
+    .upload-zone strong { font-size:14px; color:#374151; }
+    .btn-upload { padding:10px 22px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .btn-upload:disabled { opacity:0.5; cursor:not-allowed; }
+    .upload-msg { font-size:13px; font-weight:600; padding:8px 12px; border-radius:8px; }
+    .upload-msg.success { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
+    .upload-msg.error { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+
+    /* State */
+    .state-box { background:#fff; border:1.5px dashed #e5e7eb; border-radius:16px; padding:48px 24px; text-align:center; }
+    .state-box .icon { font-size:48px; margin-bottom:14px; }
+    .state-box h3 { font-size:17px; font-weight:700; color:#374151; margin-bottom:6px; }
+    .state-box p { font-size:13px; color:#9ca3af; }
+
+    /* Spinner */
+    .spinner { width:18px; height:18px; border:3px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Toast */
+    #toast { position:fixed; bottom:24px; right:24px; background:#1e293b; color:#fff; padding:12px 18px; border-radius:12px; font-size:13px; font-weight:600; z-index:9999; opacity:0; transform:translateY(10px); transition:all 0.3s; pointer-events:none; max-width:300px; }
+    #toast.show { opacity:1; transform:translateY(0); }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-left"><img src="../images/logo.jpeg" alt="CareerMyntra"/></div>
+  <div class="nav-right">
+    <a href="../dashboard.html" class="btn-back">← Dashboard</a>
+    <a href="../index.html" class="btn-logout">Logout</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">🎯 Maharashtra CAP — AI Powered</div>
+  <h1>Engineering College Predictor</h1>
+  <p>Enter your exam details to find colleges with Safe, Moderate & Dream admission chances based on previous CAP cutoffs.</p>
+</div>
+
+<div class="page">
+
+  <!-- ── Form Card ── -->
+  <div class="form-card">
+    <div class="form-card-header">
+      <div class="icon">📋</div>
+      <div>
+        <h2>Engineering Prediction Form</h2>
+        <p>Fill all details for accurate college predictions</p>
+      </div>
+    </div>
+
+    <div class="form-body">
+
+      <!-- Exam + Authority -->
+      <div>
+        <div class="section-title">Exam Details</div>
+        <div class="grid-2">
+          <div class="field">
+            <label><span class="ficon">🖥️</span> Entrance Exam <span class="req">*</span></label>
+            <select id="exam_type" onchange="onExamChange()">
+              <option value="MHT-CET">MHT CET – Maharashtra Common Entrance Test</option>
+              <option value="JEE Main">JEE Main – Joint Entrance Examination</option>
+            </select>
+            <span class="help">Choose the entrance exam you appeared for</span>
+          </div>
+          <div class="field">
+            <label><span class="ficon">🏛️</span> Admission Authority <span class="req">*</span></label>
+            <select id="authority">
+              <option value="Maharashtra State CAP">Maharashtra State CAP</option>
+            </select>
+            <span class="help">Choose admission authority</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Score + Gender -->
+      <div class="grid-2">
+        <div class="field">
+          <label><span class="ficon">⭐</span> Percentile <span class="req">*</span></label>
+          <input type="number" id="percentile" placeholder="Enter your percentile (e.g. 88.45)" min="0" max="100" step="0.01"/>
+          <span class="help">Enter your official percentile (0 – 100)</span>
+        </div>
+        <div class="field">
+          <label><span class="ficon">👤</span> Gender <span class="req">*</span></label>
+          <div class="radio-row">
+            <div class="radio-pill">
+              <input type="radio" name="gender" id="g-male" value="Male" checked/>
+              <label for="g-male">♂ Male</label>
+            </div>
+            <div class="radio-pill">
+              <input type="radio" name="gender" id="g-female" value="Female"/>
+              <label for="g-female">♀ Female</label>
+            </div>
+            <div class="radio-pill">
+              <input type="radio" name="gender" id="g-other" value="Other"/>
+              <label for="g-other">⚧ Other</label>
+            </div>
+          </div>
+          <span class="help">Used for gender-wise reservation rules</span>
+        </div>
+      </div>
+
+      <!-- Branches multi-select -->
+      <div class="field">
+        <label><span class="ficon">🎓</span> Preferred Engineering Branches</label>
+        <div class="ms-wrap" id="branch-wrap">
+          <div class="ms-box" id="branch-box" onclick="togglePanel('branch')">
+            <span class="ms-placeholder" id="branch-ph">Select branches (optional)</span>
+            <span class="ms-arrow">▼</span>
+          </div>
+          <div class="ms-panel" id="branch-panel">
+            <div class="ms-search-wrap">
+              <span>🔍</span>
+              <input class="ms-search" id="branch-search" placeholder="Search branches..." oninput="filterOptions('branch')" onclick="event.stopPropagation()"/>
+            </div>
+            <div class="ms-options" id="branch-options"></div>
+            <div class="ms-footer">
+              <span class="ms-count" id="branch-count">0 of 20 selected</span>
+              <div class="ms-actions">
+                <button class="ms-btn clear" onclick="clearAll('branch');event.stopPropagation()">Clear All</button>
+                <button class="ms-btn done" onclick="closePanel('branch');event.stopPropagation()">Done</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="help">Default: Computer Science & Information Technology</span>
+      </div>
+
+      <!-- Districts multi-select -->
+      <div class="field">
+        <label><span class="ficon">📍</span> Preferred Districts</label>
+        <div class="ms-wrap" id="district-wrap">
+          <div class="ms-box" id="district-box" onclick="togglePanel('district')">
+            <span class="ms-placeholder" id="district-ph">All Districts</span>
+            <span class="ms-arrow">▼</span>
+          </div>
+          <div class="ms-panel" id="district-panel">
+            <div class="ms-search-wrap">
+              <span>🔍</span>
+              <input class="ms-search" id="district-search" placeholder="Search districts..." oninput="filterOptions('district')" onclick="event.stopPropagation()"/>
+            </div>
+            <div class="ms-options" id="district-options"></div>
+            <div class="ms-footer">
+              <span class="ms-count" id="district-count">All Districts</span>
+              <div class="ms-actions">
+                <button class="ms-btn clear" onclick="clearAll('district');event.stopPropagation()">Clear All</button>
+                <button class="ms-btn done" onclick="closePanel('district');event.stopPropagation()">Done</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="help">Default: All Districts (Pune & Mumbai prioritized)</span>
+      </div>
+
+      <!-- CAP Info box -->
+      <div class="info-box">
+        <span class="iicon">ℹ️</span>
+        <div>
+          <h4>CAP (Centralised Admission Process)</h4>
+          <p>Select the admission year and specific round for which you want predictions. Different rounds have different cutoffs based on seat availability and competition.</p>
+        </div>
+      </div>
+
+      <!-- CAP Year + Round -->
+      <div>
+        <div class="section-title">CAP Details</div>
+        <div class="grid-2">
+          <div class="field">
+            <label><span class="ficon">📅</span> CAP Year <span class="req">*</span></label>
+            <select id="cap_year">
+              <option value="2024-25">2025 (2025–2026)</option>
+              <option value="2023-24">2024 (2024–2025)</option>
+              <option value="2022-23">2023 (2023–2024)</option>
+            </select>
+            <span class="help">Select the admission year for accurate cutoff predictions</span>
+          </div>
+          <div class="field">
+            <label><span class="ficon">🔄</span> CAP Round <span class="req">*</span></label>
+            <select id="cap_round">
+              <option value="All Rounds">All Rounds (Recommended)</option>
+              <option value="CAP Round I">CAP Round 1</option>
+              <option value="CAP Round II">CAP Round 2</option>
+              <option value="CAP Round III">CAP Round 3</option>
+              <option value="CAP Round IV">CAP Round 4</option>
+              <option value="Institute Level Round">Institute Level Round</option>
+            </select>
+            <span class="help">Select the specific CAP round for accurate predictions</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category + Home District -->
+      <div>
+        <div class="section-title">Reservation Details</div>
+        <div class="grid-2">
+          <div class="field">
+            <label><span class="ficon">👥</span> Category <span class="req">*</span></label>
+            <select id="category">
+              <option value="OPEN">General (Open)</option>
+              <option value="OBC">OBC</option>
+              <option value="EWS">EWS</option>
+              <option value="SC">SC</option>
+              <option value="ST">ST</option>
+              <option value="VJ">VJ</option>
+              <option value="NT-A">NT-A</option>
+              <option value="NT-B">NT-B</option>
+              <option value="NT-C">NT-C</option>
+              <option value="NT-D">NT-D</option>
+              <option value="SBC">SBC</option>
+              <option value="TFWS">TFWS</option>
+              <option value="Minority">Minority</option>
+            </select>
+            <span class="help">Select your category for accurate predictions</span>
+          </div>
+          <div class="field">
+            <label><span class="ficon">🗺️</span> Home District</label>
+            <select id="home_district">
+              <option value="">Select home district</option>
+              <option>Pune</option><option>Mumbai</option><option>Nashik</option>
+              <option>Aurangabad</option><option>Nagpur</option><option>Thane</option>
+              <option>Kolhapur</option><option>Solapur</option><option>Sangli</option>
+              <option>Satara</option><option>Ahmednagar</option><option>Jalgaon</option>
+              <option>Dhule</option><option>Nandurbar</option><option>Buldhana</option>
+              <option>Akola</option><option>Washim</option><option>Amravati</option>
+              <option>Yavatmal</option><option>Wardha</option><option>Chandrapur</option>
+              <option>Gadchiroli</option><option>Gondia</option><option>Bhandara</option>
+              <option>Latur</option><option>Osmanabad</option><option>Nanded</option>
+              <option>Hingoli</option><option>Parbhani</option><option>Jalna</option>
+              <option>Bid</option><option>Raigad</option><option>Ratnagiri</option>
+              <option>Sindhudurg</option><option>Palghar</option>
+            </select>
+            <span class="help">Your home district for local quota</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pin Code (full width) -->
+      <div class="field">
+        <label><span class="ficon">📮</span> Pin Code</label>
+        <input type="text" id="pin_code" placeholder="Enter PIN Code (e.g. 411001)" maxlength="6"/>
+        <span class="help">Used for distance-based calculations and nearby college recommendations</span>
+      </div>
+
+      <!-- Buttons -->
+      <div class="btn-row">
+        <button class="btn-reset" onclick="resetForm()">↩ Reset Form</button>
+        <button class="btn-predict" id="predict-btn" onclick="runPredict()">
+          <span id="btn-text">🎯 Get College Predictions</span>
+          <div class="spinner" id="btn-spinner" style="display:none;"></div>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Results ── -->
+  <div class="results-section" id="results-section">
+    <div class="state-box">
+      <div class="icon">🎓</div>
+      <h3>Ready to Predict!</h3>
+      <p>Fill in your details above and click "Get College Predictions" to see your admission chances across Maharashtra colleges.</p>
+    </div>
+  </div>
+
+  <!-- ── Admin Upload ── -->
+  <div class="admin-card">
+    <div class="admin-header">
+      <span>⚙️</span>
+      <h3>Admin — Upload CAP Cutoff Data</h3>
+    </div>
+    <div class="admin-body">
+      <div class="admin-stats">
+        <div class="astat"><strong id="stat-total">—</strong><span>Total Records</span></div>
+        <div class="astat"><strong id="stat-years">—</strong><span>CAP Years</span></div>
+        <div class="astat"><strong id="stat-cats">—</strong><span>Categories</span></div>
+      </div>
+      <div class="upload-zone" onclick="document.getElementById('csv-file').click()">
+        <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(this)"/>
+        <div style="font-size:28px;">📁</div>
+        <strong id="file-name-display">Click to select CSV / Excel file</strong>
+        <p>Required: college_name, branch_name, cap_year, cap_round, category, cutoff_percentile</p>
+      </div>
+      <button class="btn-upload" id="upload-btn" onclick="uploadCutoff()" disabled>Upload Cutoff Data</button>
+      <div id="upload-msg" style="display:none;"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000/api'
+    : 'https://edtechmyntra.com/api';
+
+  // ── Branch data ──
+  const BRANCHES = [
+    { label: "Computer Science & Engineering", featured: true },
+    { label: "Information Technology", featured: true },
+    { label: "Computer Engineering", featured: false },
+    { label: "Electronics & Computer Engineering", featured: false },
+    { label: "Data Science & Engineering", featured: false },
+    { label: "Artificial Intelligence & Machine Learning", featured: false },
+    { label: "Cyber Security", featured: false },
+    { label: "Software Engineering", featured: false },
+    { label: "Electronics & Telecommunication", featured: false },
+    { label: "Electronics Engineering", featured: false },
+    { label: "Electrical Engineering", featured: false },
+    { label: "Mechanical Engineering", featured: false },
+    { label: "Civil Engineering", featured: false },
+    { label: "Chemical Engineering", featured: false },
+    { label: "Robotics & Automation", featured: false },
+    { label: "Mechatronics", featured: false },
+    { label: "Instrumentation Engineering", featured: false },
+    { label: "Production Engineering", featured: false },
+    { label: "Automobile Engineering", featured: false },
+    { label: "Biotechnology", featured: false },
+  ];
+
+  // ── State ──
+  const state = {
+    branch: { selected: new Set(), options: BRANCHES.map(b=>b.label), open: false },
+    district: { selected: new Set(), options: [], open: false },
+  };
+
+  // ── Exam change → authority update ──
+  function onExamChange() {
+    const e = document.getElementById('exam_type').value;
+    const a = document.getElementById('authority');
+    a.innerHTML = e === 'JEE Main'
+      ? '<option>All India Quota (AI)</option><option>Maharashtra State CAP</option>'
+      : '<option>Maharashtra State CAP</option>';
+  }
+
+  // ── Multi-select toggle ──
+  function togglePanel(type) {
+    const isOpen = state[type].open;
+    // close all
+    ['branch','district'].forEach(t => { state[t].open = false; updateBoxState(t); });
+    if (!isOpen) { state[type].open = true; updateBoxState(type); renderOptions(type); }
+  }
+  function closePanel(type) { state[type].open = false; updateBoxState(type); }
+
+  function updateBoxState(type) {
+    const box = document.getElementById(`${type}-box`);
+    const panel = document.getElementById(`${type}-panel`);
+    box.classList.toggle('open', state[type].open);
+    panel.classList.toggle('open', state[type].open);
+  }
+
+  // ── Render options ──
+  function renderOptions(type) {
+    const q = document.getElementById(`${type}-search`).value.toLowerCase();
+    const el = document.getElementById(`${type}-options`);
+    const isBranch = type === 'branch';
+    const filtered = isBranch
+      ? BRANCHES.filter(b => b.label.toLowerCase().includes(q))
+      : state.district.options.filter(d => d.toLowerCase().includes(q));
+
+    if (isBranch) {
+      el.innerHTML = filtered.map(b => {
+        const sel = state.branch.selected.has(b.label);
+        return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('branch','${b.label}')">
+          <div class="ms-check"></div>
+          <span>${b.label}</span>
+          ${b.featured ? '<span class="featured-badge">Featured</span>' : ''}
+        </div>`;
+      }).join('');
+    } else {
+      el.innerHTML = filtered.map(d => {
+        const sel = state.district.selected.has(d);
+        return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('district','${d}')">
+          <div class="ms-check"></div>
+          <span>${d}</span>
+        </div>`;
+      }).join('');
+    }
+    updateCount(type);
+  }
+
+  function filterOptions(type) { renderOptions(type); }
+
+  function toggleOption(type, val) {
+    if (state[type].selected.has(val)) state[type].selected.delete(val);
+    else state[type].selected.add(val);
+    renderOptions(type);
+    renderChips(type);
+  }
+
+  function clearAll(type) { state[type].selected.clear(); renderOptions(type); renderChips(type); }
+
+  // ── Chips ──
+  function renderChips(type) {
+    const box = document.getElementById(`${type}-box`);
+    const ph = document.getElementById(`${type}-ph`);
+    // remove old chips
+    box.querySelectorAll('.chip').forEach(c => c.remove());
+    const sel = [...state[type].selected];
+    if (sel.length === 0) {
+      ph.style.display = 'inline';
+      ph.textContent = type === 'branch' ? 'Select branches (optional)' : 'All Districts';
+    } else {
+      ph.style.display = 'none';
+      sel.forEach(v => {
+        const chip = document.createElement('span');
+        chip.className = `chip ${type === 'district' ? 'district' : ''}`;
+        chip.innerHTML = `${v.length > 22 ? v.slice(0,20)+'…' : v} <span class="chip-x" onclick="removeChip(event,'${type}','${v}')">×</span>`;
+        box.insertBefore(chip, box.querySelector('.ms-arrow'));
+      });
+    }
+    updateCount(type);
+  }
+
+  function removeChip(e, type, val) {
+    e.stopPropagation();
+    state[type].selected.delete(val);
+    renderChips(type);
+    if (state[type].open) renderOptions(type);
+  }
+
+  function updateCount(type) {
+    const n = state[type].selected.size;
+    const total = type === 'branch' ? BRANCHES.length : state.district.options.length;
+    const el = document.getElementById(`${type}-count`);
+    if (type === 'district') el.textContent = n === 0 ? 'All Districts' : `${n} of ${total} selected`;
+    else el.textContent = `${n} of ${total} selected`;
+  }
+
+  // ── Close on outside click ──
+  document.addEventListener('click', e => {
+    ['branch','district'].forEach(type => {
+      if (state[type].open && !document.getElementById(`${type}-wrap`).contains(e.target)) {
+        closePanel(type);
+      }
+    });
+  });
+
+  // ── Load districts from API ──
+  async function loadDistricts() {
+    try {
+      const res = await fetch(`${API}/college-predictor/districts`);
+      const d = await res.json();
+      state.district.options = d.length > 0 ? d : [
+        'Pune','Mumbai','Nashik','Nagpur','Aurangabad','Thane','Kolhapur',
+        'Solapur','Sangli','Satara','Ahmednagar','Jalgaon'
+      ];
+    } catch(e) {
+      state.district.options = ['Pune','Mumbai','Nashik','Nagpur','Aurangabad','Thane'];
+    }
+  }
+
+  // ── Load admin stats ──
+  async function loadStats() {
+    try {
+      const r = await fetch(`${API}/college-predictor/stats`);
+      const d = await r.json();
+      document.getElementById('stat-total').textContent = d.total_records.toLocaleString();
+      document.getElementById('stat-years').textContent = d.years.join(', ') || '—';
+      document.getElementById('stat-cats').textContent = d.categories.length;
+    } catch(e) {}
+  }
+
+  // ── File upload ──
+  let selectedFile = null;
+  function handleFileSelect(input) {
+    selectedFile = input.files[0];
+    if (selectedFile) {
+      document.getElementById('file-name-display').textContent = selectedFile.name;
+      document.getElementById('upload-btn').disabled = false;
+    }
+  }
+  async function uploadCutoff() {
+    if (!selectedFile) return;
+    const btn = document.getElementById('upload-btn');
+    const msg = document.getElementById('upload-msg');
+    btn.disabled = true; btn.textContent = 'Uploading…'; msg.style.display = 'none';
+    const fd = new FormData(); fd.append('file', selectedFile);
+    try {
+      const res = await fetch(`${API}/college-predictor/upload-cutoff`, { method:'POST', body:fd });
+      const d = await res.json();
+      msg.style.display = 'block';
+      msg.className = res.ok ? 'upload-msg success' : 'upload-msg error';
+      msg.textContent = res.ok ? d.message : (d.error || 'Upload failed');
+      if (res.ok) { loadStats(); loadDistricts(); showToast('✅ ' + d.message); }
+    } catch(e) {
+      msg.style.display='block'; msg.className='upload-msg error'; msg.textContent='Network error.';
+    }
+    btn.disabled=false; btn.textContent='Upload Cutoff Data';
+  }
+
+  // ── Reset form ──
+  function resetForm() {
+    document.getElementById('percentile').value = '';
+    document.getElementById('exam_type').selectedIndex = 0;
+    document.getElementById('cap_year').selectedIndex = 0;
+    document.getElementById('cap_round').selectedIndex = 0;
+    document.getElementById('category').selectedIndex = 0;
+    document.getElementById('home_district').selectedIndex = 0;
+    document.getElementById('pin_code').value = '';
+    document.querySelector('input[name="gender"][value="Male"]').checked = true;
+    clearAll('branch'); clearAll('district');
+    document.getElementById('results-section').innerHTML = `
+      <div class="state-box"><div class="icon">🎓</div><h3>Ready to Predict!</h3>
+      <p>Fill in your details above and click "Get College Predictions".</p></div>`;
+    showToast('Form reset ✓');
+  }
+
+  // ── Predict ──
+  let allResults = [];
+  async function runPredict() {
+    const percentile = parseFloat(document.getElementById('percentile').value);
+    if (isNaN(percentile) || percentile < 0 || percentile > 100) {
+      showToast('⚠️ Please enter a valid percentile (0–100)'); return;
+    }
+    const btn = document.getElementById('predict-btn');
+    document.getElementById('btn-text').textContent = 'Predicting…';
+    document.getElementById('btn-spinner').style.display = 'block';
+    btn.disabled = true;
+
+    const payload = {
+      exam_type: document.getElementById('exam_type').value,
+      percentile,
+      category: document.getElementById('category').value,
+      cap_year: document.getElementById('cap_year').value,
+      cap_round: document.getElementById('cap_round').value,
+      branches: [...state.branch.selected],
+      districts: [...state.district.selected],
+      gender: document.querySelector('input[name="gender"]:checked')?.value || 'Male',
+    };
+
+    try {
+      const res = await fetch(`${API}/college-predictor/predict`, {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast('❌ '+(data.error||'Prediction failed')); return; }
+      allResults = data.results || [];
+      renderResults(data);
+    } catch(e) { showToast('❌ Network error. Is backend running?'); }
+    finally {
+      document.getElementById('btn-text').textContent = '🎯 Get College Predictions';
+      document.getElementById('btn-spinner').style.display = 'none';
+      btn.disabled = false;
+    }
+  }
+
+  function renderResults(data) {
+    const { total, student_percentile, summary, results } = data;
+    const sec = document.getElementById('results-section');
+    if (total === 0) {
+      sec.innerHTML = `<div class="state-box"><div class="icon">😔</div><h3>No Colleges Found</h3>
+        <p>No cutoff data matches your filters for percentile ${student_percentile}. Ask admin to upload more data or change filters.</p></div>`;
+      return;
+    }
+    sec.innerHTML = `
+      <div class="summary-row">
+        <div class="sbox safe"><strong>${summary.safe}</strong><span>✅ Safe Colleges</span></div>
+        <div class="sbox moderate"><strong>${summary.moderate}</strong><span>⚡ Moderate Colleges</span></div>
+        <div class="sbox dream"><strong>${summary.dream}</strong><span>🌟 Dream Colleges</span></div>
+      </div>
+      <div class="results-bar">
+        <span class="results-count">Found <strong>${total}</strong> colleges for percentile <strong>${student_percentile}</strong></span>
+        <div class="filter-tabs">
+          <button class="ftab active" onclick="filterCards('all',this,'active')">All (${total})</button>
+          <button class="ftab" onclick="filterCards('Safe',this,'s-active')">✅ Safe (${summary.safe})</button>
+          <button class="ftab" onclick="filterCards('Moderate',this,'m-active')">⚡ Moderate (${summary.moderate})</button>
+          <button class="ftab" onclick="filterCards('Dream',this,'d-active')">🌟 Dream (${summary.dream})</button>
+        </div>
+      </div>
+      <div class="cards-list" id="cards-list">${results.map(renderCard).join('')}</div>
+    `;
+    sec.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function renderCard(r) {
+    const fees = r.fees ? `₹${Number(r.fees).toLocaleString('en-IN')}` : '—';
+    const cutoff = r.cutoff_percentile != null ? Number(r.cutoff_percentile).toFixed(2) : '—';
+    const placH = r.placement_highest ? `${r.placement_highest} LPA` : '—';
+    const placA = r.placement_average ? `${r.placement_average} LPA` : '—';
+    const naac = r.naac_grade || '—';
+    const nba = r.nba_accredited === 'Yes' ? '<span class="mpill green">NBA ✓</span>' : '';
+    const web = r.website ? `<a class="btn-sm btn-website" href="${r.website}" target="_blank">🌐 Website</a>` : '';
+    const icon = r.admission_chance === 'Safe' ? '✅' : r.admission_chance === 'Moderate' ? '⚡' : '🌟';
+    return `
+      <div class="college-card ${r.admission_chance}">
+        <div class="card-top">
+          <div class="card-top-left">
+            <div class="college-name">${r.college_name}</div>
+            <div class="branch-name">📚 ${r.branch_name}</div>
+            <div class="card-meta">
+              <span class="mpill blue">${r.cap_round}</span>
+              <span class="mpill blue">${r.seat_type}</span>
+              <span class="mpill">NAAC: ${naac}</span>
+              ${nba}
+              ${r.university ? `<span class="mpill">${r.university}</span>` : ''}
+            </div>
+          </div>
+          <span class="chance-badge ${r.admission_chance}">${icon} ${r.admission_chance}</span>
+        </div>
+        <div class="card-stats">
+          <div class="stat-box"><strong>${cutoff}</strong><span>Cutoff %ile</span></div>
+          <div class="stat-box"><strong>${fees}</strong><span>Annual Fees</span></div>
+          <div class="stat-box"><strong>${placH}</strong><span>Highest Pkg</span></div>
+          <div class="stat-box"><strong>${placA}</strong><span>Avg Pkg</span></div>
+        </div>
+        <div class="card-footer">
+          <span class="card-district">📍 ${r.district || 'Maharashtra'}</span>
+          <div class="card-actions">
+            ${web}
+            <button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id},'${r.college_name.replace(/'/g,"\\'")}')">🔖 Save</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function filterCards(f, btn, cls) {
+    document.querySelectorAll('.ftab').forEach(t => { t.className = 'ftab'; });
+    btn.classList.add(cls);
+    const list = document.getElementById('cards-list');
+    if (!list) return;
+    const filtered = f === 'all' ? allResults : allResults.filter(r => r.admission_chance === f);
+    list.innerHTML = filtered.length
+      ? filtered.map(renderCard).join('')
+      : `<div class="state-box"><div class="icon">😔</div><h3>No ${f} colleges</h3><p>Try expanding your filters.</p></div>`;
+    savedIds.forEach(id => {
+      const b = document.getElementById(`save-${id}`);
+      if (b) { b.textContent = '🔖 Saved'; b.classList.add('saved'); }
+    });
+  }
+
+  const savedIds = new Set(JSON.parse(localStorage.getItem('cp_saved')||'[]'));
+  function toggleSave(id, name) {
+    const b = document.getElementById(`save-${id}`);
+    if (savedIds.has(id)) { savedIds.delete(id); b.textContent='🔖 Save'; b.classList.remove('saved'); showToast(`Removed from wishlist`); }
+    else { savedIds.add(id); b.textContent='🔖 Saved'; b.classList.add('saved'); showToast(`✅ Saved ${name}`); }
+    localStorage.setItem('cp_saved', JSON.stringify([...savedIds]));
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ── Init ──
+  loadDistricts();
+  loadStats();
+</script>
+</body>
+</html>
