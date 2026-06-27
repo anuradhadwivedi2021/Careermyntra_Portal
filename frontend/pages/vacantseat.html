@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard – CareerMyntra</title>
+  <title>Vacant Seats – CareerMyntra</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13,16 +13,17 @@
     .nav-right { display: flex; align-items: center; gap: 16px; }
     .nav-link { font-size: 13px; font-weight: 600; color: #374151; text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; }
     .nav-link:hover { background: #f0f4ff; color: #1565c0; }
-    .user-chip { display: flex; align-items: center; gap: 8px; background: #f0f4ff; border: 1px solid #dbeafe; border-radius: 24px; padding: 5px 14px 5px 6px; cursor: pointer; }
-    .user-avatar { width: 30px; height: 30px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
-    .user-chip span { font-size: 13px; font-weight: 700; color: #1565c0; }
+    .user-chip { display: flex; align-items: center; gap: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 24px; padding: 5px 14px 5px 6px; cursor: pointer; }
+    .user-avatar { width: 30px; height: 30px; background: linear-gradient(135deg, #059669, #047857); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+    .user-chip span { font-size: 13px; font-weight: 700; color: #059669; }
     .btn-logout { padding: 7px 16px; background: #fff; border: 1.5px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 700; color: #ef4444; cursor: pointer; text-decoration: none; transition: all 0.2s; font-family: inherit; }
     .btn-logout:hover { background: #fef2f2; }
 
-    .hero { background: linear-gradient(135deg, #1565c0 0%, #0d47a1 60%, #0a2f7a 100%); padding: 48px 32px 52px; text-align: center; position: relative; overflow: hidden; }
+    /* Hero — teal/green theme for vacant seats */
+    .hero { background: linear-gradient(135deg, #047857 0%, #065f46 60%, #064e3b 100%); padding: 48px 32px 52px; text-align: center; position: relative; overflow: hidden; }
     .hero::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -200px; right: -100px; }
     .hero::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); bottom: -100px; left: -80px; }
-    .hero-badge { display: inline-block; background: rgba(105,240,174,0.15); border: 1px solid rgba(105,240,174,0.3); color: #69f0ae; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; margin-bottom: 16px; letter-spacing: 0.5px; }
+    .hero-badge { display: inline-block; background: rgba(167,243,208,0.2); border: 1px solid rgba(167,243,208,0.4); color: #a7f3d0; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; margin-bottom: 16px; letter-spacing: 0.5px; }
     .hero h1 { font-size: 34px; font-weight: 800; color: #fff; letter-spacing: -0.8px; margin-bottom: 12px; position: relative; z-index: 2; }
     .hero p { font-size: 15px; color: rgba(255,255,255,0.75); max-width: 520px; margin: 0 auto 28px; line-height: 1.6; position: relative; z-index: 2; }
     .hero-stats { display: flex; justify-content: center; gap: 32px; position: relative; z-index: 2; }
@@ -32,49 +33,56 @@
 
     .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
     .tab-section { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-    .tab-row { display: flex; gap: 8px; }
-    .tab { padding: 10px 24px; border-radius: 24px; font-size: 14px; font-weight: 700; cursor: pointer; border: 2px solid #e5e7eb; background: #fff; color: #6b7280; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; gap: 7px; }
-    .tab.active { background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(21,101,192,0.3); }
-    .tab:hover:not(.active) { border-color: #1565c0; color: #1565c0; }
+    .tab-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab { padding: 10px 24px; border-radius: 24px; font-size: 14px; font-weight: 700; cursor: pointer; border: 2px solid #e5e7eb; background: #fff; color: #6b7280; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; gap: 7px; text-decoration: none; }
+    .tab.active { background: linear-gradient(135deg, #047857, #065f46); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(4,120,87,0.3); }
+    .tab:hover:not(.active) { border-color: #047857; color: #047857; }
     .section-label { font-size: 14px; font-weight: 600; color: #6b7280; }
 
-    /* ── STREAM CARDS GRID ── */
+    /* Coming soon banner */
+    .coming-soon-banner { background: linear-gradient(135deg, #ecfdf5, #d1fae5); border: 1.5px solid #6ee7b7; border-radius: 14px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px; }
+    .cs-icon { font-size: 24px; flex-shrink: 0; }
+    .cs-text { flex: 1; }
+    .cs-text strong { font-size: 14px; font-weight: 800; color: #065f46; display: block; margin-bottom: 2px; }
+    .cs-text span { font-size: 13px; color: #059669; }
+    .cs-badge { background: #059669; color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+
+    /* Stream cards */
     .streams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 8px; }
     .stream-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 18px 16px; cursor: pointer; transition: all 0.22s; user-select: none; display: flex; align-items: center; gap: 12px; }
-    .stream-card:hover { border-color: #1565c0; box-shadow: 0 0 0 3px rgba(21,101,192,0.07), 0 4px 16px rgba(0,0,0,0.08); }
-    .stream-card.active { border-color: #1565c0; background: #f0f6ff; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); }
+    .stream-card:hover { border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,0.07), 0 4px 16px rgba(0,0,0,0.08); }
+    .stream-card.active { border-color: #059669; background: #f0fdf4; box-shadow: 0 0 0 3px rgba(5,150,105,0.1); }
     .sc-icon { width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
     .sc-info { flex: 1; min-width: 0; }
     .sc-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sc-count { font-size: 11px; color: #6b7280; margin-top: 2px; }
     .sc-arrow { font-size: 12px; color: #6b7280; flex-shrink: 0; transition: transform 0.2s; }
-    .stream-card.active .sc-arrow { transform: rotate(180deg); color: #1565c0; }
+    .stream-card.active .sc-arrow { transform: rotate(180deg); color: #059669; }
 
-    /* ── COURSE PANEL ── */
-    .course-panel { display: none; background: #fff; border: 1.5px solid #1565c0; border-radius: 16px; margin-bottom: 24px; overflow: hidden; animation: panelIn 0.2s ease; }
+    /* Course panel */
+    .course-panel { display: none; background: #fff; border: 1.5px solid #059669; border-radius: 16px; margin-bottom: 24px; overflow: hidden; animation: panelIn 0.2s ease; }
     .course-panel.show { display: block; }
     @keyframes panelIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-    .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; background: linear-gradient(90deg, #f0f6ff, #f8fafc); border-bottom: 1px solid #e5e7eb; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 22px; background: linear-gradient(90deg, #ecfdf5, #d1fae5); border-bottom: 1px solid #a7f3d0; }
     .panel-header-left { display: flex; align-items: center; gap: 12px; }
     .panel-stream-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    .panel-stream-name { font-size: 15px; font-weight: 800; color: #1565c0; }
+    .panel-stream-name { font-size: 15px; font-weight: 800; color: #047857; }
     .panel-course-count { font-size: 12px; color: #6b7280; }
     .panel-close { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; color: #6b7280; transition: all 0.15s; }
     .panel-close:hover { background: #fff5f5; color: #ef4444; border-color: #fca5a5; }
-
     .course-list { padding: 8px 0; }
     .course-row { display: flex; align-items: center; gap: 16px; padding: 13px 22px; border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
     .course-row:last-child { border-bottom: none; }
-    .course-row:hover { background: #f8fafc; }
+    .course-row:hover { background: #f0fdf4; }
     .course-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
     .course-info { flex: 1; min-width: 0; }
     .course-name { font-size: 14px; font-weight: 700; color: #0d1b3e; }
     .course-exam { font-size: 12px; color: #6b7280; margin-top: 1px; }
+    .btn-upload-row { padding: 8px 16px; background: #059669; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap; }
+    .btn-upload-row:hover { background: #047857; }
+    .btn-upload-row.disabled-soon { background: #d1fae5; color: #059669; border: 1.5px dashed #6ee7b7; cursor: not-allowed; }
 
-    .btn-upload-row { padding: 8px 16px; background: #1565c0; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap; }
-    .btn-upload-row:hover { background: #0d47a1; }
-
-    /* ── MODAL ── */
+    /* Modal */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,60,0.45); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
     .modal-overlay.open { display: flex; }
     .modal-box { background: #fff; border-radius: 20px; padding: 32px; width: 460px; max-width: 95vw; border: 1px solid #e5e7eb; animation: popIn 0.25s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
@@ -85,8 +93,8 @@
     .modal-header p { font-size: 13px; color: #6b7280; margin-top: 3px; }
     .close-btn { width: 32px; height: 32px; background: #f3f4f6; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0; }
     .close-btn:hover { background: #e5e7eb; }
-    .drop-zone { border: 2px dashed #c7d7f5; border-radius: 14px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; background: #fafbff; }
-    .drop-zone:hover, .drop-zone.dragover { border-color: #1565c0; background: #eff4ff; }
+    .drop-zone { border: 2px dashed #6ee7b7; border-radius: 14px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; background: #f0fdf4; }
+    .drop-zone:hover, .drop-zone.dragover { border-color: #059669; background: #ecfdf5; }
     .drop-icon { font-size: 40px; margin-bottom: 10px; }
     .drop-title { font-size: 15px; font-weight: 700; color: #374151; margin-bottom: 5px; }
     .drop-sub { font-size: 12px; color: #9ca3af; }
@@ -96,34 +104,40 @@
     .fmt-badge.xls { background: #dcfce7; color: #15803d; }
     .fmt-badge.xlsx { background: #d1fae5; color: #065f46; }
     .file-preview { font-size: 13px; color: #16a34a; font-weight: 700; min-height: 18px; margin-bottom: 8px; padding-left: 4px; }
-    .btn-start { width: 100%; padding: 13px; background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; }
-    .btn-start:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(21,101,192,0.35); transform: translateY(-1px); }
-    .btn-start:disabled { opacity: 0.45; cursor: not-allowed; }
 
-    @media (max-width: 640px) { .hero h1 { font-size: 24px; } .hero-stats { gap: 20px; } .navbar { padding: 0 16px; } .container { padding: 20px 14px; } }
+    /* Coming soon modal notice */
+    .modal-notice { background: #ecfdf5; border: 1.5px solid #6ee7b7; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #047857; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+    .btn-start { width: 100%; padding: 13px; background: linear-gradient(135deg, #059669, #047857); color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; }
+    .btn-start:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(5,150,105,0.35); transform: translateY(-1px); }
+    .btn-start:disabled { opacity: 0.45; cursor: not-allowed; }
+    #upload-error { display:none; color:#ef4444; font-size:13px; font-weight:600; margin-bottom:10px; padding:8px 12px; background:#fef2f2; border-radius:8px; border:1px solid #fecaca; }
+
+    @media (max-width: 640px) { .hero h1 { font-size: 24px; } .hero-stats { gap: 20px; } .navbar { padding: 0 16px; } .container { padding: 20px 14px; } .tab-row { gap: 6px; } .tab { padding: 8px 14px; font-size: 13px; } }
   </style>
 </head>
 <body>
 
 <nav class="navbar">
-  <div class="nav-left"><img src="images/logo.jpeg" alt="CareerMyntra"/></div>
+  <div class="nav-left"><img src="../images/logo.jpeg" alt="CareerMyntra"/></div>
   <div class="nav-right">
-    <a href="pages/college_master.html" class="nav-link">🏛️ College Master</a>
-    <a href="pages/stream_master.html" class="nav-link">🌊 Streams</a>
-    <a href="pages/college_predictor.html" class="nav-link">🎯 Predictor</a>
-    <a href="admin.html" class="nav-link">⚙️ Admin</a>
+    <a href="../dashboard.html" class="nav-link">🏠 Dashboard</a>
+    <a href="college_master.html" class="nav-link">🏛️ College Master</a>
+    <a href="stream_master.html" class="nav-link">🌊 Streams</a>
+    <a href="college_predictor.html" class="nav-link">🎯 Predictor</a>
+    <a href="../admin.html" class="nav-link">⚙️ Admin</a>
     <div class="user-chip">
       <div class="user-avatar" id="user-avatar">U</div>
       <span id="user-name">User</span>
     </div>
-    <a href="index.html" class="btn-logout">Logout</a>
+    <a href="../index.html" class="btn-logout">Logout</a>
   </div>
 </nav>
 
 <div class="hero">
-  <div class="hero-badge">🎓 Maharashtra CAP Round Portal</div>
-  <h1>Admission Data Processing System</h1>
-  <p>Upload CAP round PDFs & Excel files for any course. Get clean, structured Excel output in seconds.</p>
+  <div class="hero-badge">📋 Maharashtra CAP Vacant Seat Data</div>
+  <h1>Vacant Seats Processing System</h1>
+  <p>Upload CAP round vacant seat PDFs for any course. Get clean, structured Excel output instantly.</p>
   <div class="hero-stats">
     <div class="hero-stat"><strong>12+</strong><span>Courses</span></div>
     <div class="hero-stat"><strong>PDF & XLS</strong><span>Supported</span></div>
@@ -135,14 +149,23 @@
 <div class="container">
   <div class="tab-section">
     <div class="tab-row">
-      <a href="pages/vacant_seats.html" class="tab">📋 Vacant Seats</a>
-      <button class="tab" onclick="window.location.href='pages/cutoffs.html'">✂️ Cut-offs</button>
-
-      <button class="tab" onclick="window.location.href='pages/college_predictor.html'">🎯 College Predictor</button>
-      <button class="tab" onclick="window.location.href='pages/monitor.html'">🔔 Monitor</button>
-      <button class="tab" onclick="window.location.href='pages/reminders.html'">⏰ Reminders</button>
+      <a href="vacant_seats.html" class="tab active">📋 Vacant Seats</a>
+      <a href="cutoffs.html" class="tab">✂️ Cut-offs</a>
+      <a href="college_predictor.html" class="tab">🎯 College Predictor</a>
+      <a href="monitor.html" class="tab">🔔 Monitor</a>
+      <a href="reminders.html" class="tab">⏰ Reminders</a>
     </div>
-    <span class="section-label" id="section-label">Select a stream to upload data</span>
+    <span class="section-label" id="section-label">Select a stream to upload vacant seat data</span>
+  </div>
+
+  <!-- Coming soon notice -->
+  <div class="coming-soon-banner">
+    <div class="cs-icon">🚧</div>
+    <div class="cs-text">
+      <strong>Backend Processing — Coming Soon</strong>
+      <span>UI is ready! Upload & processing logic will be connected shortly. You can still browse courses below.</span>
+    </div>
+    <span class="cs-badge">In Progress</span>
   </div>
 
   <!-- Stream cards grid -->
@@ -171,11 +194,14 @@
   <div class="modal-box">
     <div class="modal-header">
       <div>
-        <div class="modal-icon" id="modal-icon">⚙️</div>
-        <h3 id="modal-title">Upload File</h3>
-        <p id="modal-sub">Select your file below</p>
+        <div class="modal-icon" id="modal-icon">📋</div>
+        <h3 id="modal-title">Upload Vacant Seat File</h3>
+        <p id="modal-sub">Select your vacant seat data file below</p>
       </div>
       <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-notice">
+      🚧 Backend processing coming soon — upload will be enabled shortly!
     </div>
     <div class="drop-zone" id="drop-zone"
          onclick="document.getElementById('file-input').click()"
@@ -184,7 +210,7 @@
          ondrop="dropFile(event)">
       <div class="drop-icon">📂</div>
       <p class="drop-title">Click to browse or drag & drop</p>
-      <p class="drop-sub">Upload your CAP round data file</p>
+      <p class="drop-sub">Upload your CAP round vacant seat data file</p>
       <div class="format-badges">
         <span class="fmt-badge pdf">PDF</span>
         <span class="fmt-badge xls">XLS</span>
@@ -193,7 +219,7 @@
     </div>
     <input type="file" id="file-input" accept=".pdf,.xls,.xlsx" style="display:none" onchange="fileSelected(this)"/>
     <div class="file-preview" id="file-preview"></div>
-    <div id="upload-error" style="display:none; color:#ef4444; font-size:13px; font-weight:600; margin-bottom:10px; padding:8px 12px; background:#fef2f2; border-radius:8px; border:1px solid #fecaca;"></div>
+    <div id="upload-error"></div>
     <button class="btn-start" id="btn-start" onclick="goToProgress()" disabled>🚀 Start Processing</button>
   </div>
 </div>
@@ -201,46 +227,28 @@
 <script>
   const BACKEND = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5000"
-   : "https://edtechmyntra.com";
-   
-  // Attaches the JWT token to every backend call; redirects to login if missing/invalid.
+    : "https://edtechmyntra.com";
+
   async function authFetch(url, options = {}) {
     const token = localStorage.getItem("cm_token");
-    if (!token) {
-      window.location.href = "login.html";
-      return Promise.reject(new Error("No token"));
-    }
+    if (!token) { window.location.href = "../index.html"; return Promise.reject(new Error("No token")); }
     options.headers = { ...(options.headers || {}), "Authorization": "Bearer " + token };
     const res = await fetch(url, options);
-    if (res.status === 401) {
-      localStorage.removeItem("cm_token");
-      window.location.href = "login.html";
-      return Promise.reject(new Error("Unauthorized"));
-    }
+    if (res.status === 401) { localStorage.removeItem("cm_token"); window.location.href = "../index.html"; return Promise.reject(new Error("Unauthorized")); }
     return res;
   }
 
   const STREAM_COLORS = [
-    { bg: '#e3f2fd', color: '#1565c0' },
-    { bg: '#e8f5e9', color: '#2e7d32' },
-    { bg: '#fce4ec', color: '#ad1457' },
-    { bg: '#fff3e0', color: '#e65100' },
-    { bg: '#f3e5f5', color: '#6a1b9a' },
-    { bg: '#e0f7fa', color: '#00695c' },
-    { bg: '#fff8e1', color: '#f57f17' },
-    { bg: '#fbe9e7', color: '#bf360c' },
-    { bg: '#e8eaf6', color: '#283593' },
-    { bg: '#f1f8e9', color: '#558b2f' },
-    { bg: '#e0f2f1', color: '#00695c' },
-    { bg: '#fce4ec', color: '#880e4f' },
+    { bg: '#e3f2fd', color: '#1565c0' }, { bg: '#e8f5e9', color: '#2e7d32' },
+    { bg: '#fce4ec', color: '#ad1457' }, { bg: '#fff3e0', color: '#e65100' },
+    { bg: '#f3e5f5', color: '#6a1b9a' }, { bg: '#e0f7fa', color: '#00695c' },
+    { bg: '#fff8e1', color: '#f57f17' }, { bg: '#fbe9e7', color: '#bf360c' },
+    { bg: '#e8eaf6', color: '#283593' }, { bg: '#f1f8e9', color: '#558b2f' },
+    { bg: '#e0f2f1', color: '#00695c' }, { bg: '#fce4ec', color: '#880e4f' },
   ];
 
-  let streamsData = [];
-  let activeStream = null;
-  let selectedCourse = null;
-  let selectedFile = null;
+  let streamsData = [], activeStream = null, selectedCourse = null, selectedFile = null;
 
-  // ── LOAD STREAMS WITH COURSES ─────────────────────────────
   async function loadStreams() {
     try {
       const res = await authFetch(`${BACKEND}/api/streams?with_courses=true`);
@@ -248,13 +256,8 @@
       if (data.success && data.streams.length > 0) {
         streamsData = data.streams;
         renderStreamCards();
-      } else {
-        // fallback: load plain courses grouped by no stream
-        loadCoursesAsFallback();
-      }
-    } catch(e) {
-      loadCoursesAsFallback();
-    }
+      } else { loadCoursesAsFallback(); }
+    } catch(e) { loadCoursesAsFallback(); }
   }
 
   async function loadCoursesAsFallback() {
@@ -262,11 +265,7 @@
       const res = await authFetch(`${BACKEND}/api/courses`);
       const data = await res.json();
       if (data.success && data.courses.length > 0) {
-        // Group under one fake "All Courses" stream
-        streamsData = [{
-          id: 0, name: 'All Courses', icon: '📚',
-          courses: data.courses
-        }];
+        streamsData = [{ id: 0, name: 'All Courses', icon: '📚', courses: data.courses }];
         renderStreamCards();
       } else {
         document.getElementById('streams-grid').innerHTML =
@@ -278,15 +277,13 @@
     }
   }
 
-  // ── RENDER STREAM CARDS ───────────────────────────────────
   function renderStreamCards() {
     const grid = document.getElementById('streams-grid');
     grid.innerHTML = streamsData.map((s, i) => {
       const clr = STREAM_COLORS[i % STREAM_COLORS.length];
       const count = s.courses ? s.courses.length : (s.course_count || 0);
       return `
-        <div class="stream-card ${activeStream === s.id ? 'active' : ''}"
-             onclick="toggleStream(${s.id})">
+        <div class="stream-card ${activeStream === s.id ? 'active' : ''}" onclick="toggleStream(${s.id})">
           <div class="sc-icon" style="background:${clr.bg}">${s.icon || '📚'}</div>
           <div class="sc-info">
             <div class="sc-name">${s.name}</div>
@@ -297,22 +294,18 @@
     }).join('');
   }
 
-  // ── TOGGLE STREAM PANEL ───────────────────────────────────
   function toggleStream(streamId) {
     if (activeStream === streamId) { closePanel(); return; }
     activeStream = streamId;
     renderStreamCards();
-
     const stream = streamsData.find(s => s.id === streamId);
     const i = streamsData.indexOf(stream);
     const clr = STREAM_COLORS[i % STREAM_COLORS.length];
     const courses = stream.courses || [];
-
     document.getElementById('panel-icon').innerHTML = stream.icon || '📚';
     document.getElementById('panel-icon').style.background = clr.bg;
     document.getElementById('panel-stream-name').textContent = stream.name;
     document.getElementById('panel-course-count').textContent = `${courses.length} course${courses.length !== 1 ? 's' : ''}`;
-
     document.getElementById('course-list').innerHTML = courses.length
       ? courses.map(c => `
           <div class="course-row">
@@ -322,15 +315,12 @@
               <div class="course-exam">${c.exam}</div>
             </div>
             <button class="btn-upload-row" onclick="openModal('${c.name}','${c.exam}','${c.icon || '📁'}')">
-              📤 Upload PDF / Excel
+              📤 Upload Vacant Seat File
             </button>
           </div>`).join('')
       : `<div style="padding:24px;text-align:center;color:#9ca3af;font-size:13px;">No courses in this stream yet.</div>`;
-
     document.getElementById('course-panel').classList.add('show');
-    setTimeout(() => {
-      document.getElementById('course-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 50);
+    setTimeout(() => { document.getElementById('course-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 50);
   }
 
   function closePanel() {
@@ -339,24 +329,16 @@
     renderStreamCards();
   }
 
-  // ── TAB ───────────────────────────────────────────────────
-  function switchTab(el) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-  }
-
-  // ── MODAL ─────────────────────────────────────────────────
   function openModal(name, sub, icon) {
     selectedCourse = { name, sub, icon };
     selectedFile = null;
     document.getElementById('modal-icon').textContent = icon;
-    document.getElementById('modal-title').textContent = name;
+    document.getElementById('modal-title').textContent = name + ' — Vacant Seats';
     document.getElementById('modal-sub').textContent = sub;
     document.getElementById('file-preview').textContent = '';
     document.getElementById('btn-start').disabled = true;
     document.getElementById('file-input').value = '';
-    document.getElementById('drop-zone').style.borderColor = '#c7d7f5';
-    document.getElementById('upload-error').style.display = 'none';
+    document.getElementById('drop-zone').style.borderColor = '#6ee7b7';
     document.getElementById('modal').classList.add('open');
   }
 
@@ -387,57 +369,20 @@
     document.getElementById('drop-zone').style.borderColor = '#16a34a';
   }
 
-  // ── UPLOAD & PROCESS ──────────────────────────────────────
   async function goToProgress() {
-    if (!selectedCourse) return;
-    const btn = document.getElementById('btn-start');
+    // TODO: Connect to backend when vacant seats API is ready
+    // For now show a friendly coming soon message
     const errDiv = document.getElementById('upload-error');
-    btn.disabled = true;
-    btn.textContent = '⏳ Uploading...';
-    errDiv.style.display = 'none';
-
-    const file = selectedFile || document.getElementById('file-input').files[0];
-    if (!file) return;
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('course_name', selectedCourse.name);
-
-      const res = await authFetch(`${BACKEND}/api/upload`, { method: 'POST', body: formData });
-      const data = await res.json();
-
-      if (data.success) {
-        sessionStorage.setItem('task_id',     data.task_id);
-        sessionStorage.setItem('course',      selectedCourse.name);
-        sessionStorage.setItem('icon',        selectedCourse.icon);
-        sessionStorage.setItem('filename',    file.name);
-        sessionStorage.setItem('output_file', data.output_file);
-        window.location.href = 'pages/progress.html';
-      } else {
-        errDiv.textContent = '❌ ' + (data.error || 'Upload failed');
-        errDiv.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = '🚀 Start Processing';
-      }
-    } catch(err) {
-      errDiv.textContent = '❌ Backend not reachable!';
-      errDiv.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = '🚀 Start Processing';
-    }
+    errDiv.style.display = 'block';
+    errDiv.style.color = '#047857';
+    errDiv.style.background = '#ecfdf5';
+    errDiv.style.border = '1px solid #6ee7b7';
+    errDiv.textContent = '🚧 Backend processing coming soon! File received — will be processed once API is ready.';
   }
 
-  // ── USER INFO ─────────────────────────────────────────────
+  // User info
   const params = new URLSearchParams(window.location.search);
-  const userName = params.get('name') || sessionStorage.getItem('user_name') || 'User';
-  const userEmail = params.get('email') || '';
-  const userPicture = params.get('picture') || '';
-  if (params.get('name')) {
-    sessionStorage.setItem('user_name', userName);
-    sessionStorage.setItem('user_email', userEmail);
-    sessionStorage.setItem('user_picture', userPicture);
-  }
+  const userName = params.get('name') || sessionStorage.getItem('user_name') || localStorage.getItem('user_name') || 'User';
   document.getElementById('user-avatar').textContent = userName.charAt(0).toUpperCase();
   document.getElementById('user-name').textContent = userName.split(' ')[0];
 
