@@ -216,6 +216,7 @@ def send_combined_email(all_updates, config):
 
 # ── Config Loader ──────────────────────────────────────────────
 def _load_config():
+    from routes.crypto_utils import decrypt_password
     conn = get_connection()
     cur = get_cursor(conn)
     cur.execute("SELECT alert_email, app_password, recipient_emails, interval_seconds FROM monitor_config LIMIT 1")
@@ -224,7 +225,13 @@ def _load_config():
     conn.close()
     if not row:
         return {"alert_email": None, "app_password": None, "recipient_emails": None, "interval_seconds": 120}
-    return dict(row)
+    config = dict(row)
+    if config.get("app_password"):
+        try:
+            config["app_password"] = decrypt_password(config["app_password"])
+        except Exception as e:
+            print(f"[Monitor] app_password decrypt failed: {e}")
+    return config
 
 
 # ── check_notifications() — SAME LOGIC, DB INSTEAD OF .txt FILES ──
