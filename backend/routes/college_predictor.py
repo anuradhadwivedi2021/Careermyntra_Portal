@@ -183,6 +183,77 @@ def get_districts():
     return jsonify(rows)
 
 
+# ─── NEW: GET /college-predictor/courses — unique course/branch types ──
+@college_predictor_bp.route("/college-predictor/courses", methods=["GET"])
+def get_courses():
+    """Returns distinct branch values from 'branch' column (B.Tech, M.Tech etc)"""
+    conn = get_connection()
+    cur = get_cursor(conn)
+    # 'branch' column in CSV maps to branch_name in DB but contains course type
+    # We store it as branch_name — get distinct top-level course names
+    cur.execute("""
+        SELECT DISTINCT branch_name FROM cap_cutoff_data
+        WHERE branch_name IS NOT NULL
+        ORDER BY branch_name
+    """)
+    # Return unique course types — group by first word to get B.Tech, M.Tech etc
+    all_branches = [r["branch_name"] for r in cur.fetchall()]
+    cur.close()
+    conn.close()
+    # Extract course type (B.Tech, M.Tech etc) from branch names
+    courses = sorted(set(b.split(" - ")[0].strip() if " - " in b else b.split(",")[0].strip() for b in all_branches))
+    return jsonify(courses)
+
+
+# ─── NEW: GET /college-predictor/branches?district=Pune ─────
+@college_predictor_bp.route("/college-predictor/branches", methods=["GET"])
+def get_branches():
+    """Returns distinct branch_name values, optionally filtered by district"""
+    district = request.args.get("district", "")
+    conn = get_connection()
+    cur = get_cursor(conn)
+    if district:
+        cur.execute("""
+            SELECT DISTINCT branch_name FROM cap_cutoff_data
+            WHERE district = %s AND branch_name IS NOT NULL
+            ORDER BY branch_name
+        """, (district,))
+    else:
+        cur.execute("""
+            SELECT DISTINCT branch_name FROM cap_cutoff_data
+            WHERE branch_name IS NOT NULL
+            ORDER BY branch_name
+        """)
+    rows = [r["branch_name"] for r in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify(rows)
+
+
+# ─── NEW: GET /college-predictor/filter-options ─────────────
+@college_predictor_bp.route("/college-predictor/filter-options", methods=["GET"])
+def get_filter_options():
+    """Returns all dynamic dropdown values from DB"""
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute("SELECT DISTINCT cap_year FROM cap_cutoff_data WHERE cap_year IS NOT NULL ORDER BY cap_year DESC")
+    years = [r["cap_year"] for r in cur.fetchall()]
+    cur.execute("SELECT DISTINCT cap_round FROM cap_cutoff_data WHERE cap_round IS NOT NULL ORDER BY cap_round")
+    rounds = [r["cap_round"] for r in cur.fetchall()]
+    cur.execute("SELECT DISTINCT category FROM cap_cutoff_data WHERE category IS NOT NULL ORDER BY category")
+    categories = [r["category"] for r in cur.fetchall()]
+    cur.execute("SELECT DISTINCT exam_type FROM cap_cutoff_data WHERE exam_type IS NOT NULL ORDER BY exam_type")
+    exam_types = [r["exam_type"] for r in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify({
+        "years": years,
+        "rounds": rounds,
+        "categories": categories,
+        "exam_types": exam_types,
+    })
+
+
 # ─── 3. POST /college-predictor/predict — main prediction ───
 @college_predictor_bp.route("/college-predictor/predict", methods=["POST"])
 def predict():

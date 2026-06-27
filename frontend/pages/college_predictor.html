@@ -249,10 +249,17 @@
 
     <div class="form-body">
 
-      <!-- Exam + Authority -->
+      <!-- Course + Exam + Authority -->
       <div>
         <div class="section-title">Exam Details</div>
         <div class="grid-2">
+          <div class="field">
+            <label><span class="ficon">📘</span> Course <span class="req">*</span></label>
+            <select id="course" onchange="onCourseChange()">
+              <option value="">Loading courses…</option>
+            </select>
+            <span class="help">Select the course type (B.Tech, M.Tech etc.)</span>
+          </div>
           <div class="field">
             <label><span class="ficon">🖥️</span> Entrance Exam <span class="req">*</span></label>
             <select id="exam_type" onchange="onExamChange()">
@@ -261,6 +268,8 @@
             </select>
             <span class="help">Choose the entrance exam you appeared for</span>
           </div>
+        </div>
+        <div class="grid-2" style="margin-top:18px;">
           <div class="field">
             <label><span class="ficon">🏛️</span> Admission Authority <span class="req">*</span></label>
             <select id="authority">
@@ -268,65 +277,28 @@
             </select>
             <span class="help">Choose admission authority</span>
           </div>
-        </div>
-      </div>
-
-      <!-- Score + Gender -->
-      <div class="grid-2">
-        <div class="field">
-          <label><span class="ficon">⭐</span> Percentile <span class="req">*</span></label>
-          <input type="number" id="percentile" placeholder="Enter your percentile (e.g. 88.45)" min="0" max="100" step="0.01"/>
-          <span class="help">Enter your official percentile (0 – 100)</span>
-        </div>
-        <div class="field">
-          <label><span class="ficon">👤</span> Gender <span class="req">*</span></label>
-          <div class="radio-row">
-            <div class="radio-pill">
-              <input type="radio" name="gender" id="g-male" value="Male" checked/>
-              <label for="g-male">♂ Male</label>
-            </div>
-            <div class="radio-pill">
-              <input type="radio" name="gender" id="g-female" value="Female"/>
-              <label for="g-female">♀ Female</label>
-            </div>
-            <div class="radio-pill">
-              <input type="radio" name="gender" id="g-other" value="Other"/>
-              <label for="g-other">⚧ Other</label>
-            </div>
+          <div class="field">
+            <label><span class="ficon">👤</span> Gender <span class="req">*</span></label>
+            <select id="gender">
+              <option value="Male">♂ Male</option>
+              <option value="Female">♀ Female</option>
+              <option value="Other">⚧ Other / Prefer not to say</option>
+            </select>
+            <span class="help">Used for gender-wise reservation rules</span>
           </div>
-          <span class="help">Used for gender-wise reservation rules</span>
         </div>
       </div>
 
-      <!-- Branches multi-select -->
+      <!-- Score -->
       <div class="field">
-        <label><span class="ficon">🎓</span> Preferred Engineering Branches</label>
-        <div class="ms-wrap" id="branch-wrap">
-          <div class="ms-box" id="branch-box" onclick="togglePanel('branch')">
-            <span class="ms-placeholder" id="branch-ph">Select branches (optional)</span>
-            <span class="ms-arrow">▼</span>
-          </div>
-          <div class="ms-panel" id="branch-panel">
-            <div class="ms-search-wrap">
-              <span>🔍</span>
-              <input class="ms-search" id="branch-search" placeholder="Search branches..." oninput="filterOptions('branch')" onclick="event.stopPropagation()"/>
-            </div>
-            <div class="ms-options" id="branch-options"></div>
-            <div class="ms-footer">
-              <span class="ms-count" id="branch-count">0 of 20 selected</span>
-              <div class="ms-actions">
-                <button class="ms-btn clear" onclick="clearAll('branch');event.stopPropagation()">Clear All</button>
-                <button class="ms-btn done" onclick="closePanel('branch');event.stopPropagation()">Done</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <span class="help">Default: Computer Science & Information Technology</span>
+        <label><span class="ficon">⭐</span> Percentile <span class="req">*</span></label>
+        <input type="number" id="percentile" placeholder="Enter your percentile (e.g. 88.45)" min="0" max="100" step="0.01"/>
+        <span class="help">Enter your official percentile (0 – 100)</span>
       </div>
 
-      <!-- Districts multi-select -->
+      <!-- District first, then Branch (filtered by district) -->
       <div class="field">
-        <label><span class="ficon">📍</span> Preferred Districts</label>
+        <label><span class="ficon">📍</span> District</label>
         <div class="ms-wrap" id="district-wrap">
           <div class="ms-box" id="district-box" onclick="togglePanel('district')">
             <span class="ms-placeholder" id="district-ph">All Districts</span>
@@ -342,12 +314,38 @@
               <span class="ms-count" id="district-count">All Districts</span>
               <div class="ms-actions">
                 <button class="ms-btn clear" onclick="clearAll('district');event.stopPropagation()">Clear All</button>
-                <button class="ms-btn done" onclick="closePanel('district');event.stopPropagation()">Done</button>
+                <button class="ms-btn done" onclick="closePanel('district');onDistrictChange();event.stopPropagation()">Done ✓</button>
               </div>
             </div>
           </div>
         </div>
-        <span class="help">Default: All Districts (Pune & Mumbai prioritized)</span>
+        <span class="help">Select district to filter branches (Default: All Districts)</span>
+      </div>
+
+      <!-- Preferred Branches — filtered by district -->
+      <div class="field">
+        <label><span class="ficon">🎓</span> Preferred Branches</label>
+        <div class="ms-wrap" id="branch-wrap">
+          <div class="ms-box" id="branch-box" onclick="togglePanel('branch')">
+            <span class="ms-placeholder" id="branch-ph">Select branches (optional)</span>
+            <span class="ms-arrow">▼</span>
+          </div>
+          <div class="ms-panel" id="branch-panel">
+            <div class="ms-search-wrap">
+              <span>🔍</span>
+              <input class="ms-search" id="branch-search" placeholder="Search branches..." oninput="filterOptions('branch')" onclick="event.stopPropagation()"/>
+            </div>
+            <div class="ms-options" id="branch-options"><div style="padding:12px;color:#9ca3af;font-size:13px;">Select a district first to filter branches</div></div>
+            <div class="ms-footer">
+              <span class="ms-count" id="branch-count">0 selected</span>
+              <div class="ms-actions">
+                <button class="ms-btn clear" onclick="clearAll('branch');event.stopPropagation()">Clear All</button>
+                <button class="ms-btn done" onclick="closePanel('branch');event.stopPropagation()">Done ✓</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="help">Branches are filtered based on selected district</span>
       </div>
 
       <!-- CAP Info box -->
@@ -359,16 +357,14 @@
         </div>
       </div>
 
-      <!-- CAP Year + Round -->
+      <!-- CAP Year + Round (dynamic from DB) -->
       <div>
         <div class="section-title">CAP Details</div>
         <div class="grid-2">
           <div class="field">
             <label><span class="ficon">📅</span> CAP Year <span class="req">*</span></label>
             <select id="cap_year">
-              <option value="2025-26">2025 (2025–2026)</option>
-              <option value="2024-25">2024 (2024–2025)</option>
-              <option value="2023-24">2023 (2023–2024)</option>
+              <option value="">Loading…</option>
             </select>
             <span class="help">Select the admission year for accurate cutoff predictions</span>
           </div>
@@ -376,11 +372,6 @@
             <label><span class="ficon">🔄</span> CAP Round <span class="req">*</span></label>
             <select id="cap_round">
               <option value="All Rounds">All Rounds (Recommended)</option>
-              <option value="Round I">CAP Round 1</option>
-              <option value="Round II">CAP Round 2</option>
-              <option value="Round III">CAP Round 3</option>
-              <option value="Round IV">CAP Round 4</option>
-              <option value="Round V">Institute Level Round</option>
             </select>
             <span class="help">Select the specific CAP round for accurate predictions</span>
           </div>
@@ -394,23 +385,7 @@
           <div class="field">
             <label><span class="ficon">👥</span> Category <span class="req">*</span></label>
             <select id="category">
-              <option value="OPEN">General (Open)</option>
-              <option value="OBC">OBC</option>
-              <option value="SEBC">SEBC</option>
-              <option value="EWS">EWS</option>
-              <option value="SC">SC</option>
-              <option value="ST">ST</option>
-              <option value="VJ">VJ</option>
-              <option value="NT1">NT1</option>
-              <option value="NT2">NT2</option>
-              <option value="NT3">NT3</option>
-              <option value="MI">MI (Minority)</option>
-              <option value="TFWS">TFWS</option>
-              <option value="PWD">PWD</option>
-              <option value="ORPHAN">Orphan</option>
-              <option value="EFRNT2">EFRNT2</option>
-              <option value="EFRNT3">EFRNT3</option>
-              <option value="EFRVJ">EFRVJ</option>
+              <option value="">Loading…</option>
             </select>
             <span class="help">Select your category for accurate predictions</span>
           </div>
@@ -418,18 +393,6 @@
             <label><span class="ficon">🗺️</span> Home District</label>
             <select id="home_district">
               <option value="">Select home district</option>
-              <option>Pune</option><option>Mumbai</option><option>Nashik</option>
-              <option>Aurangabad</option><option>Nagpur</option><option>Thane</option>
-              <option>Kolhapur</option><option>Solapur</option><option>Sangli</option>
-              <option>Satara</option><option>Ahmednagar</option><option>Jalgaon</option>
-              <option>Dhule</option><option>Nandurbar</option><option>Buldhana</option>
-              <option>Akola</option><option>Washim</option><option>Amravati</option>
-              <option>Yavatmal</option><option>Wardha</option><option>Chandrapur</option>
-              <option>Gadchiroli</option><option>Gondia</option><option>Bhandara</option>
-              <option>Latur</option><option>Osmanabad</option><option>Nanded</option>
-              <option>Hingoli</option><option>Parbhani</option><option>Jalna</option>
-              <option>Bid</option><option>Raigad</option><option>Ratnagiri</option>
-              <option>Sindhudurg</option><option>Palghar</option>
             </select>
             <span class="help">Your home district for local quota</span>
           </div>
@@ -496,35 +459,26 @@
     ? 'http://localhost:5000/api'
     : 'https://edtechmyntra.com/api';
 
-  // ── Branch data ──
-  const BRANCHES = [
-    { label: "Computer Science & Engineering", featured: true },
-    { label: "Information Technology", featured: true },
-    { label: "Computer Engineering", featured: false },
-    { label: "Electronics & Computer Engineering", featured: false },
-    { label: "Data Science & Engineering", featured: false },
-    { label: "Artificial Intelligence & Machine Learning", featured: false },
-    { label: "Cyber Security", featured: false },
-    { label: "Software Engineering", featured: false },
-    { label: "Electronics & Telecommunication", featured: false },
-    { label: "Electronics Engineering", featured: false },
-    { label: "Electrical Engineering", featured: false },
-    { label: "Mechanical Engineering", featured: false },
-    { label: "Civil Engineering", featured: false },
-    { label: "Chemical Engineering", featured: false },
-    { label: "Robotics & Automation", featured: false },
-    { label: "Mechatronics", featured: false },
-    { label: "Instrumentation Engineering", featured: false },
-    { label: "Production Engineering", featured: false },
-    { label: "Automobile Engineering", featured: false },
-    { label: "Biotechnology", featured: false },
-  ];
-
-  // ── State ──
+  // ── State (dynamic from DB) ──
   const state = {
-    branch: { selected: new Set(), options: BRANCHES.map(b=>b.label), open: false },
+    branch:   { selected: new Set(), options: [], open: false },
     district: { selected: new Set(), options: [], open: false },
   };
+
+  // ── Course change: reload branches ──
+  async function onCourseChange() {
+    const course = document.getElementById('course').value;
+    const districts = [...state.district.selected];
+    await loadBranches(districts.length ? districts[0] : "");
+  }
+
+  // ── District Done → reload branches for selected districts ──
+  async function onDistrictChange() {
+    const districts = [...state.district.selected];
+    await loadBranches(districts.length ? districts[0] : "");
+    state.branch.selected.clear();
+    renderChips('branch');
+  }
 
   // ── Exam change → authority update ──
   function onExamChange() {
@@ -555,29 +509,20 @@
   function renderOptions(type) {
     const q = document.getElementById(`${type}-search`).value.toLowerCase();
     const el = document.getElementById(`${type}-options`);
-    const isBranch = type === 'branch';
-    const filtered = isBranch
-      ? BRANCHES.filter(b => b.label.toLowerCase().includes(q))
-      : state.district.options.filter(d => d.toLowerCase().includes(q));
-
-    if (isBranch) {
-      el.innerHTML = filtered.map(b => {
-        const sel = state.branch.selected.has(b.label);
-        return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('branch','${b.label}')">
-          <div class="ms-check"></div>
-          <span>${b.label}</span>
-          ${b.featured ? '<span class="featured-badge">Featured</span>' : ''}
-        </div>`;
-      }).join('');
-    } else {
-      el.innerHTML = filtered.map(d => {
-        const sel = state.district.selected.has(d);
-        return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('district','${d}')">
-          <div class="ms-check"></div>
-          <span>${d}</span>
-        </div>`;
-      }).join('');
+    const options = state[type].options;
+    const filtered = options.filter(o => o.toLowerCase().includes(q));
+    if (!filtered.length) {
+      el.innerHTML = `<div style="padding:12px;color:#9ca3af;font-size:13px;text-align:center;">No options found</div>`;
+      updateCount(type); return;
     }
+    el.innerHTML = filtered.map(o => {
+      const sel = state[type].selected.has(o);
+      const safe = o.replace(/'/g, "\'");
+      return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('${type}','${safe}')">
+        <div class="ms-check"></div>
+        <span>${o}</span>
+      </div>`;
+    }).join('');
     updateCount(type);
   }
 
@@ -638,17 +583,75 @@
     });
   });
 
-  // ── Load districts from API ──
+  // ── Load all dynamic dropdowns from DB ──
   async function loadDistricts() {
     try {
       const res = await fetch(`${API}/college-predictor/districts`);
       const d = await res.json();
-      state.district.options = d.length > 0 ? d : [
-        'Pune','Mumbai','Nashik','Nagpur','Aurangabad','Thane','Kolhapur',
-        'Solapur','Sangli','Satara','Ahmednagar','Jalgaon'
-      ];
+      state.district.options = d.length > 0 ? d : ['Pune','Mumbai','Nashik','Nagpur','Aurangabad','Thane'];
     } catch(e) {
       state.district.options = ['Pune','Mumbai','Nashik','Nagpur','Aurangabad','Thane'];
+    }
+  }
+
+  async function loadBranches(district) {
+    try {
+      const url = district
+        ? `${API}/college-predictor/branches?district=${encodeURIComponent(district)}`
+        : `${API}/college-predictor/branches`;
+      const res = await fetch(url);
+      const d = await res.json();
+      state.branch.options = d;
+      const ph = document.getElementById('branch-ph');
+      if (ph && !state.branch.selected.size) ph.textContent = `Select branches (${d.length} available)`;
+    } catch(e) { state.branch.options = []; }
+  }
+
+  async function loadFilterOptions() {
+    try {
+      const res = await fetch(`${API}/college-predictor/filter-options`);
+      const d = await res.json();
+
+      // CAP Year
+      const yearSel = document.getElementById('cap_year');
+      if (d.years && d.years.length) {
+        yearSel.innerHTML = d.years.map(y => `<option value="${y}">${y}</option>`).join('');
+      }
+
+      // CAP Round
+      const roundSel = document.getElementById('cap_round');
+      if (d.rounds && d.rounds.length) {
+        roundSel.innerHTML = '<option value="All Rounds">All Rounds (Recommended)</option>' +
+          d.rounds.map(r => `<option value="${r}">${r}</option>`).join('');
+      }
+
+      // Category
+      const catSel = document.getElementById('category');
+      if (d.categories && d.categories.length) {
+        catSel.innerHTML = d.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+
+      // Home District
+      const homeSel = document.getElementById('home_district');
+      const districtList = state.district.options.length ? state.district.options : (d.districts || []);
+      if (districtList.length) {
+        homeSel.innerHTML = '<option value="">Select home district</option>' +
+          districtList.map(dist => `<option value="${dist}">${dist}</option>`).join('');
+      }
+    } catch(e) { console.warn('Filter options load failed', e); }
+  }
+
+  async function loadCourses() {
+    try {
+      const res = await fetch(`${API}/college-predictor/courses`);
+      const d = await res.json();
+      const sel = document.getElementById('course');
+      if (d.length) {
+        sel.innerHTML = '<option value="">Select Course</option>' +
+          d.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+    } catch(e) {
+      document.getElementById('course').innerHTML = '<option value="B.Tech">B.Tech</option><option value="M.Tech">M.Tech</option>';
     }
   }
 
@@ -684,7 +687,7 @@
       msg.style.display = 'block';
       msg.className = res.ok ? 'upload-msg success' : 'upload-msg error';
       msg.textContent = res.ok ? d.message : (d.error || 'Upload failed');
-      if (res.ok) { loadStats(); loadDistricts(); showToast('✅ ' + d.message); }
+      if (res.ok) { loadStats(); loadDistricts(); loadFilterOptions(); loadCourses(); loadBranches(""); showToast('✅ ' + d.message); }
     } catch(e) {
       msg.style.display='block'; msg.className='upload-msg error'; msg.textContent='Network error.';
     }
@@ -700,7 +703,7 @@
     document.getElementById('category').selectedIndex = 0;
     document.getElementById('home_district').selectedIndex = 0;
     document.getElementById('pin_code').value = '';
-    document.querySelector('input[name="gender"][value="Male"]').checked = true;
+    document.getElementById('gender').selectedIndex = 0;
     clearAll('branch'); clearAll('district');
     document.getElementById('results-section').innerHTML = `
       <div class="state-box"><div class="icon">🎓</div><h3>Ready to Predict!</h3>
@@ -728,7 +731,8 @@
       cap_round: document.getElementById('cap_round').value,
       branches: [...state.branch.selected],
       districts: [...state.district.selected],
-      gender: document.querySelector('input[name="gender"]:checked')?.value || 'Male',
+      gender: document.getElementById('gender')?.value || 'Male',
+      course: document.getElementById('course')?.value || '',
     };
 
     try {
@@ -846,8 +850,13 @@
   }
 
   // ── Init ──
-  loadDistricts();
-  loadStats();
+  (async () => {
+    await loadDistricts();
+    await loadBranches("");
+    await loadFilterOptions();
+    await loadCourses();
+    loadStats();
+  })();
 </script>
 </body>
 </html>
