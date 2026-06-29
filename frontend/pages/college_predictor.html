@@ -151,38 +151,50 @@
     .ftab.m-active { background:#d97706; color:#fff; border-color:#d97706; }
     .ftab.d-active { background:#dc2626; color:#fff; border-color:#dc2626; }
 
-    /* College card */
-    .cards-list { display:flex; flex-direction:column; gap:14px; }
-    .college-card { background:#fff; border:1.5px solid #e5e7eb; border-radius:16px; overflow:hidden; transition:box-shadow 0.2s; }
-    .college-card:hover { box-shadow:0 6px 24px rgba(0,0,0,0.09); }
-    .college-card.Safe     { border-left:5px solid #16a34a; }
-    .college-card.Moderate { border-left:5px solid #d97706; }
-    .college-card.Dream    { border-left:5px solid #dc2626; }
-    .card-top { display:flex; align-items:flex-start; justify-content:space-between; padding:16px 18px 10px; gap:12px; }
-    .card-top-left { flex:1; min-width:0; }
-    .college-name { font-size:15px; font-weight:800; color:#0d1b3e; line-height:1.3; }
-    .branch-name { font-size:13px; font-weight:600; color:#1565c0; margin-top:3px; }
-    .card-meta { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
-    .mpill { font-size:11px; font-weight:600; background:#f3f4f6; color:#374151; padding:3px 9px; border-radius:20px; }
-    .mpill.blue { background:#eff6ff; color:#1565c0; }
-    .mpill.green { background:#f0fdf4; color:#16a34a; }
-    .chance-badge { flex-shrink:0; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:800; }
-    .chance-badge.Safe     { background:#dcfce7; color:#15803d; }
-    .chance-badge.Moderate { background:#fef9c3; color:#92400e; }
-    .chance-badge.Dream    { background:#fee2e2; color:#991b1b; }
-    .card-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#f3f4f6; border-top:1px solid #f3f4f6; }
-    .stat-box { background:#fff; padding:12px; text-align:center; }
-    .stat-box strong { display:block; font-size:14px; font-weight:800; color:#0d1b3e; }
-    .stat-box span { font-size:10px; font-weight:600; color:#9ca3af; text-transform:uppercase; letter-spacing:0.3px; }
-    .card-footer { display:flex; align-items:center; justify-content:space-between; padding:10px 18px; border-top:1px solid #f3f4f6; flex-wrap:wrap; gap:8px; }
-    .card-district { font-size:12px; color:#6b7280; font-weight:600; }
-    .card-actions { display:flex; gap:8px; }
-    .btn-sm { padding:6px 14px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid; text-decoration:none; transition:all 0.15s; font-family:inherit; display:inline-flex; align-items:center; gap:4px; }
+    /* ── Results Table ── */
+    .results-wrap { background:#fff; border-radius:16px; border:1.5px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 20px rgba(21,101,192,0.06); }
+    .table-scroll { overflow-x:auto; }
+    .pred-table { width:100%; border-collapse:collapse; font-size:13px; min-width:900px; }
+    .pred-table thead tr { background:linear-gradient(135deg,#1565c0,#0d47a1); }
+    .pred-table thead th { padding:13px 14px; color:#fff; font-size:11px; font-weight:700; text-align:left; text-transform:uppercase; letter-spacing:0.6px; white-space:nowrap; }
+    .pred-table thead th:first-child { border-radius:0; width:46px; text-align:center; }
+    .pred-table tbody tr { border-bottom:1px solid #f3f4f6; transition:background 0.15s; }
+    .pred-table tbody tr:last-child { border-bottom:none; }
+    .pred-table tbody tr:hover { background:#f8faff; }
+    .pred-table tbody tr.row-Safe     { border-left:4px solid #16a34a; }
+    .pred-table tbody tr.row-Moderate { border-left:4px solid #d97706; }
+    .pred-table tbody tr.row-Dream    { border-left:4px solid #dc2626; }
+    .pred-table td { padding:12px 14px; vertical-align:middle; color:#374151; }
+    .pred-table td:first-child { text-align:center; font-size:12px; font-weight:700; color:#9ca3af; }
+    .td-college { min-width:200px; }
+    .td-college .cn { font-size:13px; font-weight:800; color:#0d1b3e; line-height:1.3; }
+    .td-college .dist { font-size:11px; color:#6b7280; font-weight:600; margin-top:2px; }
+    .td-branch { font-size:12px; font-weight:700; color:#1565c0; min-width:160px; }
+    .td-status .chance-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:11px; font-weight:800; white-space:nowrap; }
+    .chance-pill.Safe     { background:#dcfce7; color:#15803d; }
+    .chance-pill.Moderate { background:#fef9c3; color:#92400e; }
+    .chance-pill.Dream    { background:#fee2e2; color:#991b1b; }
+    .td-cutoff { font-size:13px; font-weight:800; color:#0d1b3e; white-space:nowrap; }
+    .td-rank { font-size:12px; font-weight:700; color:#374151; }
+    .td-fees { font-size:12px; font-weight:700; color:#059669; white-space:nowrap; }
+    .td-prob { white-space:nowrap; }
+    .prob-bar-wrap { display:flex; align-items:center; gap:8px; }
+    .prob-bar { height:6px; border-radius:3px; background:#e5e7eb; width:60px; overflow:hidden; }
+    .prob-fill { height:100%; border-radius:3px; }
+    .prob-fill.Safe     { background:#16a34a; }
+    .prob-fill.Moderate { background:#d97706; }
+    .prob-fill.Dream    { background:#dc2626; }
+    .prob-pct { font-size:11px; font-weight:700; color:#6b7280; }
+    .td-dist { font-size:12px; color:#6b7280; font-weight:600; white-space:nowrap; }
+    .btn-sm { padding:5px 12px; border-radius:7px; font-size:11px; font-weight:700; cursor:pointer; border:1.5px solid; text-decoration:none; transition:all 0.15s; font-family:inherit; display:inline-flex; align-items:center; gap:4px; }
     .btn-website { border-color:#1565c0; color:#1565c0; background:#fff; }
     .btn-website:hover { background:#eff6ff; }
     .btn-save { border-color:#e5e7eb; color:#6b7280; background:#fff; }
     .btn-save:hover { border-color:#f59e0b; color:#f59e0b; }
     .btn-save.saved { border-color:#f59e0b; color:#f59e0b; background:#fffbeb; }
+    .mpill { font-size:11px; font-weight:600; background:#f3f4f6; color:#374151; padding:3px 9px; border-radius:20px; }
+    .mpill.blue { background:#eff6ff; color:#1565c0; }
+    .mpill.green { background:#f0fdf4; color:#16a34a; }
 
     /* Admin upload */
     .admin-card { background:#fff; border:1.5px solid #fde68a; border-radius:16px; overflow:hidden; margin-top:24px; }
@@ -755,15 +767,14 @@
     const { total, student_percentile, summary, results } = data;
     const sec = document.getElementById('results-section');
     if (total === 0) {
-      sec.innerHTML = `<div class="state-box"><div class="icon">😔</div><h3>No Colleges Found</h3>
-        <p>No cutoff data matches your filters for percentile ${student_percentile}. Ask admin to upload more data or change filters.</p></div>`;
+      sec.innerHTML = `<div class="state-box"><div class="icon">😔</div><h3>No Colleges Found</h3><p>No cutoff data matches your filters. Ask admin to upload data or change filters.</p></div>`;
       return;
     }
     sec.innerHTML = `
       <div class="summary-row">
-        <div class="sbox safe"><strong>${summary.safe}</strong><span>✅ Safe Colleges</span></div>
-        <div class="sbox moderate"><strong>${summary.moderate}</strong><span>⚡ Moderate Colleges</span></div>
-        <div class="sbox dream"><strong>${summary.dream}</strong><span>🌟 Dream Colleges</span></div>
+        <div class="sbox safe"><strong>${summary.safe}</strong><span>✅ Safe</span></div>
+        <div class="sbox moderate"><strong>${summary.moderate}</strong><span>⚡ Moderate</span></div>
+        <div class="sbox dream"><strong>${summary.dream}</strong><span>🌟 Dream</span></div>
       </div>
       <div class="results-bar">
         <span class="results-count">Found <strong>${total}</strong> colleges for percentile <strong>${student_percentile}</strong></span>
@@ -774,65 +785,56 @@
           <button class="ftab" onclick="filterCards('Dream',this,'d-active')">🌟 Dream (${summary.dream})</button>
         </div>
       </div>
-      <div class="cards-list" id="cards-list">${results.map(renderCard).join('')}</div>
-    `;
+      <div class="results-wrap">
+        <div class="table-scroll">
+          <table class="pred-table">
+            <thead><tr>
+              <th>Sr.</th><th>College Name</th><th>Branches</th><th>Status</th>
+              <th>District</th><th>Cut-off</th><th>Rank</th><th>Fees (₹)</th><th>Probability</th>
+            </tr></thead>
+            <tbody id="cards-list">${results.map((r,i) => renderCard(r,i+1)).join('')}</tbody>
+          </table>
+        </div>
+      </div>`;
     sec.scrollIntoView({ behavior:'smooth', block:'start' });
   }
 
-  function renderCard(r) {
-    const fees = r.fees ? `₹${Number(r.fees).toLocaleString('en-IN')}` : '—';
+  function renderCard(r, sr) {
+    const fees   = r.fees ? `₹${Number(r.fees).toLocaleString('en-IN')}` : '—';
     const cutoff = r.cutoff_percentile != null ? Number(r.cutoff_percentile).toFixed(2) : '—';
-    const placH = r.placement_highest ? `${r.placement_highest} LPA` : '—';
-    const placA = r.placement_average ? `${r.placement_average} LPA` : '—';
-    const naac = r.naac_grade || '—';
-    const nba = r.nba_accredited === 'Yes' ? '<span class="mpill green">NBA ✓</span>' : '';
-    const web = r.website ? `<a class="btn-sm btn-website" href="${r.website}" target="_blank">🌐 Website</a>` : '';
-    const icon = r.admission_chance === 'Safe' ? '✅' : r.admission_chance === 'Moderate' ? '⚡' : '🌟';
-    return `
-      <div class="college-card ${r.admission_chance}">
-        <div class="card-top">
-          <div class="card-top-left">
-            <div class="college-name">${r.college_name}</div>
-            <div class="branch-name">📚 ${r.branch_name}</div>
-            <div class="card-meta">
-              <span class="mpill blue">${r.cap_round}</span>
-              <span class="mpill blue">${r.seat_type}</span>
-              <span class="mpill">NAAC: ${naac}</span>
-              ${nba}
-              ${r.university ? `<span class="mpill">${r.university}</span>` : ''}
-            </div>
-          </div>
-          <span class="chance-badge ${r.admission_chance}">${icon} ${r.admission_chance}</span>
-        </div>
-        <div class="card-stats">
-          <div class="stat-box"><strong>${cutoff}</strong><span>Cutoff %ile</span></div>
-          <div class="stat-box"><strong>${fees}</strong><span>Annual Fees</span></div>
-          <div class="stat-box"><strong>${placH}</strong><span>Highest Pkg</span></div>
-          <div class="stat-box"><strong>${placA}</strong><span>Avg Pkg</span></div>
-        </div>
-        <div class="card-footer">
-          <span class="card-district">📍 ${r.district || 'Maharashtra'}</span>
-          <div class="card-actions">
-            ${web}
-            <button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id},'${r.college_name.replace(/'/g,"\\'")}')">🔖 Save</button>
-          </div>
-        </div>
-      </div>`;
+    const rank   = r.cutoff_score ? Number(r.cutoff_score).toLocaleString('en-IN') : '—';
+    const dist   = r.district || 'Maharashtra';
+    const icon   = r.admission_chance === 'Safe' ? '✅' : r.admission_chance === 'Moderate' ? '⚡' : '🌟';
+    const probMap = { Safe:90, Moderate:62, Dream:28, Unknown:15 };
+    const prob   = probMap[r.admission_chance] || 15;
+    const web    = r.website ? `<a class="btn-sm btn-website" href="${r.website}" target="_blank">🌐</a>` : '';
+    const naac   = r.naac_grade ? ` • NAAC: ${r.naac_grade}` : '';
+    return `<tr class="row-${r.admission_chance}">
+      <td>${sr}</td>
+      <td class="td-college"><div class="cn">${r.college_name}</div><div class="dist">📍 ${dist}${naac}</div></td>
+      <td class="td-branch">📚 ${r.branch_name}<br><span class="mpill blue" style="margin-top:4px;display:inline-block;">${r.cap_round}</span></td>
+      <td class="td-status"><span class="chance-pill ${r.admission_chance}">${icon} ${r.admission_chance}</span></td>
+      <td class="td-dist">${dist}</td>
+      <td class="td-cutoff">${cutoff}%</td>
+      <td class="td-rank">${rank}</td>
+      <td class="td-fees">${fees}</td>
+      <td class="td-prob">
+        <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill ${r.admission_chance}" style="width:${prob}%"></div></div><span class="prob-pct">${prob}%</span></div>
+        <div style="margin-top:5px;display:flex;gap:5px;">${web}<button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id},'${r.college_name.replace(/'/g,\"\\'\")}')">🔖</button></div>
+      </td>
+    </tr>`;
   }
 
   function filterCards(f, btn, cls) {
     document.querySelectorAll('.ftab').forEach(t => { t.className = 'ftab'; });
     btn.classList.add(cls);
-    const list = document.getElementById('cards-list');
-    if (!list) return;
+    const tbody = document.getElementById('cards-list');
+    if (!tbody) return;
     const filtered = f === 'all' ? allResults : allResults.filter(r => r.admission_chance === f);
-    list.innerHTML = filtered.length
-      ? filtered.map(renderCard).join('')
-      : `<div class="state-box"><div class="icon">😔</div><h3>No ${f} colleges</h3><p>Try expanding your filters.</p></div>`;
-    savedIds.forEach(id => {
-      const b = document.getElementById(`save-${id}`);
-      if (b) { b.textContent = '🔖 Saved'; b.classList.add('saved'); }
-    });
+    tbody.innerHTML = filtered.length
+      ? filtered.map((r,i) => renderCard(r,i+1)).join('')
+      : `<tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">No ${f} colleges found.</td></tr>`;
+    savedIds.forEach(id => { const b = document.getElementById(`save-${id}`); if (b) b.classList.add('saved'); });
   }
 
   const savedIds = new Set(JSON.parse(localStorage.getItem('cp_saved')||'[]'));
