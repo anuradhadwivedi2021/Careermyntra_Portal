@@ -26,7 +26,7 @@
     .hero p { font-size:14px; color:rgba(255,255,255,0.72); max-width:500px; margin:0 auto; line-height:1.6; position:relative; z-index:2; }
 
     /* ── Page ── */
-    .page { max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; }
+    .page { max-width: 1200px; margin: 0 auto; padding: 32px 20px 60px; }
 
     /* ── Form Card ── */
     .form-card { background: #fff; border-radius: 16px; border: 1.5px solid #e5e7eb; overflow: visible; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
@@ -152,9 +152,9 @@
     .ftab.d-active { background:#dc2626; color:#fff; border-color:#dc2626; }
 
     /* ── Results Table ── */
-    .results-wrap { background:#fff; border-radius:16px; border:1.5px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 20px rgba(21,101,192,0.06); }
+    .results-wrap { background:#fff; border-radius:16px; border:1.5px solid #e5e7eb; overflow:hidden; box-shadow:0 4px 20px rgba(21,101,192,0.06); width:100%; }
     .table-scroll { overflow-x:auto; }
-    .pred-table { width:100%; border-collapse:collapse; font-size:13px; min-width:900px; }
+    .pred-table { width:100%; border-collapse:collapse; font-size:13px; min-width:800px; }
     .pred-table thead tr { background:linear-gradient(135deg,#1565c0,#0d47a1); }
     .pred-table thead th { padding:13px 14px; color:#fff; font-size:11px; font-weight:700; text-align:left; text-transform:uppercase; letter-spacing:0.6px; white-space:nowrap; }
     .pred-table thead th:first-child { border-radius:0; width:46px; text-align:center; }
@@ -292,9 +292,14 @@
           <div class="field">
             <label><span class="ficon">👤</span> Gender <span class="req">*</span></label>
             <select id="gender">
-              <option value="Male">♂ Male</option>
-              <option value="Female">♀ Female</option>
-              <option value="Other">⚧ Other / Prefer not to say</option>
+              <option value="">All Genders</option>
+              <option value="G">G – General (All)</option>
+              <option value="L">L – Ladies</option>
+              <option value="T">T – Transgender</option>
+              <option value="D">D – Divyang</option>
+              <option value="P">P – Persons with Disability</option>
+              <option value="O">O – Orphan</option>
+              <option value="E">E – Ex-Servicemen</option>
             </select>
             <span class="help">Used for gender-wise reservation rules</span>
           </div>
@@ -743,7 +748,7 @@
       cap_round: document.getElementById('cap_round').value,
       branches: [...state.branch.selected],
       districts: [...state.district.selected],
-      gender: document.getElementById('gender')?.value || 'Male',
+      gender: document.getElementById('gender')?.value || '',
       course: document.getElementById('course')?.value || '',
     };
 
@@ -820,7 +825,7 @@
       <td class="td-fees">${fees}</td>
       <td class="td-prob">
         <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill ${r.admission_chance}" style="width:${prob}%"></div></div><span class="prob-pct">${prob}%</span></div>
-        <div style="margin-top:5px;display:flex;gap:5px;">${web}<button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id},'${r.college_name.replace(/'/g,\"\\'\")}')">🔖</button></div>
+        <div style="margin-top:5px;display:flex;gap:5px;">${web}<button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id}, this)">🔖</button></div>
       </td>
     </tr>`;
   }
@@ -838,8 +843,8 @@
   }
 
   const savedIds = new Set(JSON.parse(localStorage.getItem('cp_saved')||'[]'));
-  function toggleSave(id, name) {
-    const b = document.getElementById(`save-${id}`);
+  function toggleSave(id, btn) {
+    const b = btn;
     if (savedIds.has(id)) { savedIds.delete(id); b.textContent='🔖 Save'; b.classList.remove('saved'); showToast(`Removed from wishlist`); }
     else { savedIds.add(id); b.textContent='🔖 Saved'; b.classList.add('saved'); showToast(`✅ Saved ${name}`); }
     localStorage.setItem('cp_saved', JSON.stringify([...savedIds]));
