@@ -1063,7 +1063,7 @@
         <div class="table-scroll">
           <table class="pred-table">
             <thead><tr>
-              <th>Sr.</th><th>College Name</th><th>Branch</th><th>University</th><th>Status</th>
+              <th>Sr.</th><th>College Name</th><th>Branch / Gender</th><th>University</th><th>Chance</th>
               <th>Applicable Quota</th><th>District</th><th>Cut-off %ile</th><th>Rank</th><th>Fees (₹)</th><th>Probability</th>
             </tr></thead>
             <tbody id="cards-list">${results.map((r,i) => renderCard(r,i+1)).join('')}</tbody>
@@ -1204,16 +1204,49 @@
     const studentPct = parseFloat(document.getElementById('percentile')?.value || 0);
     const { pct: prob, label: probLabel } = calcProbability(studentPct, r.cutoff_percentile);
 
-    // Status from DB or derived
-    const status = r.naac_grade ? (r.nba_accredited === 'Yes' ? 'Autonomous' : 'Un-Aided') : 'Un-Aided';
-    const naac   = r.naac_grade ? ` • NAAC: ${r.naac_grade}` : '';
-    const web    = r.website ? `<a class="btn-sm btn-website" href="${r.website}" target="_blank">🌐</a>` : '';
+    const naac = r.naac_grade ? ` • NAAC: ${r.naac_grade}` : '';
+    const web  = r.website ? `<a class="btn-sm btn-website" href="${r.website}" target="_blank">🌐</a>` : '';
+
+    // ── University ─────────────────────────────────────────
+    const university = r.university || '—';
+
+    // ── Branch — from Excel Branch column (stored as branch_name) ──
+    const branch = r.branch_name || '—';
+
+    // ── Gender label ───────────────────────────────────────
+    const GENDER_LABELS = { 'G':'General (All)', 'L':'Ladies', 'D':'Divyangjan', 'T':'Transgender', 'P':'Orphan', 'All':'All', 'E':'EWS', 'M':'Male', 'O':'Other' };
+    const genderLabel = r.gender_label ? (GENDER_LABELS[r.gender_label] || r.gender_label) : 'All';
+
+    // ── Applicable Quota — from backend (already computed) ──
+    let quotaHTML = '';
+    if (r.applicable_quota && r.applicable_quota.length) {
+      quotaHTML = r.applicable_quota.map(q => {
+        const qMap = {
+          'State':                  { cls: 'quota-state',   icon: '🏢' },
+          'Home University':         { cls: 'quota-home',    icon: '🏠' },
+          'Outside Home University': { cls: 'quota-outside', icon: '🔄' },
+        };
+        const { cls, icon: qi } = qMap[q] || { cls: 'quota-state', icon: '🏢' };
+        return `<span class="quota-pill ${cls}">${qi} ${q}</span>`;
+      }).join(' ');
+    } else {
+      quotaHTML = '<span class="quota-pill quota-state">🏢 State</span>';
+    }
 
     return `<tr class="row-${r.admission_chance}">
       <td>${sr}</td>
-      <td class="td-college"><div class="cn">${r.college_name}</div><div class="dist">📍 ${dist}${naac}</div></td>
-      <td class="td-branch">${r.branch_name}<br><span class="mpill blue" style="margin-top:4px;display:inline-block;">${r.cap_round}</span></td>
+      <td class="td-college">
+        <div class="cn">${r.college_name}</div>
+        <div class="dist">📍 ${dist}${naac}</div>
+      </td>
+      <td class="td-branch">
+        ${branch}
+        <br><span class="mpill blue" style="margin-top:4px;display:inline-block;">${r.cap_round || ''}</span>
+        ${genderLabel !== 'All' ? `<br><span class="mpill" style="background:#f3e8ff;color:#7c3aed;margin-top:3px;display:inline-block;font-size:10px;">👤 ${genderLabel}</span>` : ''}
+      </td>
+      <td style="font-size:11px;color:#374151;">${university}</td>
       <td class="td-status"><span class="chance-pill ${r.admission_chance}">${icon} ${r.admission_chance}</span></td>
+      <td style="font-size:11px;">${quotaHTML}</td>
       <td class="td-dist">${dist}</td>
       <td class="td-cutoff">${cutoff}</td>
       <td class="td-rank">${rank}</td>
@@ -1233,7 +1266,7 @@
     const filtered = f === 'all' ? allResults : allResults.filter(r => r.admission_chance === f);
     tbody.innerHTML = filtered.length
       ? filtered.map((r,i) => renderCard(r,i+1)).join('')
-      : `<tr><td colspan="10" style="text-align:center;padding:40px;color:#9ca3af;">No ${f} colleges found.</td></tr>`;
+      : `<tr><td colspan="11" style="text-align:center;padding:40px;color:#9ca3af;">No ${f} colleges found.</td></tr>`;
     savedIds.forEach(id => { const b = document.getElementById(`save-${id}`); if (b) b.classList.add('saved'); });
   }
 
