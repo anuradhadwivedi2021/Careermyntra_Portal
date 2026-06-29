@@ -210,6 +210,41 @@
     .state-box h3 { font-size:17px; font-weight:700; color:#374151; margin-bottom:6px; }
     .state-box p { font-size:13px; color:#9ca3af; }
 
+    /* Results Table */
+    .results-table-wrap { overflow-x:auto; border-radius:14px; border:1.5px solid #e5e7eb; background:#fff; }
+    .results-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .results-table thead tr { background:#1565c0; color:#fff; }
+    .results-table thead th { padding:12px 14px; text-align:left; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap; }
+    .results-table tbody tr { border-bottom:1px solid #f3f4f6; transition:background 0.15s; }
+    .results-table tbody tr:hover { background:#f8faff; }
+    .results-table tbody tr:last-child { border-bottom:none; }
+    .results-table td { padding:11px 14px; vertical-align:middle; }
+    .results-table td:first-child { font-weight:700; color:#0d1b3e; min-width:180px; }
+    .tbl-chance { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:800; white-space:nowrap; }
+    .tbl-chance.Safe     { background:#dcfce7; color:#15803d; }
+    .tbl-chance.Moderate { background:#fef9c3; color:#92400e; }
+    .tbl-chance.Dream    { background:#fee2e2; color:#991b1b; }
+    .tbl-row-safe     { border-left:4px solid #16a34a; }
+    .tbl-row-moderate { border-left:4px solid #d97706; }
+    .tbl-row-dream    { border-left:4px solid #dc2626; }
+    .tbl-branch { color:#1565c0; font-weight:600; font-size:12px; }
+    .tbl-num { font-weight:700; color:#0d1b3e; }
+    .tbl-muted { color:#6b7280; font-size:12px; }
+    @media(max-width:640px) { .results-table thead th:nth-child(n+6) { display:none; } .results-table td:nth-child(n+6) { display:none; } }
+
+    /* Student Summary Card */
+    .student-summary { background:#fff; border:1.5px solid #dbeafe; border-radius:16px; padding:20px 24px; margin-bottom:4px; }
+    .student-summary h3 { font-size:14px; font-weight:800; color:#1565c0; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+    .summary-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:8px 24px; }
+    .summary-item { display:flex; flex-direction:column; gap:2px; }
+    .summary-item .s-label { font-size:10px; font-weight:800; color:#9ca3af; text-transform:uppercase; letter-spacing:0.5px; }
+    .summary-item .s-value { font-size:13px; font-weight:700; color:#0d1b3e; }
+    @media print {
+      .navbar, .hero, .form-card, .admin-card, .btn-row, .filter-tabs, .card-actions, .btn-reset, .btn-predict { display:none !important; }
+      .student-summary { border:1px solid #ccc; }
+      .college-card { break-inside:avoid; }
+    }
+
     /* Spinner */
     .spinner { width:18px; height:18px; border:3px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
@@ -697,6 +732,9 @@
   // ── Reset form ──
   function resetForm() {
     document.getElementById('percentile').value = '';
+    document.getElementById('rank').value = '';
+    document.getElementById('student_name').value = '';
+    window._lastFormSummary = {};
     document.getElementById('exam_type').selectedIndex = 0;
     document.getElementById('cap_year').selectedIndex = 0;
     document.getElementById('cap_round').selectedIndex = 0;
@@ -735,6 +773,20 @@
       course: document.getElementById('course')?.value || '',
     };
 
+    // Capture form summary values (for display above results)
+    window._lastFormSummary = {
+      student_name: document.getElementById('student_name')?.value?.trim() || '',
+      category:     document.getElementById('category')?.value || '',
+      gender:       document.getElementById('gender')?.value || '',
+      exam_type:    document.getElementById('exam_type')?.options[document.getElementById('exam_type')?.selectedIndex]?.text || '',
+      percentile,
+      rank:         document.getElementById('rank')?.value?.trim() || '',
+      branches:     [...state.branch.selected],
+      districts:    [...state.district.selected],
+      cap_year:     document.getElementById('cap_year')?.value || '',
+      cap_round:    document.getElementById('cap_round')?.value || '',
+    };
+
     try {
       const res = await fetch(`${API}/college-predictor/predict`, {
         method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
@@ -749,6 +801,34 @@
       document.getElementById('btn-spinner').style.display = 'none';
       btn.disabled = false;
     }
+  }
+
+  function buildStudentSummaryHTML(s) {
+    const fields = [
+      { label: 'Student Name',       value: s.student_name },
+      { label: 'Caste Category',     value: s.category },
+      { label: 'Gender',             value: s.gender },
+      { label: 'Entrance Exam',      value: s.exam_type },
+      { label: 'Percentile',         value: s.percentile ? Number(s.percentile).toFixed(2) : '' },
+      { label: 'Rank',               value: s.rank },
+      { label: 'Preferred Branches', value: s.branches && s.branches.length ? s.branches.join(', ') : '' },
+      { label: 'Preferred Districts',value: s.districts && s.districts.length ? s.districts.join(', ') : '' },
+      { label: 'CAP Year',           value: s.cap_year },
+      { label: 'CAP Round',          value: s.cap_round },
+    ].filter(f => f.value && String(f.value).trim() !== '');
+
+    if (!fields.length) return '';
+    return `
+      <div class="student-summary">
+        <h3>📋 Student Details</h3>
+        <div class="summary-grid">
+          ${fields.map(f => `
+            <div class="summary-item">
+              <span class="s-label">${f.label}</span>
+              <span class="s-value">${f.value}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
   }
 
   function renderResults(data) {
@@ -774,51 +854,50 @@
           <button class="ftab" onclick="filterCards('Dream',this,'d-active')">🌟 Dream (${summary.dream})</button>
         </div>
       </div>
-      <div class="cards-list" id="cards-list">${results.map(renderCard).join('')}</div>
+      <div class="results-table-wrap">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>College Name</th>
+              <th>Branch</th>
+              <th>Status</th>
+              <th>District</th>
+              <th>Cut-off %ile</th>
+              <th>Rank</th>
+              <th>Fees (₹)</th>
+              <th>Probability</th>
+              <th>Distance</th>
+            </tr>
+          </thead>
+          <tbody id="cards-list">${results.map(renderCard).join('')}</tbody>
+        </table>
+      </div>
     `;
     sec.scrollIntoView({ behavior:'smooth', block:'start' });
   }
 
   function renderCard(r) {
-    const fees = r.fees ? `₹${Number(r.fees).toLocaleString('en-IN')}` : '—';
-    const cutoff = r.cutoff_percentile != null ? Number(r.cutoff_percentile).toFixed(2) : '—';
-    const placH = r.placement_highest ? `${r.placement_highest} LPA` : '—';
-    const placA = r.placement_average ? `${r.placement_average} LPA` : '—';
-    const naac = r.naac_grade || '—';
-    const nba = r.nba_accredited === 'Yes' ? '<span class="mpill green">NBA ✓</span>' : '';
-    const web = r.website ? `<a class="btn-sm btn-website" href="${r.website}" target="_blank">🌐 Website</a>` : '';
-    const icon = r.admission_chance === 'Safe' ? '✅' : r.admission_chance === 'Moderate' ? '⚡' : '🌟';
-    return `
-      <div class="college-card ${r.admission_chance}">
-        <div class="card-top">
-          <div class="card-top-left">
-            <div class="college-name">${r.college_name}</div>
-            <div class="branch-name">📚 ${r.branch_name}</div>
-            <div class="card-meta">
-              <span class="mpill blue">${r.cap_round}</span>
-              <span class="mpill blue">${r.seat_type}</span>
-              <span class="mpill">NAAC: ${naac}</span>
-              ${nba}
-              ${r.university ? `<span class="mpill">${r.university}</span>` : ''}
-            </div>
-          </div>
-          <span class="chance-badge ${r.admission_chance}">${icon} ${r.admission_chance}</span>
-        </div>
-        <div class="card-stats">
-          <div class="stat-box"><strong>${cutoff}</strong><span>Cutoff %ile</span></div>
-          <div class="stat-box"><strong>${fees}</strong><span>Annual Fees</span></div>
-          <div class="stat-box"><strong>${placH}</strong><span>Highest Pkg</span></div>
-          <div class="stat-box"><strong>${placA}</strong><span>Avg Pkg</span></div>
-        </div>
-        <div class="card-footer">
-          <span class="card-district">📍 ${r.district || 'Maharashtra'}</span>
-          <div class="card-actions">
-            ${web}
-            <button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id},'${r.college_name.replace(/'/g,"\\'")}')">🔖 Save</button>
-          </div>
-        </div>
-      </div>`;
+    const fees    = r.fees ? \`₹\${Number(r.fees).toLocaleString('en-IN')}\` : '—';
+    const cutoff  = r.cutoff_percentile != null ? Number(r.cutoff_percentile).toFixed(2) : '—';
+    const rank    = r.cutoff_score ? Number(r.cutoff_score).toLocaleString('en-IN') : '—';
+    const chance  = r.admission_chance || 'Dream';
+    const icon    = chance === 'Safe' ? '✅' : chance === 'Moderate' ? '⚡' : '🌟';
+    const rowCls  = chance === 'Safe' ? 'tbl-row-safe' : chance === 'Moderate' ? 'tbl-row-moderate' : 'tbl-row-dream';
+    const dist    = r.district || '—';
+    const prob    = chance === 'Safe' ? '80–95%' : chance === 'Moderate' ? '50–79%' : '<50%';
+    return \`<tr class="\${rowCls}">
+      <td>\${r.college_name}</td>
+      <td class="tbl-branch">\${r.branch_name}</td>
+      <td><span class="tbl-chance \${chance}">\${icon} \${chance}</span></td>
+      <td class="tbl-muted">\${dist}</td>
+      <td class="tbl-num">\${cutoff}</td>
+      <td class="tbl-num">\${rank}</td>
+      <td class="tbl-num">\${fees}</td>
+      <td class="tbl-num">\${prob}</td>
+      <td class="tbl-muted">—</td>
+    </tr>\`;
   }
+
 
   function filterCards(f, btn, cls) {
     document.querySelectorAll('.ftab').forEach(t => { t.className = 'ftab'; });
@@ -826,9 +905,12 @@
     const list = document.getElementById('cards-list');
     if (!list) return;
     const filtered = f === 'all' ? allResults : allResults.filter(r => r.admission_chance === f);
-    list.innerHTML = filtered.length
-      ? filtered.map(renderCard).join('')
-      : `<div class="state-box"><div class="icon">😔</div><h3>No ${f} colleges</h3><p>Try expanding your filters.</p></div>`;
+    if (filtered.length) {
+      list.innerHTML = filtered.map(renderCard).join('');
+    } else {
+      // Show empty state inside tbody as a spanning row
+      list.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:#9ca3af;">😔 No ${f} colleges found. Try expanding your filters.</td></tr>`;
+    }
     savedIds.forEach(id => {
       const b = document.getElementById(`save-${id}`);
       if (b) { b.textContent = '🔖 Saved'; b.classList.add('saved'); }
