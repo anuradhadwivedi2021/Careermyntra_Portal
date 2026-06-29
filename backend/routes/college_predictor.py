@@ -25,6 +25,75 @@ def _chance_label(student_percentile, cutoff_percentile):
 
 CHANCE_ORDER = {"Safe": 0, "Moderate": 1, "Dream": 2, "Unknown": 3}
 
+# ─── Helper functions for Excel column mapping ───────────────
+
+GENDER_MAP = {
+    'G': 'All',    # General (All genders)
+    'L': 'Female', # Ladies
+    'P': 'All',    # Persons with Disability
+    'D': 'All',    # Defence
+    'T': 'All',    # Tribal
+    'O': 'Other',  # Others
+    'E': 'All',    # Ex-serviceman
+    'M': 'Male',   # Male
+}
+
+QUOTA_MAP = {
+    'S': 'State',           # State Quota
+    'H': 'Home University', # Home University Quota
+    'N': 'NRI',             # NRI Quota
+    'I': 'Institute',       # Institute Quota
+    'O': 'Other',           # Other
+}
+
+def _map_gender(g):
+    if not g: return 'All'
+    return GENDER_MAP.get(str(g).strip().upper(), str(g).strip())
+
+def _map_quota(q):
+    if not q: return 'AI'
+    return QUOTA_MAP.get(str(q).strip().upper(), str(q).strip())
+
+def _check_autonomous(status_val):
+    if not status_val: return False
+    s = str(status_val).lower()
+    return 'autonomous institute' in s or s in ('yes', 'true', '1', 'y')
+
+def _extract_university(row):
+    """Extract university from 'university' column or from 'status_full' column"""
+    u = row.get("university")
+    if u and str(u).strip() and str(u).strip().lower() not in ('nan', 'none', ''):
+        # If status says 'Autonomous Institute', return that
+        status = str(row.get("status_full", "")).strip()
+        if "autonomous institute" in status.lower():
+            return "Autonomous Institute"
+        return str(u).strip()
+    # Try extracting from status_full — format: "Type Home University : University Name"
+    status = str(row.get("status_full", "")).strip()
+    if ":" in status:
+        return status.split(":")[-1].strip()
+    return None
+
+def _format_cap_year(y):
+    """Convert 2025 → '2025-26'"""
+    if not y: return None
+    try:
+        yr = int(float(str(y).strip()))
+        return f"{yr}-{str(yr+1)[-2:]}"
+    except:
+        return str(y).strip()
+
+def _format_cap_round(r):
+    """Convert 1 → 'Round I', 2 → 'Round II' etc."""
+    if not r: return 'Round I'
+    try:
+        n = int(float(str(r).strip()))
+        roman = {1:'I', 2:'II', 3:'III', 4:'IV', 5:'V'}
+        return f"Round {roman.get(n, str(n))}"
+    except:
+        return str(r).strip()
+
+
 # ─── 1. Admin: Upload CAP Cutoff CSV / Excel ────────────────
 @college_predictor_bp.route("/college-predictor/upload-cutoff", methods=["POST"])
 def upload_cutoff():
@@ -52,13 +121,49 @@ def upload_cutoff():
         return jsonify({"error": f"File read error: {str(e)}"}), 400
 
     # Normalize column names
-    df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+    # Normalize column names but preserve category(1)
+    new_cols = {}
+    for c in df.columns:
+        normalized = c.strip().lower().replace(" ", "_")
+        new_cols[c] = normalized
+    df = df.rename(columns=new_cols)
+
+    # Special fix: category(1) → category_1_ after normalize — rename to category_simple
+    if 'category(1)' in df.columns:
+        df = df.rename(columns={'category(1)': 'category_simple'})
+    # Also handle post-normalization name
+    for col in df.columns:
+        if '(1)' in col or col in ('category_1_', 'category_(1)', 'category(1)'):
+            df = df.rename(columns={col: 'category_simple'})
+            break
 
     # ── Column alias mapping — handle different CSV formats ──
     ALIASES = {
         "institute_code": "college_code", "inst_code": "college_code",
         "institute_name": "college_name", "inst_name": "college_name",
-        "course_name": "branch_name", "course": "branch_name", "branch": "branch_name",
+        # Direct column renames
+        "institute name": "college_name",
+        "institute code": "college_code",
+        "branch": "branch_name",
+        "branch code": "branch_code",
+        "course": "course_name",
+        "university": "university",
+        "category_simple": "category",    # Simplified category (OPEN, SC, ST...)
+        "category": "category_full",       # Full code (GOPENS, GSCS...) — keep for reference
+        "gender": "gender_code",          # G, L, P, D, T, O, E, M
+        "quota": "quota_code",            # S, H, N, I, O
+        "percentile": "cutoff_percentile",
+        "rank": "cutoff_score",
+        "year": "cap_year",
+        "cap round": "cap_round",
+        "district": "district",
+        "address": "address",
+        "pincode": "pincode",
+        "status": "status_full",          # Full status string
+        # Also handle already-mapped names
+        "course_name": "course_name",
+        "branch_name": "branch_name",
+        "is_autonomous": "is_autonomous",
         "category(1)": "category",
         "percentile": "cutoff_percentile", "cutoff": "cutoff_percentile",
         "year": "cap_year",
@@ -141,7 +246,7 @@ def upload_cutoff():
                 row.get("university"),
                 row.get("cap_year"),
                 row.get("cap_round"),
-                row.get("category"),
+                row.get("category") or row.get("category_simple") or row.get("category_full"),
                 row.get("seat_type", "AI"),
                 row.get("exam_type", "MHT-CET"),
                 row.get("cutoff_percentile"),
@@ -329,6 +434,12 @@ def predict():
         "cap_year = %s",
     ]
     params = [exam_type, category, cap_year]
+
+    # Gender filter — include 'All' records always + gender-specific
+    student_gender = data.get("gender", "")
+    if student_gender and student_gender != "Other":
+        where_clauses.append("(gender = %s OR gender = 'All' OR gender IS NULL)")
+        params.append(student_gender)
 
     if cap_round and cap_round != "All Rounds":
         where_clauses.append("cap_round = %s")
