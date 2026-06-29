@@ -775,6 +775,25 @@
     }
   }
 
+  const FALLBACK_BRANCHES = [
+    "Artificial Intelligence and Data Science",
+    "Artificial Intelligence & Machine Learning",
+    "Computer Engineering",
+    "Computer Science & Engineering",
+    "Information Technology",
+    "Electronics & Telecommunication Engineering",
+    "Electronics & Computer Engineering",
+    "Mechanical Engineering",
+    "Civil Engineering",
+    "Electrical Engineering",
+    "Chemical Engineering",
+    "Automobile Engineering",
+    "Bio Technology",
+    "Production Engineering",
+    "Printing Technology",
+    "Instrumentation Engineering",
+  ];
+
   async function loadBranches(district) {
     try {
       const url = district
@@ -782,10 +801,14 @@
         : `${API}/college-predictor/branches`;
       const res = await fetch(url);
       const d = await res.json();
-      state.branch.options = d;
+      state.branch.options = (d && d.length) ? d : FALLBACK_BRANCHES;
       const ph = document.getElementById('branch-ph');
-      if (ph && !state.branch.selected.size) ph.textContent = `Select branches (${d.length} available)`;
-    } catch(e) { state.branch.options = []; }
+      if (ph && !state.branch.selected.size) ph.textContent = `Select branches (${state.branch.options.length} available)`;
+    } catch(e) {
+      state.branch.options = FALLBACK_BRANCHES;
+      const ph = document.getElementById('branch-ph');
+      if (ph) ph.textContent = `Select branches (${FALLBACK_BRANCHES.length} available)`;
+    }
   }
 
   async function loadFilterOptions() {
@@ -822,17 +845,23 @@
     } catch(e) { console.warn('Filter options load failed', e); }
   }
 
+  const FALLBACK_COURSES = [
+    "B.E. / B.Tech", "M.E. / M.Tech", "MCA", "MBA", "B.Pharm", "Direct Second Year (DSE)"
+  ];
+
   async function loadCourses() {
     try {
       const res = await fetch(`${API}/college-predictor/courses`);
       const d = await res.json();
       const sel = document.getElementById('course');
-      if (d.length) {
-        sel.innerHTML = '<option value="">Select Course</option>' +
-          d.map(c => `<option value="${c}">${c}</option>`).join('');
-      }
+      const courses = (d && d.length) ? d : FALLBACK_COURSES;
+      sel.innerHTML = '<option value="">Select Course</option>' +
+        courses.map(c => `<option value="${c}">${c}</option>`).join('');
+      // Auto-select B.E./B.Tech
+      sel.value = courses[0] || '';
     } catch(e) {
-      document.getElementById('course').innerHTML = '<option value="B.Tech">B.Tech</option><option value="M.Tech">M.Tech</option>';
+      const sel = document.getElementById('course');
+      sel.innerHTML = FALLBACK_COURSES.map(c => `<option value="${c}">${c}</option>`).join('');
     }
   }
 
@@ -1140,27 +1169,56 @@
     }
   }
 
+  // ── Probability calc — matches CareerMyntra PDF format ──
+  function calcProbability(studentPct, cutoffPct) {
+    if (cutoffPct == null) return { pct: 15, label: 'Very Low' };
+    const diff = parseFloat(studentPct) - parseFloat(cutoffPct);
+    if (diff >= 5)    return { pct: 99, label: 'Very High' };
+    if (diff >= 2)    return { pct: 98, label: 'Very High' };
+    if (diff >= 0.5)  return { pct: 95, label: 'Very High' };
+    if (diff >= -1)   return { pct: 92, label: 'High' };
+    if (diff >= -3)   return { pct: 86, label: 'High' };
+    if (diff >= -4)   return { pct: 82, label: 'High' };
+    if (diff >= -5.5) return { pct: 60, label: 'Medium' };
+    if (diff >= -6)   return { pct: 55, label: 'Medium' };
+    if (diff >= -6.5) return { pct: 52, label: 'Medium' };
+    if (diff >= -7)   return { pct: 48, label: 'Low' };
+    if (diff >= -7.5) return { pct: 45, label: 'Low' };
+    if (diff >= -8)   return { pct: 40, label: 'Low' };
+    if (diff >= -8.5) return { pct: 35, label: 'Low' };
+    if (diff >= -9)   return { pct: 22, label: 'Very Low' };
+    if (diff >= -9.5) return { pct: 18, label: 'Very Low' };
+    if (diff >= -9.8) return { pct: 12, label: 'Very Low' };
+    return { pct: 10, label: 'Very Low' };
+  }
+
   function renderCard(r, sr) {
-    const fees   = r.fees ? `₹${Number(r.fees).toLocaleString('en-IN')}` : '—';
-    const cutoff = r.cutoff_percentile != null ? Number(r.cutoff_percentile).toFixed(2) : '—';
+    const fees   = r.fees ? `₹${Number(r.fees).toLocaleString('en-IN')} / year` : '—';
+    const cutoff = r.cutoff_percentile != null ? Number(r.cutoff_percentile).toFixed(2) + ' %ile' : '—';
     const rank   = r.cutoff_score ? Number(r.cutoff_score).toLocaleString('en-IN') : '—';
     const dist   = r.district || 'Maharashtra';
     const icon   = r.admission_chance === 'Safe' ? '✅' : r.admission_chance === 'Moderate' ? '⚡' : '🌟';
-    const probMap = { Safe:90, Moderate:62, Dream:28, Unknown:15 };
-    const prob   = probMap[r.admission_chance] || 15;
-    const web    = r.website ? `<a class="btn-sm btn-website" href="${r.website}" target="_blank">🌐</a>` : '';
+
+    // Accurate probability based on diff
+    const studentPct = parseFloat(document.getElementById('percentile')?.value || 0);
+    const { pct: prob, label: probLabel } = calcProbability(studentPct, r.cutoff_percentile);
+
+    // Status from DB or derived
+    const status = r.naac_grade ? (r.nba_accredited === 'Yes' ? 'Autonomous' : 'Un-Aided') : 'Un-Aided';
     const naac   = r.naac_grade ? ` • NAAC: ${r.naac_grade}` : '';
+    const web    = r.website ? `<a class="btn-sm btn-website" href="${r.website}" target="_blank">🌐</a>` : '';
+
     return `<tr class="row-${r.admission_chance}">
       <td>${sr}</td>
       <td class="td-college"><div class="cn">${r.college_name}</div><div class="dist">📍 ${dist}${naac}</div></td>
-      <td class="td-branch">📚 ${r.branch_name}<br><span class="mpill blue" style="margin-top:4px;display:inline-block;">${r.cap_round}</span></td>
+      <td class="td-branch">${r.branch_name}<br><span class="mpill blue" style="margin-top:4px;display:inline-block;">${r.cap_round}</span></td>
       <td class="td-status"><span class="chance-pill ${r.admission_chance}">${icon} ${r.admission_chance}</span></td>
       <td class="td-dist">${dist}</td>
-      <td class="td-cutoff">${cutoff}%</td>
+      <td class="td-cutoff">${cutoff}</td>
       <td class="td-rank">${rank}</td>
       <td class="td-fees">${fees}</td>
       <td class="td-prob">
-        <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill ${r.admission_chance}" style="width:${prob}%"></div></div><span class="prob-pct">${prob}%</span></div>
+        <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill ${r.admission_chance}" style="width:${prob}%"></div></div><span class="prob-pct">${prob}% ${probLabel}</span></div>
         <div style="margin-top:5px;display:flex;gap:5px;">${web}<button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id}, this)">🔖</button></div>
       </td>
     </tr>`;
