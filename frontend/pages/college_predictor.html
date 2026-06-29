@@ -1261,28 +1261,4 @@
   })();
 </script>
 </body>
-</html  function renderCard(r) {
-    const fees     = r.fees ? String.fromCharCode(8377) + Number(r.fees).toLocaleString('en-IN') : '-';
-    const cutoff   = r.cutoff_percentile != null ? Number(r.cutoff_percentile).toFixed(2) : '-';
-    const rank     = r.cutoff_score ? Number(r.cutoff_score).toLocaleString('en-IN') : '-';
-    const chance   = r.admission_chance || 'Dream';
-    const icon     = chance === 'Safe' ? '&#x2705;' : chance === 'Moderate' ? '&#x26A1;' : '&#x2B50;';
-    const rowCls   = chance === 'Safe' ? 'tbl-row-safe' : chance === 'Moderate' ? 'tbl-row-moderate' : 'tbl-row-dream';
-    const dist     = r.district || '-';
-    const prob     = chance === 'Safe' ? '80-95%' : chance === 'Moderate' ? '50-79%' : '<50%';
-    const univ     = r.university || '-';
-    const quota    = (r.applicable_quota || []).join(' + ') || 'State';
-    return '<tr class="' + rowCls + '">' +
-      '<td>' + r.college_name + '</td>' +
-      '<td class="tbl-branch">' + r.branch_name + '</td>' +
-      '<td class="tbl-muted" style="font-size:11px;">' + univ + '</td>' +
-      '<td><span class="tbl-chance ' + chance + '">' + icon + ' ' + chance + '</span></td>' +
-      '<td style="font-size:11px;color:#1565c0;font-weight:600;">' + quota + '</td>' +
-      '<td class="tbl-muted">' + dist + '</td>' +
-      '<td class="tbl-num">' + cutoff + '</td>' +
-      '<td class="tbl-num">' + rank + '</td>' +
-      '<td class="tbl-num">' + fees + '</td>' +
-      '<td class="tbl-num">' + prob + '</td>' +
-      '</tr>';
-  }
-
+</html>
