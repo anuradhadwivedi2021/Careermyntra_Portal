@@ -338,6 +338,10 @@ def init_db():
             placement_average NUMERIC(8,2),
             website           VARCHAR(300),
             address           TEXT,
+            gender            VARCHAR(20)  DEFAULT 'All',
+            quota_code        VARCHAR(10)  DEFAULT 'S',
+            is_autonomous     BOOLEAN      DEFAULT FALSE,
+            course_name       VARCHAR(100),
             created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT cap_cutoff_unique
@@ -356,6 +360,18 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_cap_cutoff_branch
             ON cap_cutoff_data (branch_name);
     """)
+
+    # Add new columns if they don't exist (safe for existing DBs)
+    for col_sql in [
+        "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS gender VARCHAR(20) DEFAULT 'All'",
+        "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS quota_code VARCHAR(10) DEFAULT 'S'",
+        "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS is_autonomous BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS course_name VARCHAR(100)",
+    ]:
+        try:
+            cur.execute(col_sql)
+        except Exception:
+            pass
 
     conn.commit()
     cur.close()

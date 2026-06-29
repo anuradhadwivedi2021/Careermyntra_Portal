@@ -39,12 +39,78 @@ GENDER_MAP = {
 }
 
 QUOTA_MAP = {
-    'S': 'State',           # State Quota
-    'H': 'Home University', # Home University Quota
-    'N': 'NRI',             # NRI Quota
-    'I': 'Institute',       # Institute Quota
-    'O': 'Other',           # Other
+    'S': 'State',
+    'H': 'Home University',
+    'O': 'Outside Home University',
+    'N': 'NRI',
+    'I': 'Institute Level',
 }
+
+# University → Districts mapping (Maharashtra)
+UNIVERSITY_DISTRICT_MAP = {
+    "Savitribai Phule Pune University": [
+        "Pune", "Nashik", "Ahmednagar", "Ahilyanagar"
+    ],
+    "Mumbai University": [
+        "Mumbai", "Thane", "Raigad", "Ratnagiri", "Sindhudurg", "Palghar", "Konkan"
+    ],
+    "Shivaji University": [
+        "Kolhapur", "Sangli", "Satara", "Solapur"
+    ],
+    "Dr. Babasaheb Ambedkar Marathwada University": [
+        "Aurangabad", "Chhatrapati Sambhajinagar", "Jalna", "Beed", "Bid"
+    ],
+    "Swami Ramanand Teerth Marathwada University, Nanded": [
+        "Nanded", "Latur", "Osmanabad", "Dharashiv", "Hingoli", "Parbhani"
+    ],
+    "Rashtrasant Tukadoji Maharaj Nagpur University": [
+        "Nagpur", "Wardha", "Chandrapur", "Gadchiroli", "Gondia", "Bhandara"
+    ],
+    "Sant Gadge Baba Amravati University": [
+        "Amravati", "Akola", "Washim", "Buldhana", "Yavatmal"
+    ],
+    "Kavayitri Bahinabai Chaudhari North Maharashtra University, Jalgaon": [
+        "Jalgaon", "Dhule", "Nandurbar"
+    ],
+    "Gondwana University": [
+        "Gadchiroli", "Gondia", "Chandrapur"
+    ],
+    "Punyashlok Ahilyadevi Holkar Solapur University": [
+        "Solapur"
+    ],
+    "Dr. Babasaheb Ambedkar Technological University,Lonere": [
+        "Raigad", "Ratnagiri", "Sindhudurg"
+    ],
+    "SNDT Women's University": [
+        "Mumbai", "Pune"
+    ],
+}
+
+def _get_home_university(home_district):
+    """Given student's home district, return their home university name"""
+    if not home_district:
+        return None
+    hd = str(home_district).strip().lower()
+    for univ, districts in UNIVERSITY_DISTRICT_MAP.items():
+        if any(d.lower() == hd or d.lower() in hd or hd in d.lower() for d in districts):
+            return univ
+    return None
+
+def _get_applicable_quota(college_university, home_university, is_autonomous):
+    """
+    Returns list of applicable quota labels for this student+college combination.
+    Rules:
+    - Autonomous Institute → State Quota only
+    - Home University match → State + Home University
+    - Otherwise → State + Outside Home University
+    """
+    if is_autonomous or not college_university or college_university == "Autonomous Institute":
+        return ["State"]
+    if not home_university:
+        return ["State"]
+    if college_university.strip().lower() == home_university.strip().lower():
+        return ["State", "Home University"]
+    return ["State", "Outside Home University"]
 
 def _map_gender(g):
     if not g: return 'All'
@@ -214,13 +280,15 @@ def upload_cutoff():
                     cap_year, cap_round, category, seat_type, exam_type,
                     cutoff_percentile, cutoff_score, fees, naac_grade,
                     nba_accredited, placement_highest, placement_average,
-                    website, address
+                    website, address,
+                    gender, quota_code, is_autonomous, course_name
                 ) VALUES (
                     %s,%s,%s,%s,%s,
                     %s,%s,%s,%s,%s,
                     %s,%s,%s,%s,
                     %s,%s,%s,
-                    %s,%s
+                    %s,%s,
+                    %s,%s,%s,%s
                 )
                 ON CONFLICT (college_name, branch_name, cap_year, cap_round, category, seat_type)
                 DO UPDATE SET
@@ -237,6 +305,10 @@ def upload_cutoff():
                     placement_average = EXCLUDED.placement_average,
                     website           = EXCLUDED.website,
                     address           = EXCLUDED.address,
+                    gender            = EXCLUDED.gender,
+                    quota_code        = EXCLUDED.quota_code,
+                    is_autonomous     = EXCLUDED.is_autonomous,
+                    course_name       = EXCLUDED.course_name,
                     updated_at        = CURRENT_TIMESTAMP
             """, (
                 row.get("college_code"),
@@ -258,6 +330,10 @@ def upload_cutoff():
                 row.get("placement_average"),
                 row.get("website"),
                 row.get("address"),
+                _map_gender(row.get("gender_code")),
+                row.get("quota_code") or "S",
+                _check_autonomous(row.get("status_full")),
+                row.get("course_name"),
             ))
             inserted += 1
         except Exception as e:
@@ -382,8 +458,9 @@ def predict():
     category    = data.get("category", "OPEN")
     cap_year    = data.get("cap_year", "2024-25")
     cap_round   = data.get("cap_round", "All Rounds")
-    branches    = data.get("branches", [])
-    districts   = data.get("districts", [])
+    branches     = data.get("branches", [])
+    districts    = data.get("districts", [])
+    home_district = data.get("home_district", "")
 
     # Normalize frontend display values to DB values
     CATEGORY_MAP = {
@@ -465,7 +542,8 @@ def predict():
             cutoff_percentile, cutoff_score,
             fees, naac_grade, nba_accredited,
             placement_highest, placement_average,
-            website, address
+            website, address,
+            gender, quota_code, is_autonomous, course_name
         FROM cap_cutoff_data
         WHERE {where_sql}
         ORDER BY cutoff_percentile DESC
@@ -502,7 +580,19 @@ def predict():
             "website":            r["website"],
             "address":            r["address"],
             "admission_chance":   chance,
+            "gender_label":       r["gender"] if r["gender"] else "All",
+            "quota_code":         r["quota_code"] if r["quota_code"] else "S",
+            "is_autonomous":      r["is_autonomous"] if r["is_autonomous"] else False,
+            "course_name":        r["course_name"] if r["course_name"] else "",
         })
+
+    # Compute applicable quota for each result based on student's home district
+    home_univ = _get_home_university(home_district)
+    for r in results:
+        r["applicable_quota"] = _get_applicable_quota(
+            r.get("university"), home_univ, r.get("is_autonomous", False)
+        )
+        r["home_university"] = home_univ or ""
 
     # Sort: Safe first, then Moderate, then Dream, Unknown last
     results.sort(key=lambda x: (CHANCE_ORDER.get(x["admission_chance"], 3),

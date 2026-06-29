@@ -943,7 +943,8 @@
       cap_round: document.getElementById('cap_round').value,
       branches: [...state.branch.selected],
       districts: [...state.district.selected],
-      gender: document.getElementById('gender')?.value || '',
+      gender:        document.getElementById('gender')?.value || '',
+      home_district: document.getElementById('home_district')?.value || '',
       course: document.getElementById('course')?.value || '',
     };
 
@@ -1062,8 +1063,8 @@
         <div class="table-scroll">
           <table class="pred-table">
             <thead><tr>
-              <th>Sr.</th><th>College Name</th><th>Branches</th><th>Status</th>
-              <th>District</th><th>Cut-off</th><th>Rank</th><th>Fees (₹)</th><th>Probability</th>
+              <th>Sr.</th><th>College Name</th><th>Branch</th><th>University</th><th>Status</th>
+              <th>Applicable Quota</th><th>District</th><th>Cut-off %ile</th><th>Rank</th><th>Fees (₹)</th><th>Probability</th>
             </tr></thead>
             <tbody id="cards-list">${results.map((r,i) => renderCard(r,i+1)).join('')}</tbody>
           </table>
@@ -1232,7 +1233,7 @@
     const filtered = f === 'all' ? allResults : allResults.filter(r => r.admission_chance === f);
     tbody.innerHTML = filtered.length
       ? filtered.map((r,i) => renderCard(r,i+1)).join('')
-      : `<tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">No ${f} colleges found.</td></tr>`;
+      : `<tr><td colspan="10" style="text-align:center;padding:40px;color:#9ca3af;">No ${f} colleges found.</td></tr>`;
     savedIds.forEach(id => { const b = document.getElementById(`save-${id}`); if (b) b.classList.add('saved'); });
   }
 
@@ -1260,4 +1261,28 @@
   })();
 </script>
 </body>
-</html>
+</html  function renderCard(r) {
+    const fees     = r.fees ? String.fromCharCode(8377) + Number(r.fees).toLocaleString('en-IN') : '-';
+    const cutoff   = r.cutoff_percentile != null ? Number(r.cutoff_percentile).toFixed(2) : '-';
+    const rank     = r.cutoff_score ? Number(r.cutoff_score).toLocaleString('en-IN') : '-';
+    const chance   = r.admission_chance || 'Dream';
+    const icon     = chance === 'Safe' ? '&#x2705;' : chance === 'Moderate' ? '&#x26A1;' : '&#x2B50;';
+    const rowCls   = chance === 'Safe' ? 'tbl-row-safe' : chance === 'Moderate' ? 'tbl-row-moderate' : 'tbl-row-dream';
+    const dist     = r.district || '-';
+    const prob     = chance === 'Safe' ? '80-95%' : chance === 'Moderate' ? '50-79%' : '<50%';
+    const univ     = r.university || '-';
+    const quota    = (r.applicable_quota || []).join(' + ') || 'State';
+    return '<tr class="' + rowCls + '">' +
+      '<td>' + r.college_name + '</td>' +
+      '<td class="tbl-branch">' + r.branch_name + '</td>' +
+      '<td class="tbl-muted" style="font-size:11px;">' + univ + '</td>' +
+      '<td><span class="tbl-chance ' + chance + '">' + icon + ' ' + chance + '</span></td>' +
+      '<td style="font-size:11px;color:#1565c0;font-weight:600;">' + quota + '</td>' +
+      '<td class="tbl-muted">' + dist + '</td>' +
+      '<td class="tbl-num">' + cutoff + '</td>' +
+      '<td class="tbl-num">' + rank + '</td>' +
+      '<td class="tbl-num">' + fees + '</td>' +
+      '<td class="tbl-num">' + prob + '</td>' +
+      '</tr>';
+  }
+
