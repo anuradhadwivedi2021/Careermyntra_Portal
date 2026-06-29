@@ -172,6 +172,12 @@
     .td-branch { font-size:12px; font-weight:700; color:#1565c0; min-width:160px; }
     .td-status .chance-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:11px; font-weight:800; white-space:nowrap; }
     .chance-pill.Safe     { background:#dcfce7; color:#15803d; }
+    /* Quota pills */
+    .quota-pill { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; white-space:nowrap; }
+    .quota-home    { background:#eff6ff; color:#1565c0; border:1px solid #dbeafe; }
+    .quota-outside { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+    .quota-auto    { background:#f3f4f6; color:#374151; border:1px solid #e5e7eb; }
+    .quota-state   { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
     .chance-pill.Moderate { background:#fef9c3; color:#92400e; }
     .chance-pill.Dream    { background:#fee2e2; color:#991b1b; }
     .td-cutoff { font-size:13px; font-weight:800; color:#0d1b3e; white-space:nowrap; }
@@ -216,6 +222,127 @@
     .upload-msg.success { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
     .upload-msg.error { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
 
+
+    /* ── Student Summary Box ── */
+    .student-summary-box { background:#fff; border:1.5px solid #dbeafe; border-radius:14px; overflow:hidden; }
+    .ssb-header { background:linear-gradient(90deg,#1565c0,#0d47a1); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    .ssb-header-left h3 { font-size:16px; font-weight:800; color:#fff; }
+    .ssb-header-left p { font-size:12px; color:rgba(255,255,255,0.7); margin-top:2px; }
+    .ssb-actions { display:flex; gap:8px; }
+    .btn-print { padding:8px 16px; background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.4); color:#fff; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:6px; transition:all 0.2s; }
+    .btn-print:hover { background:rgba(255,255,255,0.25); }
+    .ssb-body { padding:16px 20px; }
+    .ssb-fields { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px 20px; }
+    .ssb-field { display:flex; flex-direction:column; gap:2px; }
+    .ssb-label { font-size:10px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:0.6px; }
+    .ssb-value { font-size:13px; font-weight:700; color:#0d1b3e; }
+    .ssb-tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
+    .ssb-tag { font-size:11px; font-weight:600; background:#eff6ff; color:#1565c0; border-radius:4px; padding:2px 8px; border:1px solid #dbeafe; }
+
+    /* ── Counsellor Note ── */
+    .counsellor-note { background:#f8fafc; border:1.5px solid #e5e7eb; border-radius:14px; padding:20px 24px; }
+    .counsellor-note h4 { font-size:14px; font-weight:800; color:#0d1b3e; margin-bottom:12px; }
+    .counsellor-note ol { padding-left:18px; display:flex; flex-direction:column; gap:6px; }
+    .counsellor-note li { font-size:12px; color:#374151; line-height:1.6; }
+    .counsellor-note li strong { color:#0d1b3e; }
+
+    /* ── Print styles — exactly like PDF ── */
+    .print-header { display:none; }
+    .print-footer { display:none; }
+
+    @media print {
+      /* Hide screen elements */
+      .navbar, .hero, .form-sticky, .admin-card, #toast,
+      .ssb-actions, .filter-tabs, .btn-print,
+      .btn-save, .btn-website, .results-bar,
+      .summary-row { display:none !important; }
+
+      /* Page setup */
+      @page { margin: 15mm 12mm; size: A4; }
+      body { background:#fff !important; font-size:11px; font-family:'Plus Jakarta Sans',sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .page { padding:0 !important; max-width:100% !important; }
+      .main-layout { display:block !important; }
+      .form-sticky { display:none !important; }
+      .results-section { margin:0 !important; gap:12px !important; }
+
+      /* Show print header */
+      .print-header { display:block !important; }
+      .print-footer { display:block !important; }
+
+      /* Student summary */
+      .student-summary-box { border:1.5px solid #1565c0 !important; border-radius:8px !important; margin-bottom:12px; }
+      .ssb-header { background:#1565c0 !important; padding:12px 16px !important; }
+      .ssb-header-left h3 { font-size:14px !important; color:#fff !important; }
+      .ssb-header-left p { font-size:11px !important; color:rgba(255,255,255,0.85) !important; }
+      .ssb-body { padding:12px 16px !important; }
+      .ssb-fields { grid-template-columns:repeat(3,1fr) !important; gap:8px 16px !important; }
+      .ssb-label { font-size:9px !important; }
+      .ssb-value { font-size:12px !important; }
+      .ssb-tag { font-size:10px !important; background:#eff6ff !important; }
+
+      /* Table — green border like PDF */
+      .results-wrap { border:2px solid #16a34a !important; border-radius:6px !important; overflow:hidden !important; box-shadow:none !important; }
+      .pred-table { font-size:11px !important; min-width:unset !important; }
+      .pred-table thead tr { background:#1565c0 !important; }
+      .pred-table thead th { padding:8px 10px !important; font-size:10px !important; color:#fff !important; }
+      .pred-table td { padding:8px 10px !important; }
+      .pred-table tbody tr { border-bottom:1px solid #e5e7eb !important; }
+      .pred-table tbody tr.row-Safe     { border-left:3px solid #16a34a !important; }
+      .pred-table tbody tr.row-Moderate { border-left:3px solid #d97706 !important; }
+      .pred-table tbody tr.row-Dream    { border-left:3px solid #dc2626 !important; }
+      .td-college .cn { font-size:11px !important; }
+      .td-branch { font-size:10px !important; }
+      .chance-pill { padding:3px 8px !important; font-size:10px !important; }
+      .chance-pill.Safe     { background:#dcfce7 !important; color:#15803d !important; }
+      .chance-pill.Moderate { background:#fef9c3 !important; color:#92400e !important; }
+      .chance-pill.Dream    { background:#fee2e2 !important; color:#991b1b !important; }
+      .prob-bar { display:none !important; }
+      .mpill { display:none !important; }
+
+      /* Counsellor note */
+      .counsellor-note { border:1px solid #e5e7eb !important; background:#f8fafc !important; padding:12px 16px !important; margin-top:8px; page-break-inside:avoid; }
+      .counsellor-note h4 { font-size:12px !important; }
+      .counsellor-note li { font-size:10px !important; }
+
+      /* Page breaks */
+      .student-summary-box { page-break-inside:avoid; }
+      .results-wrap { page-break-inside:auto; }
+      .pred-table tbody tr { page-break-inside:avoid; }
+    }
+
+    /* Print header — shown only on print */
+    .print-header {
+      display:none;
+      background:#fff;
+      padding:0 0 12px 0;
+      border-bottom:3px solid #1565c0;
+      margin-bottom:14px;
+    }
+    .ph-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .ph-logo { height:56px; object-fit:contain; }
+    .ph-contact { text-align:right; font-size:11px; color:#374151; line-height:1.8; }
+    .ph-contact strong { color:#1565c0; }
+    .ph-tagline { background:#1565c0; color:#fff; text-align:center; padding:6px 12px; font-size:12px; font-weight:700; border-radius:4px; letter-spacing:0.3px; }
+
+    /* Print footer */
+    .print-footer {
+      display:none;
+      background:#1565c0;
+      color:#fff;
+      text-align:center;
+      padding:10px;
+      font-size:11px;
+      font-weight:600;
+      margin-top:16px;
+      border-radius:4px;
+    }
+
+    /* ── 2-col layout ── */
+    .main-layout { display:grid; grid-template-columns:400px 1fr; gap:24px; align-items:start; }
+    .form-sticky { position:sticky; top:80px; }
+    @media (max-width:1100px) { .main-layout { grid-template-columns:1fr; } .form-sticky { position:static; } }
+    .results-section { display:flex; flex-direction:column; gap:18px; }
+
     /* State */
     .state-box { background:#fff; border:1.5px dashed #e5e7eb; border-radius:16px; padding:48px 24px; text-align:center; }
     .state-box .icon { font-size:48px; margin-bottom:14px; }
@@ -241,6 +368,19 @@
   </div>
 </nav>
 
+<!-- Print Header — shown only when printing (hidden on screen) -->
+<div class="print-header" id="print-header">
+  <div class="ph-top">
+    <img class="ph-logo" src="../images/logo.jpeg" alt="CareerMyntra"/>
+    <div class="ph-contact">
+      <strong>+91 98609 38338</strong><br/>
+      info@careermyntra.com<br/>
+      https://careermyntra.com
+    </div>
+  </div>
+  <div class="ph-tagline">Aptitude Test | Mock Exams | Admission Guidance | Skills Dev. | Jobs</div>
+</div>
+
 <div class="hero">
   <div class="hero-badge">🎯 Maharashtra CAP — AI Powered</div>
   <h1>Engineering College Predictor</h1>
@@ -248,7 +388,8 @@
 </div>
 
 <div class="page">
-
+  <div class="main-layout">
+  <div class="form-sticky">
   <!-- ── Form Card ── -->
   <div class="form-card">
     <div class="form-card-header">
@@ -260,6 +401,13 @@
     </div>
 
     <div class="form-body">
+
+      <!-- Student Name -->
+      <div class="field">
+        <label><span class="ficon">🧑</span> Student Name <span class="req">*</span></label>
+        <input type="text" id="student_name" placeholder="Enter student full name (e.g. Bushan Mahajan)"/>
+        <span class="help">Name will appear on the prediction report</span>
+      </div>
 
       <!-- Course + Exam + Authority -->
       <div>
@@ -313,6 +461,13 @@
         <span class="help">Enter your official percentile (0 – 100)</span>
       </div>
 
+      <!-- Rank field -->
+      <div class="field">
+        <label><span class="ficon">🏆</span> Merit Rank / AIR <span style="font-size:11px;color:#9ca3af;font-weight:500;">(Optional)</span></label>
+        <input type="number" id="merit_rank" placeholder="Enter State Merit Rank or All India Rank"/>
+        <span class="help">Enter your State Merit Rank or AIR (if available)</span>
+      </div>
+
       <!-- District first, then Branch (filtered by district) -->
       <div class="field">
         <label><span class="ficon">📍</span> District</label>
@@ -362,7 +517,7 @@
             </div>
           </div>
         </div>
-        <span class="help">Branches are filtered based on selected district</span>
+        <span class="help">Select preferred branches (filtered from DB data)</span>
       </div>
 
       <!-- CAP Info box -->
@@ -407,11 +562,11 @@
             <span class="help">Select your category for accurate predictions</span>
           </div>
           <div class="field">
-            <label><span class="ficon">🗺️</span> Home District</label>
+            <label><span class="ficon">🏫</span> HSC Pass-out District <span class="req">*</span></label>
             <select id="home_district">
               <option value="">Select home district</option>
             </select>
-            <span class="help">Your home district for local quota</span>
+            <span class="help">Used to determine Home University quota eligibility</span>
           </div>
         </div>
       </div>
@@ -435,6 +590,8 @@
     </div>
   </div>
 
+  </div><!-- /form-sticky -->
+
   <!-- ── Results ── -->
   <div class="results-section" id="results-section">
     <div class="state-box">
@@ -442,6 +599,13 @@
       <h3>Ready to Predict!</h3>
       <p>Fill in your details above and click "Get College Predictions" to see your admission chances across Maharashtra colleges.</p>
     </div>
+  </div>
+
+  </div><!-- /main-layout -->
+
+  <!-- Print Footer -->
+  <div class="print-footer" id="print-footer">
+    📍 Sunny Pride, JM Road, Z Bridge, Deccan Gymkhana, Pune, Maharashtra 411004
   </div>
 
   <!-- ── Admin Upload ── -->
@@ -713,6 +877,8 @@
 
   // ── Reset form ──
   function resetForm() {
+    document.getElementById('student_name') && (document.getElementById('student_name').value = '');
+    document.getElementById('merit_rank') && (document.getElementById('merit_rank').value = '');
     document.getElementById('percentile').value = '';
     document.getElementById('exam_type').selectedIndex = 0;
     document.getElementById('cap_year').selectedIndex = 0;
@@ -768,6 +934,74 @@
     }
   }
 
+  // ── Build Student Summary ──
+  function buildStudentSummary(student_percentile) {
+    const name       = (document.getElementById('student_name')?.value || '').trim();
+    const exam       = document.getElementById('exam_type')?.value || '';
+    const course     = document.getElementById('course')?.value || '';
+    const category   = document.getElementById('category')?.value || '';
+    const gender     = document.getElementById('gender')?.value || '';
+    const percentile = student_percentile || document.getElementById('percentile')?.value || '';
+    const rank       = document.getElementById('merit_rank')?.value || '';
+    const capYear    = document.getElementById('cap_year')?.value || '';
+    const capRound   = document.getElementById('cap_round')?.value || '';
+    const branches   = [...state.branch.selected];
+    const districts  = [...state.district.selected];
+
+    const fields = [
+      { label:'Student Name',      value:name,       show:!!name },
+      { label:'Caste Category',    value:category,   show:!!category },
+      { label:'Gender',            value:gender,     show:!!gender },
+      { label:'Entrance Exam',     value:exam,       show:!!exam },
+      { label:'Course',            value:course,     show:!!course },
+      { label:'Percentile',        value:parseFloat(percentile).toFixed(2), show:!!percentile },
+      { label:'Rank',              value:rank,       show:!!rank },
+      { label:'CAP Year',          value:capYear,    show:!!capYear },
+      { label:'CAP Round',         value:capRound,   show:!!capRound },
+    ].filter(f => f.show);
+
+    const fieldsHTML = fields.map(f => `
+      <div class="ssb-field">
+        <div class="ssb-label">${f.label}</div>
+        <div class="ssb-value">${f.value}</div>
+      </div>`).join('');
+
+    const branchHTML = branches.length ? `
+      <div class="ssb-field" style="grid-column:1/-1">
+        <div class="ssb-label">Preferred Branches</div>
+        <div class="ssb-tags">${branches.map(b=>`<span class="ssb-tag">${b}</span>`).join('')}</div>
+      </div>` : '';
+
+    const districtHTML = districts.length ? `
+      <div class="ssb-field" style="grid-column:1/-1">
+        <div class="ssb-label">Preferred Districts</div>
+        <div class="ssb-tags">${districts.map(d=>`<span class="ssb-tag">${d}</span>`).join('')}</div>
+      </div>` : '';
+
+    const title = name ? `${name} — College Prediction Report` : 'College Prediction Report';
+    const subtitle = [exam, percentile ? `Percentile: ${parseFloat(percentile).toFixed(2)}` : '', capYear].filter(Boolean).join(' | ');
+
+    return `
+      <div class="student-summary-box">
+        <div class="ssb-header">
+          <div class="ssb-header-left">
+            <h3>📋 ${title}</h3>
+            <p>${subtitle}</p>
+          </div>
+          <div class="ssb-actions">
+            <button class="btn-print" onclick="window.print()">⬇️ Download PDF</button>
+          </div>
+        </div>
+        <div class="ssb-body">
+          <div class="ssb-fields">
+            ${fieldsHTML}
+            ${branchHTML}
+            ${districtHTML}
+          </div>
+        </div>
+      </div>`;
+  }
+
   function renderResults(data) {
     const { total, student_percentile, summary, results } = data;
     const sec = document.getElementById('results-section');
@@ -775,12 +1009,15 @@
       sec.innerHTML = `<div class="state-box"><div class="icon">😔</div><h3>No Colleges Found</h3><p>No cutoff data matches your filters. Ask admin to upload data or change filters.</p></div>`;
       return;
     }
-    sec.innerHTML = `
+
+    const summaryHTML = `
       <div class="summary-row">
         <div class="sbox safe"><strong>${summary.safe}</strong><span>✅ Safe</span></div>
         <div class="sbox moderate"><strong>${summary.moderate}</strong><span>⚡ Moderate</span></div>
         <div class="sbox dream"><strong>${summary.dream}</strong><span>🌟 Dream</span></div>
-      </div>
+      </div>`;
+
+    const filterHTML = `
       <div class="results-bar">
         <span class="results-count">Found <strong>${total}</strong> colleges for percentile <strong>${student_percentile}</strong></span>
         <div class="filter-tabs">
@@ -789,7 +1026,9 @@
           <button class="ftab" onclick="filterCards('Moderate',this,'m-active')">⚡ Moderate (${summary.moderate})</button>
           <button class="ftab" onclick="filterCards('Dream',this,'d-active')">🌟 Dream (${summary.dream})</button>
         </div>
-      </div>
+      </div>`;
+
+    const tableHTML = `
       <div class="results-wrap">
         <div class="table-scroll">
           <table class="pred-table">
@@ -801,7 +1040,104 @@
           </table>
         </div>
       </div>`;
+
+    const counsellorHTML = `
+      <div class="counsellor-note">
+        <h4>📌 Counsellor's Note</h4>
+        <ol>
+          <li>This list is a <strong>prediction</strong> based on your score/rank and is <strong>not an official CAP allotment or admission list</strong>.</li>
+          <li>The predictions are prepared using <strong>previous CAP cut-offs, your category, rank, institute trends, seat availability, and other admission parameters</strong>.</li>
+          <li>The <strong>Probability (%)</strong> indicates the likelihood of admission based on available data. It is meant to help you make informed decisions while filling your CAP option form and <strong>does not guarantee admission</strong>.</li>
+          <li>The <strong>fees shown are approximate annual tuition fees</strong>. The actual payable fees may vary depending on your category, scholarship eligibility, admission quota, and the institute's latest fee structure.</li>
+          <li>Cut-offs may change every year based on the number of applicants, seat availability, reservation policies, and students' option preferences.</li>
+          <li>We recommend including a <strong>balanced mix of Dream, Target, and Safe colleges</strong> in your option form to maximize your chances of securing admission.</li>
+          <li>Before confirming admission, please verify the latest fee structure, eligibility, and admission rules from the respective institute and the official CAP notifications.</li>
+          <li>For the best admission outcome, <strong>consult your counsellor</strong> before finalizing your college preferences and option form.</li>
+        </ol>
+      </div>`;
+
+    sec.innerHTML = buildStudentSummary(student_percentile) + summaryHTML + filterHTML + tableHTML + counsellorHTML;
     sec.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  // ── University-District Mapping (Maharashtra) ──
+  const DISTRICT_UNIVERSITY_MAP = {
+    // Dr. Babasaheb Ambedkar Marathwada University
+    'Chhatrapati Sambhajinagar': 'Dr. Babasaheb Ambedkar Marathwada University',
+    'Aurangabad':                'Dr. Babasaheb Ambedkar Marathwada University',
+    'Beed':                      'Dr. Babasaheb Ambedkar Marathwada University',
+    'Jalna':                     'Dr. Babasaheb Ambedkar Marathwada University',
+    'Dharashiv':                 'Dr. Babasaheb Ambedkar Marathwada University',
+    'Osmanabad':                 'Dr. Babasaheb Ambedkar Marathwada University',
+    // Swami Ramanand Teerth Marathwada University
+    'Hingoli':                   'Swami Ramanand Teerth Marathwada University',
+    'Latur':                     'Swami Ramanand Teerth Marathwada University',
+    'Nanded':                    'Swami Ramanand Teerth Marathwada University',
+    'Parbhani':                  'Swami Ramanand Teerth Marathwada University',
+    // Mumbai University
+    'Mumbai City':               'Mumbai University',
+    'Mumbai':                    'Mumbai University',
+    'Mumbai Suburban':           'Mumbai University',
+    'Ratnagiri':                 'Mumbai University',
+    'Raigad':                    'Mumbai University',
+    'Palghar':                   'Mumbai University',
+    'Sindhudurg':                'Mumbai University',
+    'Thane':                     'Mumbai University',
+    // North Maharashtra University
+    'Dhule':                     'Kavayitri Bahinabai Chaudhari North Maharashtra University',
+    'Jalgaon':                   'Kavayitri Bahinabai Chaudhari North Maharashtra University',
+    'Nandurbar':                 'Kavayitri Bahinabai Chaudhari North Maharashtra University',
+    // Savitribai Phule Pune University
+    'Ahmednagar':                'Savitribai Phule Pune University',
+    'Nashik':                    'Savitribai Phule Pune University',
+    'Pune':                      'Savitribai Phule Pune University',
+    // Shivaji University
+    'Kolhapur':                  'Shivaji University',
+    'Sangli':                    'Shivaji University',
+    'Satara':                    'Shivaji University',
+    // Solapur University
+    'Solapur':                   'Punyashlok Ahilyabai Holkar Solapur University',
+    // Amravati University
+    'Akola':                     'Sant Gadge Baba Amravati University',
+    'Amravati':                  'Sant Gadge Baba Amravati University',
+    'Buldana':                   'Sant Gadge Baba Amravati University',
+    'Washim':                    'Sant Gadge Baba Amravati University',
+    'Yavatmal':                  'Sant Gadge Baba Amravati University',
+    // Nagpur University
+    'Bhandara':                  'Rashtrasant Tukdoji Maharaj Nagpur University',
+    'Gondia':                    'Rashtrasant Tukdoji Maharaj Nagpur University',
+    'Nagpur':                    'Rashtrasant Tukdoji Maharaj Nagpur University',
+    'Wardha':                    'Rashtrasant Tukdoji Maharaj Nagpur University',
+    // Gondwana University
+    'Chandrapur':                'Gondwana University',
+    'Gadchiroli':                'Gondwana University',
+  };
+
+  // Determine quota status based on student home district vs college university
+  function getQuotaStatus(collegeUniversity, collegeNbaAccredited) {
+    const homeDistrict = document.getElementById('home_district')?.value || '';
+    const studentUniversity = DISTRICT_UNIVERSITY_MAP[homeDistrict] || '';
+
+    // Autonomous colleges — State Quota only
+    const isAutonomous = collegeNbaAccredited === 'Yes' ||
+      (collegeUniversity && collegeUniversity.toLowerCase().includes('autonomous'));
+    if (isAutonomous) return { label: 'University Autonomous', cls: 'quota-auto', icon: '🏛️' };
+
+    if (!studentUniversity || !collegeUniversity) return { label: 'State Quota', cls: 'quota-state', icon: '🏢' };
+
+    // Compare universities
+    const studentUniLower = studentUniversity.toLowerCase();
+    const collegeUniLower = collegeUniversity.toLowerCase();
+
+    // Fuzzy match — check if key words match
+    const studentWords = studentUniLower.split(' ').filter(w => w.length > 4);
+    const matches = studentWords.some(w => collegeUniLower.includes(w));
+
+    if (matches || studentUniLower === collegeUniLower) {
+      return { label: 'Home University', cls: 'quota-home', icon: '🏠' };
+    } else {
+      return { label: 'Outside Home Univ.', cls: 'quota-outside', icon: '🔄' };
+    }
   }
 
   function renderCard(r, sr) {
