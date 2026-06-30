@@ -84,6 +84,7 @@
     /* Chip */
     .chip { display: inline-flex; align-items: center; gap: 4px; background: #1565c0; color: #fff; border-radius: 6px; padding: 3px 8px 3px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
     .chip.district { background: #7c3aed; }
+    .chip.university { background: #0891b2; }
     .chip-x { cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.8; margin-left: 2px; }
     .chip-x:hover { opacity: 1; }
 
@@ -402,68 +403,101 @@
 
     <div class="form-body">
 
-      <!-- Student Name -->
+      <!-- 1. Student Name -->
       <div class="field">
         <label><span class="ficon">🧑</span> Student Name <span class="req">*</span></label>
         <input type="text" id="student_name" placeholder="Enter student full name (e.g. Bushan Mahajan)"/>
         <span class="help">Name will appear on the prediction report</span>
       </div>
 
-      <!-- Course + Exam + Authority -->
-      <div>
-        <div class="section-title">Exam Details</div>
-        <div class="grid-2">
-          <div class="field">
-            <label><span class="ficon">📘</span> Course <span class="req">*</span></label>
-            <select id="course" onchange="onCourseChange()">
-              <option value="">Loading courses…</option>
-            </select>
-            <span class="help">Select the course type (B.Tech, M.Tech etc.)</span>
-          </div>
-          <div class="field">
-            <label><span class="ficon">🖥️</span> Entrance Exam <span class="req">*</span></label>
-            <select id="exam_type" onchange="onExamChange()">
-              <option value="MHT-CET">MHT CET – Maharashtra Common Entrance Test</option>
-              <option value="JEE Main">JEE Main – Joint Entrance Examination</option>
-            </select>
-            <span class="help">Choose the entrance exam you appeared for</span>
-          </div>
-        </div>
-        <div class="grid-2" style="margin-top:18px;">
-          <div class="field">
-            <label><span class="ficon">🏛️</span> Admission Authority <span class="req">*</span></label>
-            <select id="authority">
-              <option value="Maharashtra State CAP">Maharashtra State CAP</option>
-            </select>
-            <span class="help">Choose admission authority</span>
-          </div>
-          <div class="field">
-            <label><span class="ficon">👤</span> Gender <span class="req">*</span></label>
-            <select id="gender">
-              <option value="">Loading…</option>
-            </select>
-            <span class="help">Used for gender-wise reservation rules</span>
-          </div>
-        </div>
+      <!-- 2. Entrance Exam -->
+      <div class="field">
+        <label><span class="ficon">🖥️</span> Entrance Exam <span class="req">*</span></label>
+        <select id="exam_type" onchange="onExamChange()">
+          <option value="">Loading exams…</option>
+        </select>
+        <span class="help">Select the entrance exam you appeared for</span>
       </div>
 
-      <!-- Score -->
+      <!-- 3. Course (auto-populated from exam) -->
+      <div class="field">
+        <label><span class="ficon">📘</span> Course <span class="req">*</span></label>
+        <select id="course" onchange="onCourseChange()">
+          <option value="">Select exam first</option>
+        </select>
+        <span class="help">Auto-populated based on selected Entrance Exam</span>
+      </div>
+
+      <!-- 4. Admission Authority (auto-populated from course) -->
+      <div class="field">
+        <label><span class="ficon">🏛️</span> Admission Authority <span class="req">*</span></label>
+        <select id="authority">
+          <option value="Maharashtra State CAP">Maharashtra State CAP</option>
+        </select>
+        <span class="help">Auto-populated based on selected Course</span>
+      </div>
+
+      <!-- 5. Percentile -->
       <div class="field">
         <label><span class="ficon">⭐</span> Percentile <span class="req">*</span></label>
         <input type="number" id="percentile" placeholder="Enter your percentile (e.g. 88.45)" min="0" max="100" step="0.01"/>
         <span class="help">Enter your official percentile (0 – 100)</span>
       </div>
 
-      <!-- Rank field -->
+      <!-- 6. Rank (optional) -->
       <div class="field">
-        <label><span class="ficon">🏆</span> Merit Rank / AIR <span style="font-size:11px;color:#9ca3af;font-weight:500;">(Optional)</span></label>
-        <input type="number" id="merit_rank" placeholder="Enter State Merit Rank or All India Rank"/>
-        <span class="help">Enter your State Merit Rank or AIR (if available)</span>
+        <label><span class="ficon">🏆</span> Rank <span style="font-size:11px;color:#9ca3af;font-weight:500;">(Optional)</span></label>
+        <input type="number" id="merit_rank" placeholder="Enter State Merit Rank or All India Rank (if available)"/>
+        <span class="help">Optional — enter if available</span>
       </div>
 
-      <!-- District first, then Branch (filtered by district) -->
+      <!-- 7. HSC Pass-out District (drives Home University quota) -->
       <div class="field">
-        <label><span class="ficon">📍</span> District</label>
+        <label><span class="ficon">🏫</span> HSC (Class 12) Pass-out District <span class="req">*</span></label>
+        <select id="home_district" onchange="onHomeDistrictChange()">
+          <option value="">Select HSC pass-out district</option>
+        </select>
+        <span class="help">Used to determine your Home University and applicable quota</span>
+      </div>
+
+      <!-- Applicable Quota preview -->
+      <div class="info-box" id="quota-preview-box" style="display:none;">
+        <span class="iicon">🏠</span>
+        <div>
+          <h4>Your Home University</h4>
+          <p id="quota-preview-text">—</p>
+        </div>
+      </div>
+
+      <!-- 8. Preferred Universities (multi-select) -->
+      <div class="field">
+        <label><span class="ficon">🏛️</span> Preferred Universities</label>
+        <div class="ms-wrap" id="university-wrap">
+          <div class="ms-box" id="university-box" onclick="togglePanel('university')">
+            <span class="ms-placeholder" id="university-ph">All Universities</span>
+            <span class="ms-arrow">▼</span>
+          </div>
+          <div class="ms-panel" id="university-panel">
+            <div class="ms-search-wrap">
+              <span>🔍</span>
+              <input class="ms-search" id="university-search" placeholder="Search universities..." oninput="filterOptions('university')" onclick="event.stopPropagation()"/>
+            </div>
+            <div class="ms-options" id="university-options"></div>
+            <div class="ms-footer">
+              <span class="ms-count" id="university-count">All Universities</span>
+              <div class="ms-actions">
+                <button class="ms-btn clear" onclick="clearAll('university');event.stopPropagation()">Clear All</button>
+                <button class="ms-btn done" onclick="closePanel('university');event.stopPropagation()">Done ✓</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="help">Select preferred universities (optional, populated from data)</span>
+      </div>
+
+      <!-- 9. Interested Districts (multi-select) -->
+      <div class="field">
+        <label><span class="ficon">📍</span> Interested Districts</label>
         <div class="ms-wrap" id="district-wrap">
           <div class="ms-box" id="district-box" onclick="togglePanel('district')">
             <span class="ms-placeholder" id="district-ph">All Districts</span>
@@ -484,10 +518,10 @@
             </div>
           </div>
         </div>
-        <span class="help">Select district to filter branches (Default: All Districts)</span>
+        <span class="help">Select districts you're interested in (filters branches below)</span>
       </div>
 
-      <!-- Preferred Branches — filtered by district -->
+      <!-- 10. Preferred Branches — filtered by Course + Districts -->
       <div class="field">
         <label><span class="ficon">🎓</span> Preferred Branches</label>
         <div class="ms-wrap" id="branch-wrap">
@@ -500,7 +534,7 @@
               <span>🔍</span>
               <input class="ms-search" id="branch-search" placeholder="Search branches..." oninput="filterOptions('branch')" onclick="event.stopPropagation()"/>
             </div>
-            <div class="ms-options" id="branch-options"><div style="padding:12px;color:#9ca3af;font-size:13px;">Select a district first to filter branches</div></div>
+            <div class="ms-options" id="branch-options"><div style="padding:12px;color:#9ca3af;font-size:13px;">Select a course first to filter branches</div></div>
             <div class="ms-footer">
               <span class="ms-count" id="branch-count">0 selected</span>
               <div class="ms-actions">
@@ -510,7 +544,50 @@
             </div>
           </div>
         </div>
-        <span class="help">Select preferred branches (filtered from DB data)</span>
+        <span class="help">Filtered by selected Course and Interested Districts</span>
+      </div>
+
+      <!-- Prediction Logic Info box -->
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:14px 16px;margin-bottom:2px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:16px;">🎯</span>
+          <span style="font-size:13px;font-weight:800;color:#15803d;">College Prediction Logic (±5 Percentile Range)</span>
+        </div>
+        <p style="font-size:12px;color:#166534;line-height:1.6;margin-bottom:8px;">
+          The prediction engine uses a <strong>±5 percentile range</strong> to find probable college options.
+          If your percentile is <strong>90.00</strong>, the system searches cutoff data between <strong>85.00 – 95.00</strong>.
+          Duplicate college-branch combinations are removed automatically.
+        </p>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;">
+          <thead>
+            <tr style="background:#16a34a;color:#fff;">
+              <th style="padding:4px 8px;text-align:right;border-radius:4px 0 0 0;">Your Percentile</th>
+              <th style="padding:4px 8px;text-align:right;border-radius:0 4px 0 0;">Search Range</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background:#fff;">
+              <td style="padding:3px 8px;text-align:right;color:#166534;font-weight:700;">95.00</td>
+              <td style="padding:3px 8px;text-align:right;color:#166534;">90.00 – 100.00</td>
+            </tr>
+            <tr style="background:#f0fdf4;">
+              <td style="padding:3px 8px;text-align:right;color:#166534;font-weight:700;">90.00</td>
+              <td style="padding:3px 8px;text-align:right;color:#166534;">85.00 – 95.00</td>
+            </tr>
+            <tr style="background:#fff;">
+              <td style="padding:3px 8px;text-align:right;color:#166534;font-weight:700;">85.00</td>
+              <td style="padding:3px 8px;text-align:right;color:#166534;">80.00 – 90.00</td>
+            </tr>
+            <tr style="background:#f0fdf4;">
+              <td style="padding:3px 8px;text-align:right;color:#166534;font-weight:700;">80.00</td>
+              <td style="padding:3px 8px;text-align:right;color:#166534;">75.00 – 85.00</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:11px;color:#166534;line-height:1.5;">
+          <strong>Formula:</strong> Min = Percentile − 5 &nbsp;|&nbsp; Max = Percentile + 5<br/>
+          Results show <strong>probable admission opportunities</strong> — not guaranteed admissions.
+        </p>
       </div>
 
       <!-- CAP Info box -->
@@ -522,7 +599,7 @@
         </div>
       </div>
 
-      <!-- CAP Year + Round (dynamic from DB) -->
+      <!-- 11 & 12. CAP Year + Round (dynamic from DB) -->
       <div>
         <div class="section-title">CAP Details</div>
         <div class="grid-2">
@@ -538,12 +615,12 @@
             <select id="cap_round">
               <option value="All Rounds">All Rounds (Recommended)</option>
             </select>
-            <span class="help">Select the specific CAP round for accurate predictions</span>
+            <span class="help">Default: All Rounds (Recommended)</span>
           </div>
         </div>
       </div>
 
-      <!-- Category + Home District -->
+      <!-- 13. Reservation Details (Category) -->
       <div>
         <div class="section-title">Reservation Details</div>
         <div class="grid-2">
@@ -555,16 +632,23 @@
             <span class="help">Select your category for accurate predictions</span>
           </div>
           <div class="field">
-            <label><span class="ficon">🏫</span> HSC Pass-out District <span class="req">*</span></label>
-            <select id="home_district">
-              <option value="">Select home district</option>
+            <label><span class="ficon">👤</span> Gender</label>
+            <select id="gender">
+              <option value="">All Genders</option>
+              <option value="G">G – General (All)</option>
+              <option value="L">L – Ladies</option>
+              <option value="T">T – Transgender</option>
+              <option value="D">D – Divyang</option>
+              <option value="P">P – Persons with Disability</option>
+              <option value="O">O – Orphan</option>
+              <option value="E">E – Ex-Servicemen</option>
             </select>
-            <span class="help">Used to determine Home University quota eligibility</span>
+            <span class="help">Used for gender-wise reservation rules</span>
           </div>
         </div>
       </div>
 
-      <!-- Pin Code (full width) -->
+      <!-- 14. Pin Code (full width) -->
       <div class="field">
         <label><span class="ficon">📮</span> Pin Code</label>
         <input type="text" id="pin_code" placeholder="Enter PIN Code (e.g. 411001)" maxlength="6"/>
@@ -635,13 +719,14 @@
 
   // ── State (dynamic from DB) ──
   const state = {
-    branch:   { selected: new Set(), options: [], open: false },
-    district: { selected: new Set(), options: [], open: false },
+    branch:     { selected: new Set(), options: [], open: false },
+    district:   { selected: new Set(), options: [], open: false },
+    university: { selected: new Set(), options: [], open: false },
   };
 
-  // ── Course change: reload branches ──
+  // ── Course change → reload branches (filtered by course + districts) ──
   async function onCourseChange() {
-    const course = document.getElementById('course').value;
+    updateAuthority();
     const districts = [...state.district.selected];
     await loadBranches(districts.length ? districts[0] : "");
   }
@@ -654,17 +739,29 @@
     renderChips('branch');
   }
 
-  // ── Exam change → authority update ──
-  function onExamChange() {
-    // Admission Authority is loaded dynamically from DB via loadFilterOptions()
-    // No hardcoded override needed here.
+  // ── Exam change → reload Course options for that exam ──
+  async function onExamChange() {
+    await loadCourses();
+  }
+
+  // ── HSC District change → show Home University preview ──
+  function onHomeDistrictChange() {
+    const dist = document.getElementById('home_district').value;
+    const box = document.getElementById('quota-preview-box');
+    const txt = document.getElementById('quota-preview-text');
+    if (!dist) { box.style.display = 'none'; return; }
+    const homeUniv = DISTRICT_UNIVERSITY_MAP[dist];
+    box.style.display = 'flex';
+    txt.innerHTML = homeUniv
+      ? `Based on <strong>${dist}</strong>, your Home University is <strong>${homeUniv}</strong>. You'll get <strong>Home University Quota</strong> at matching colleges, <strong>Outside Home University Quota</strong> elsewhere, and <strong>State Quota</strong> always applies. Autonomous institutes use State Quota only.`
+      : `Home University could not be determined for <strong>${dist}</strong>. State Quota will be shown for all colleges.`;
   }
 
   // ── Multi-select toggle ──
   function togglePanel(type) {
     const isOpen = state[type].open;
     // close all
-    ['branch','district'].forEach(t => { state[t].open = false; updateBoxState(t); });
+    ['branch','district','university'].forEach(t => { state[t].open = false; updateBoxState(t); });
     if (!isOpen) { state[type].open = true; updateBoxState(type); renderOptions(type); }
   }
   function closePanel(type) { state[type].open = false; updateBoxState(type); }
@@ -717,12 +814,13 @@
     const sel = [...state[type].selected];
     if (sel.length === 0) {
       ph.style.display = 'inline';
-      ph.textContent = type === 'branch' ? 'Select branches (optional)' : 'All Districts';
+      const PH_TEXT = { branch: 'Select branches (optional)', district: 'All Districts', university: 'All Universities' };
+      ph.textContent = PH_TEXT[type] || '';
     } else {
       ph.style.display = 'none';
       sel.forEach(v => {
         const chip = document.createElement('span');
-        chip.className = `chip ${type === 'district' ? 'district' : ''}`;
+        chip.className = `chip ${type === 'district' ? 'district' : (type === 'university' ? 'university' : '')}`;
         chip.innerHTML = `${v.length > 22 ? v.slice(0,20)+'…' : v} <span class="chip-x" onclick="removeChip(event,'${type}','${v}')">×</span>`;
         box.insertBefore(chip, box.querySelector('.ms-arrow'));
       });
@@ -741,14 +839,14 @@
     const n = state[type].selected.size;
     const total = state[type].options.length;
     const el = document.getElementById(`${type}-count`);
-    const ALL_LABEL = { district: 'All Districts', university: 'All Universities' };
-    if (ALL_LABEL[type]) el.textContent = n === 0 ? ALL_LABEL[type] : `${n} of ${total} selected`;
-    else el.textContent = `${n} of ${total} selected`;
+    const ALL_LABEL = { district: 'All Districts', university: 'All Universities', branch: '0 selected' };
+    if (type === 'branch') el.textContent = `${n} of ${total} selected`;
+    else el.textContent = n === 0 ? ALL_LABEL[type] : `${n} of ${total} selected`;
   }
 
   // ── Close on outside click ──
   document.addEventListener('click', e => {
-    ['branch','district'].forEach(type => {
+    ['branch','district','university'].forEach(type => {
       if (state[type].open && !document.getElementById(`${type}-wrap`).contains(e.target)) {
         closePanel(type);
       }
@@ -787,9 +885,11 @@
 
   async function loadBranches(district) {
     try {
-      const url = district
-        ? `${API}/college-predictor/branches?district=${encodeURIComponent(district)}`
-        : `${API}/college-predictor/branches`;
+      const course = document.getElementById('course')?.value || '';
+      const params = new URLSearchParams();
+      if (district) params.set('district', district);
+      if (course)   params.set('course', course);
+      const url = `${API}/college-predictor/branches${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const d = await res.json();
       state.branch.options = (d && d.length) ? d : FALLBACK_BRANCHES;
@@ -826,34 +926,19 @@
         catSel.innerHTML = d.categories.map(c => `<option value="${c}">${c}</option>`).join('');
       }
 
-      // Gender — fully dynamic from Excel data
-      const genderSel = document.getElementById('gender');
-      if (d.genders && d.genders.length) {
-        genderSel.innerHTML = '<option value="">All Genders</option>' +
-          d.genders.map(g => `<option value="${g}">${g}</option>`).join('');
-      } else {
-        genderSel.innerHTML = '<option value="">All Genders</option>';
-      }
-
-      // Entrance Exam — fully dynamic from Excel data
+      // Entrance Exam (from filter-options exam_types)
       const examSel = document.getElementById('exam_type');
       if (d.exam_types && d.exam_types.length) {
         examSel.innerHTML = d.exam_types.map(e => `<option value="${e}">${e}</option>`).join('');
-      }
-
-      // Admission Authority — fully dynamic from Excel 'Admission Authority' column
-      const authSel = document.getElementById('authority');
-      if (d.admission_authorities && d.admission_authorities.length) {
-        authSel.innerHTML = d.admission_authorities.map(s => `<option value="${s}">${s}</option>`).join('');
       } else {
-        authSel.innerHTML = '<option value="Maharashtra State CAP">Maharashtra State CAP</option>';
+        examSel.innerHTML = '<option value="MHT-CET">MHT CET – Maharashtra Common Entrance Test</option><option value="JEE Main">JEE Main – Joint Entrance Examination</option>';
       }
 
-      // Home District
+      // HSC Pass-out District (same list as Interested Districts)
       const homeSel = document.getElementById('home_district');
       const districtList = state.district.options.length ? state.district.options : (d.districts || []);
       if (districtList.length) {
-        homeSel.innerHTML = '<option value="">Select home district</option>' +
+        homeSel.innerHTML = '<option value="">Select HSC pass-out district</option>' +
           districtList.map(dist => `<option value="${dist}">${dist}</option>`).join('');
       }
     } catch(e) { console.warn('Filter options load failed', e); }
@@ -863,19 +948,47 @@
     "B.E. / B.Tech", "M.E. / M.Tech", "MCA", "MBA", "B.Pharm", "Direct Second Year (DSE)"
   ];
 
+  // ── Course list — auto-populated based on selected Entrance Exam ──
   async function loadCourses() {
     try {
-      const res = await fetch(`${API}/college-predictor/courses`);
+      const exam = document.getElementById('exam_type')?.value || '';
+      const url = exam
+        ? `${API}/college-predictor/courses?exam_type=${encodeURIComponent(exam)}`
+        : `${API}/college-predictor/courses`;
+      const res = await fetch(url);
       const d = await res.json();
       const sel = document.getElementById('course');
       const courses = (d && d.length) ? d : FALLBACK_COURSES;
       sel.innerHTML = '<option value="">Select Course</option>' +
         courses.map(c => `<option value="${c}">${c}</option>`).join('');
-      // Auto-select B.E./B.Tech
       sel.value = courses[0] || '';
+      updateAuthority();
+      // Reload branches for the newly selected course
+      await loadBranches("");
     } catch(e) {
       const sel = document.getElementById('course');
       sel.innerHTML = FALLBACK_COURSES.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+  }
+
+  // ── Admission Authority — auto-populated based on selected Course ──
+  function updateAuthority() {
+    const exam = document.getElementById('exam_type')?.value || '';
+    const a = document.getElementById('authority');
+    a.innerHTML = exam === 'JEE Main'
+      ? '<option>All India Quota (AI)</option><option>Maharashtra State CAP</option>'
+      : '<option>Maharashtra State CAP</option>';
+  }
+
+  // ── Preferred Universities — load from DB ──
+  async function loadUniversities() {
+    try {
+      const res = await fetch(`${API}/college-predictor/universities`);
+      const d = await res.json();
+      state.university.options = (d && d.length) ? d : [];
+    } catch(e) {
+      state.university.options = [];
     }
   }
 
@@ -930,15 +1043,14 @@
     document.getElementById('home_district').selectedIndex = 0;
     document.getElementById('pin_code').value = '';
     document.getElementById('gender').selectedIndex = 0;
-    clearAll('branch'); clearAll('district');
+    clearAll('branch'); clearAll('district'); clearAll('university');
+    document.getElementById('quota-preview-box').style.display = 'none';
     document.getElementById('results-section').innerHTML = `
       <div class="state-box"><div class="icon">🎓</div><h3>Ready to Predict!</h3>
       <p>Fill in your details above and click "Get College Predictions".</p></div>`;
     showToast('Form reset ✓');
   }
 
-  // ── Predict ──
-  let allResults = [];
   // ── Download real PDF (matches CareerMyntra report format) ──
   async function downloadPDF() {
     const btn = document.getElementById('pdf-btn');
@@ -987,6 +1099,8 @@
     }
   }
 
+  // ── Predict ──
+  let allResults = [];
   async function runPredict() {
     const percentile = parseFloat(document.getElementById('percentile').value);
     if (isNaN(percentile) || percentile < 0 || percentile > 100) {
@@ -1005,7 +1119,7 @@
       cap_round: document.getElementById('cap_round').value,
       branches: [...state.branch.selected],
       districts: [...state.district.selected],
-      universities: [...(state.university ? state.university.selected : [])],
+      universities: [...state.university.selected],
       gender:        document.getElementById('gender')?.value || '',
       home_district: document.getElementById('home_district')?.value || '',
       course: document.getElementById('course')?.value || '',
@@ -1103,22 +1217,17 @@
       return;
     }
 
+    const pRange = data.percentile_range || {};
     const summaryHTML = `
-      <div class="summary-row">
-        <div class="sbox safe"><strong>${summary.safe}</strong><span>✅ Safe</span></div>
-        <div class="sbox moderate"><strong>${summary.moderate}</strong><span>⚡ Moderate</span></div>
-        <div class="sbox dream"><strong>${summary.dream}</strong><span>🌟 Dream</span></div>
+      <div class="summary-row" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="sbox safe"><strong>${total}</strong><span>🎯 Probable Colleges</span></div>
+        <div class="sbox moderate"><strong>${pRange.min || '—'} – ${pRange.max || '—'}</strong><span>📊 Percentile Range</span></div>
+        <div class="sbox" style="border-color:#dbeafe;background:#eff6ff;"><strong>${data.student_percentile}</strong><span style="color:#1565c0;">⭐ Your Percentile</span></div>
       </div>`;
 
     const filterHTML = `
       <div class="results-bar">
-        <span class="results-count">Found <strong>${total}</strong> colleges for percentile <strong>${student_percentile}</strong></span>
-        <div class="filter-tabs">
-          <button class="ftab active" onclick="filterCards('all',this,'active')">All (${total})</button>
-          <button class="ftab" onclick="filterCards('Safe',this,'s-active')">✅ Safe (${summary.safe})</button>
-          <button class="ftab" onclick="filterCards('Moderate',this,'m-active')">⚡ Moderate (${summary.moderate})</button>
-          <button class="ftab" onclick="filterCards('Dream',this,'d-active')">🌟 Dream (${summary.dream})</button>
-        </div>
+        <span class="results-count">Found <strong>${total}</strong> probable colleges for percentile <strong>${student_percentile}</strong> (Range: ${pRange.min || ''} – ${pRange.max || ''})</span>
       </div>`;
 
     const tableHTML = `
@@ -1126,7 +1235,7 @@
         <div class="table-scroll">
           <table class="pred-table">
             <thead><tr>
-              <th>Sr.</th><th>College Name</th><th>Branch / Gender</th><th>University</th><th>Chance</th>
+              <th>Sr.</th><th>College Name</th><th>Branch / Gender</th><th>University</th>
               <th>Applicable Quota</th><th>District</th><th>Cut-off %ile</th><th>Rank</th><th>Fees (₹)</th><th>Probability</th>
             </tr></thead>
             <tbody id="cards-list">${results.map((r,i) => renderCard(r,i+1)).join('')}</tbody>
@@ -1277,7 +1386,7 @@
     const branch = r.branch_name || '—';
 
     // ── Gender label ───────────────────────────────────────
-    const GENDER_LABELS = { 'All':'All', 'Female':'Ladies', 'Male':'Male', 'Other':'Other', 'G':'General (All)', 'L':'Ladies', 'D':'Divyangjan', 'T':'Transgender', 'P':'Orphan', 'E':'EWS', 'M':'Male', 'O':'Other' };
+    const GENDER_LABELS = { 'G':'General (All)', 'L':'Ladies', 'D':'Divyangjan', 'T':'Transgender', 'P':'Orphan', 'All':'All', 'E':'EWS', 'M':'Male', 'O':'Other' };
     const genderLabel = r.gender_label ? (GENDER_LABELS[r.gender_label] || r.gender_label) : 'All';
 
     // ── Applicable Quota — from backend (already computed) ──
@@ -1296,7 +1405,7 @@
       quotaHTML = '<span class="quota-pill quota-state">🏢 State</span>';
     }
 
-    return `<tr class="row-${r.admission_chance}">
+    return `<tr>
       <td>${sr}</td>
       <td class="td-college">
         <div class="cn">${r.college_name}</div>
@@ -1308,14 +1417,13 @@
         ${genderLabel !== 'All' ? `<br><span class="mpill" style="background:#f3e8ff;color:#7c3aed;margin-top:3px;display:inline-block;font-size:10px;">👤 ${genderLabel}</span>` : ''}
       </td>
       <td style="font-size:11px;color:#374151;">${university}</td>
-      <td class="td-status"><span class="chance-pill ${r.admission_chance}">${icon} ${r.admission_chance}</span></td>
       <td style="font-size:11px;">${quotaHTML}</td>
       <td class="td-dist">${dist}</td>
       <td class="td-cutoff">${cutoff}</td>
       <td class="td-rank">${rank}</td>
       <td class="td-fees">${fees}</td>
       <td class="td-prob">
-        <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill ${r.admission_chance}" style="width:${prob}%"></div></div><span class="prob-pct">${prob}% ${probLabel}</span></div>
+        <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill Safe" style="width:${prob}%"></div></div><span class="prob-pct">${prob}% ${probLabel}</span></div>
         <div style="margin-top:5px;display:flex;gap:5px;">${web}<button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id}, this)">🔖</button></div>
       </td>
     </tr>`;
@@ -1323,13 +1431,12 @@
 
   function filterCards(f, btn, cls) {
     document.querySelectorAll('.ftab').forEach(t => { t.className = 'ftab'; });
-    btn.classList.add(cls);
+    if (btn) btn.classList.add(cls);
     const tbody = document.getElementById('cards-list');
     if (!tbody) return;
-    const filtered = f === 'all' ? allResults : allResults.filter(r => r.admission_chance === f);
-    tbody.innerHTML = filtered.length
-      ? filtered.map((r,i) => renderCard(r,i+1)).join('')
-      : `<tr><td colspan="11" style="text-align:center;padding:40px;color:#9ca3af;">No ${f} colleges found.</td></tr>`;
+    tbody.innerHTML = allResults.length
+      ? allResults.map((r,i) => renderCard(r,i+1)).join('')
+      : `<tr><td colspan="10" style="text-align:center;padding:40px;color:#9ca3af;">No colleges found.</td></tr>`;
     savedIds.forEach(id => { const b = document.getElementById(`save-${id}`); if (b) b.classList.add('saved'); });
   }
 
@@ -1350,9 +1457,9 @@
   // ── Init ──
   (async () => {
     await loadDistricts();
-    await loadBranches("");
     await loadFilterOptions();
     await loadCourses();
+    await loadUniversities();
     loadStats();
   })();
 </script>
