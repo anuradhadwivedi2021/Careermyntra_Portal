@@ -234,7 +234,6 @@ def upload_cutoff():
         "year": "cap_year",
         "cap_round": "cap_round", "round": "cap_round",
         "rank": "cutoff_score",
-        "quota": "seat_type",
     }
     df.rename(columns={k: v for k, v in ALIASES.items() if k in df.columns}, inplace=True)
 
