@@ -17,6 +17,8 @@ reportlab
    
 
 
+# To this:
+psycopg[binary]==3.1.13
 
 
 
