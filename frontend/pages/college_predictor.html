@@ -592,13 +592,6 @@
             <label><span class="ficon">👤</span> Gender</label>
             <select id="gender">
               <option value="">All Genders</option>
-              <option value="G">G – General (All)</option>
-              <option value="L">L – Ladies</option>
-              <option value="T">T – Transgender</option>
-              <option value="D">D – Divyang</option>
-              <option value="P">P – Persons with Disability</option>
-              <option value="O">O – Orphan</option>
-              <option value="E">E – Ex-Servicemen</option>
             </select>
             <span class="help">Used for gender-wise reservation rules</span>
           </div>
@@ -699,6 +692,7 @@
   // ── Exam change → reload Course options for that exam ──
   async function onExamChange() {
     await loadCourses();
+    await loadGenders();
   }
 
   // ── HSC District change → show Home University preview ──
@@ -906,6 +900,18 @@
   ];
 
   // ── Course list — auto-populated based on selected Entrance Exam ──
+  async function loadGenders() {
+    try {
+      const res = await fetch(`${API}/college-predictor/genders`);
+      const d = await res.json();
+      const sel = document.getElementById('gender');
+      if (d.length) {
+        sel.innerHTML = '<option value="">All Genders</option>' +
+          d.map(g => `<option value="${g}">${g}</option>`).join('');
+      }
+    } catch(e) { console.warn('Gender load failed', e); }
+  }
+
   async function loadCourses() {
     try {
       const exam = document.getElementById('exam_type')?.value || '';

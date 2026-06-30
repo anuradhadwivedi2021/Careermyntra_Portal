@@ -394,24 +394,35 @@ def get_districts():
 
 
 # ─── NEW: GET /college-predictor/courses — unique course/branch types ──
-@college_predictor_bp.route("/college-predictor/courses", methods=["GET"])
-def get_courses():
-    """Returns distinct branch values from 'branch' column (B.Tech, M.Tech etc)"""
+@college_predictor_bp.route("/college-predictor/genders", methods=["GET"])
+def get_genders():
+    """Returns distinct gender codes from database, dynamic from uploaded Excel"""
     conn = get_connection()
     cur = get_cursor(conn)
-    # 'branch' column in CSV maps to branch_name in DB but contains course type
-    # We store it as branch_name — get distinct top-level course names
     cur.execute("""
-        SELECT DISTINCT branch_name FROM cap_cutoff_data
-        WHERE branch_name IS NOT NULL
-        ORDER BY branch_name
+        SELECT DISTINCT gender FROM cap_cutoff_data
+        WHERE gender IS NOT NULL AND TRIM(gender) != ''
+        ORDER BY gender
     """)
-    # Return unique course types — group by first word to get B.Tech, M.Tech etc
-    all_branches = [r["branch_name"] for r in cur.fetchall()]
+    genders = [r["gender"] for r in cur.fetchall()]
     cur.close()
     conn.close()
-    # Extract course type (B.Tech, M.Tech etc) from branch names
-    courses = sorted(set(b.split(" - ")[0].strip() if " - " in b else b.split(",")[0].strip() for b in all_branches))
+    return jsonify(genders)
+
+
+@college_predictor_bp.route("/college-predictor/courses", methods=["GET"])
+def get_courses():
+    """Returns distinct course values from 'course_name' column (B.Tech, M.Tech etc)"""
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute("""
+        SELECT DISTINCT course_name FROM cap_cutoff_data
+        WHERE course_name IS NOT NULL
+        ORDER BY course_name
+    """)
+    courses = [r["course_name"] for r in cur.fetchall()]
+    cur.close()
+    conn.close()
     return jsonify(courses)
 
 
