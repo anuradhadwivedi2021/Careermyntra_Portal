@@ -339,8 +339,8 @@ def upload_cutoff():
                 row.get("college_code"),
                 row.get("college_name"),
                 row.get("branch_name"),
-                row.get("district"),
-                row.get("university"),
+                str(row.get("district")).strip() if row.get("district") else None,
+                str(row.get("university")).strip() if row.get("university") else None,
                 row.get("cap_year"),
                 row.get("cap_round"),
                 row.get("category") or row.get("category_simple") or row.get("category_full"),
@@ -355,7 +355,7 @@ def upload_cutoff():
                 row.get("placement_average"),
                 row.get("website"),
                 row.get("address"),
-                _map_gender(row.get("gender_code")),
+                str(row.get("gender_code")).strip().upper() if row.get("gender_code") else None,
                 row.get("quota_code") or "S",
                 _check_autonomous(row.get("status_full")),
                 row.get("course_name"),
@@ -382,7 +382,11 @@ def upload_cutoff():
 def get_districts():
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute("SELECT DISTINCT district FROM cap_cutoff_data WHERE district IS NOT NULL ORDER BY district")
+    cur.execute("""
+        SELECT DISTINCT TRIM(district) AS district FROM cap_cutoff_data
+        WHERE district IS NOT NULL AND TRIM(district) != ''
+        ORDER BY TRIM(district)
+    """)
     rows = [r["district"] for r in cur.fetchall()]
     cur.close()
     conn.close()
@@ -702,18 +706,18 @@ def get_universities():
     try:
         conn = get_connection()
         cur = get_cursor(conn)
-        
+
         cur.execute("""
-            SELECT DISTINCT university 
-            FROM cap_cutoff_data 
-            WHERE university IS NOT NULL 
-            ORDER BY university
+            SELECT DISTINCT TRIM(university) AS university
+            FROM cap_cutoff_data
+            WHERE university IS NOT NULL AND TRIM(university) != ''
+            ORDER BY TRIM(university)
         """)
-        
+
         universities = [row["university"] for row in cur.fetchall()]
         cur.close()
         conn.close()
-        
+
         return jsonify(universities if universities else [])
     except Exception as e:
         logger.error(f"Error fetching universities: {e}")
