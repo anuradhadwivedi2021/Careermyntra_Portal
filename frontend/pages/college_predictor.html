@@ -745,9 +745,10 @@
 
   function updateCount(type) {
     const n = state[type].selected.size;
-    const total = type === 'branch' ? BRANCHES.length : state.district.options.length;
+    const total = state[type].options.length;
     const el = document.getElementById(`${type}-count`);
-    if (type === 'district') el.textContent = n === 0 ? 'All Districts' : `${n} of ${total} selected`;
+    const ALL_LABEL = { district: 'All Districts', university: 'All Universities' };
+    if (ALL_LABEL[type]) el.textContent = n === 0 ? ALL_LABEL[type] : `${n} of ${total} selected`;
     else el.textContent = `${n} of ${total} selected`;
   }
 
