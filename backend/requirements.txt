@@ -13,3 +13,10 @@ apscheduler
 cryptography
 PyJWT
 Flask-Limiter
+reportlab
+   
+
+
+
+
+

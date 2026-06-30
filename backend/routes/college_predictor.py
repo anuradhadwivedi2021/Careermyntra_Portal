@@ -1,12 +1,22 @@
 # routes/college_predictor.py — College Predictor Blueprint
 # Handles: CAP cutoff CSV/Excel upload (admin), prediction API, district list
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 import os
 import io
 import pandas as pd
+from datetime import datetime
 from db import get_connection, get_cursor
 from logger_setup import get_logger
+
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.units import mm
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
+)
+from reportlab.lib.enums import TA_LEFT
 
 logger = get_logger(__name__)
 college_predictor_bp = Blueprint("college_predictor", __name__)
@@ -659,3 +669,200 @@ def clear_data():
     cur.close()
     conn.close()
     return jsonify({"message": msg})
+
+# ─── 6. POST /college-predictor/download-pdf ─────────────────
+@college_predictor_bp.route("/college-predictor/download-pdf", methods=["POST"])
+def download_pdf():
+    """
+    Generates a College Prediction Report PDF matching the on-screen layout:
+    header, student details summary, safe/moderate/dream counts, results table.
+    Body: { student: {...}, results: [...] }
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        student = data.get("student", {}) or {}
+        results = data.get("results", []) or []
+
+        name        = (student.get("name") or "Student").strip()
+        category    = student.get("category") or ""
+        percentile  = student.get("percentile") or ""
+        branches    = student.get("branches") or []
+        districts   = student.get("districts") or []
+        exam_type   = student.get("exam_type") or "MHT-CET"
+        cap_year    = student.get("cap_year") or ""
+        cap_round   = student.get("cap_round") or "All Rounds"
+        gender      = student.get("gender") or ""
+
+        safe_count     = sum(1 for r in results if r.get("admission_chance") == "Safe")
+        moderate_count = sum(1 for r in results if r.get("admission_chance") == "Moderate")
+        dream_count    = sum(1 for r in results if r.get("admission_chance") == "Dream")
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buf, pagesize=landscape(A4),
+            topMargin=14 * mm, bottomMargin=14 * mm,
+            leftMargin=14 * mm, rightMargin=14 * mm,
+        )
+        styles = getSampleStyleSheet()
+        story = []
+
+        title_style = ParagraphStyle(
+            "ReportTitle", parent=styles["Title"], fontSize=18,
+            textColor=colors.HexColor("#0d1b3e"), alignment=TA_LEFT, spaceAfter=2,
+        )
+        sub_style = ParagraphStyle(
+            "ReportSub", parent=styles["Normal"], fontSize=10,
+            textColor=colors.HexColor("#6b7280"), spaceAfter=10,
+        )
+        label_style = ParagraphStyle(
+            "Label", parent=styles["Normal"], fontSize=8,
+            textColor=colors.HexColor("#9ca3af"), spaceAfter=0,
+        )
+        value_style = ParagraphStyle(
+            "Value", parent=styles["Normal"], fontSize=10,
+            textColor=colors.HexColor("#0d1b3e"), spaceAfter=6, leading=13,
+        )
+
+        # ── Title ──
+        story.append(Paragraph(f"{name} — College Prediction Report", title_style))
+        story.append(Paragraph(
+            f"{exam_type} | Percentile: {percentile} | {cap_year}", sub_style
+        ))
+
+        # ── Student details grid ──
+        def field(lbl, val):
+            if not val:
+                return None
+            return [Paragraph(lbl.upper(), label_style), Paragraph(str(val), value_style)]
+
+        details = []
+        details.append(field("Student Name", name))
+        details.append(field("Caste Category", category))
+        details.append(field("Entrance Exam", exam_type))
+        details.append(field("Course", student.get("course") or ""))
+        details.append(field("Percentile", percentile))
+        if gender:
+            details.append(field("Gender", gender))
+        details = [d for d in details if d]
+
+        # Build a grid table for details, 5 columns
+        if details:
+            rows = []
+            row = []
+            for i, d in enumerate(details):
+                cell = [d[0], d[1]]
+                row.append(cell)
+                if len(row) == 5:
+                    rows.append(row); row = []
+            if row:
+                while len(row) < 5:
+                    row.append([Paragraph("", label_style), Paragraph("", value_style)])
+                rows.append(row)
+
+            detail_table_data = []
+            for row in rows:
+                detail_table_data.append([c[0] for c in row])
+                detail_table_data.append([c[1] for c in row])
+
+            t = Table(detail_table_data, colWidths=[52 * mm] * 5)
+            t.setStyle(TableStyle([
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ]))
+            story.append(t)
+            story.append(Spacer(1, 4))
+
+        if branches:
+            story.append(Paragraph("PREFERRED BRANCHES", label_style))
+            story.append(Paragraph(", ".join(branches), value_style))
+        if districts:
+            story.append(Paragraph("PREFERRED DISTRICTS", label_style))
+            story.append(Paragraph(", ".join(districts), value_style))
+        story.append(Paragraph("CAP ROUND", label_style))
+        story.append(Paragraph(cap_round, value_style))
+        story.append(Spacer(1, 10))
+
+        # ── Summary boxes (Safe / Moderate / Dream) ──
+        summary_data = [[
+            Paragraph(f"<b><font size=16 color='#16a34a'>{safe_count}</font></b><br/>"
+                      f"<font size=8 color='#6b7280'>Safe</font>", styles["Normal"]),
+            Paragraph(f"<b><font size=16 color='#d97706'>{moderate_count}</font></b><br/>"
+                      f"<font size=8 color='#6b7280'>Moderate</font>", styles["Normal"]),
+            Paragraph(f"<b><font size=16 color='#dc2626'>{dream_count}</font></b><br/>"
+                      f"<font size=8 color='#6b7280'>Dream</font>", styles["Normal"]),
+        ]]
+        sbox = Table(summary_data, colWidths=[88 * mm, 88 * mm, 88 * mm])
+        sbox.setStyle(TableStyle([
+            ("BOX", (0, 0), (0, 0), 0.75, colors.HexColor("#bbf7d0")),
+            ("BOX", (1, 0), (1, 0), 0.75, colors.HexColor("#fde68a")),
+            ("BOX", (2, 0), (2, 0), 0.75, colors.HexColor("#fecaca")),
+            ("BACKGROUND", (0, 0), (0, 0), colors.HexColor("#f0fdf4")),
+            ("BACKGROUND", (1, 0), (1, 0), colors.HexColor("#fffbeb")),
+            ("BACKGROUND", (2, 0), (2, 0), colors.HexColor("#fef2f2")),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(sbox)
+        story.append(Spacer(1, 12))
+
+        # ── Results table ──
+        header = ["College Name", "Branch", "University", "Status", "Quota",
+                   "District", "Cut-off", "Fees (\u20b9)", "Probability"]
+        table_data = [header]
+        for r in results:
+            chance = r.get("admission_chance", "Dream")
+            quota  = " + ".join(r.get("applicable_quota") or ["State"])
+            fees   = f"\u20b9{int(r['fees']):,}" if r.get("fees") else "-"
+            cutoff = f"{float(r['cutoff_percentile']):.2f}" if r.get("cutoff_percentile") is not None else "-"
+            prob   = "80-95%" if chance == "Safe" else "50-79%" if chance == "Moderate" else "<50%"
+            table_data.append([
+                Paragraph(str(r.get("college_name", "")), styles["Normal"]),
+                Paragraph(str(r.get("branch_name", "")), styles["Normal"]),
+                Paragraph(str(r.get("university") or "-"), styles["Normal"]),
+                chance,
+                quota,
+                r.get("district") or "-",
+                cutoff,
+                fees,
+                prob,
+            ])
+
+        col_widths = [50*mm, 42*mm, 38*mm, 20*mm, 32*mm, 22*mm, 18*mm, 20*mm, 22*mm]
+        rt = Table(table_data, colWidths=col_widths, repeatRows=1)
+        chance_colors = {"Safe": colors.HexColor("#16a34a"),
+                          "Moderate": colors.HexColor("#d97706"),
+                          "Dream": colors.HexColor("#dc2626")}
+        style_cmds = [
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1565c0")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTSIZE", (0, 0), (-1, 0), 8),
+            ("FONTSIZE", (0, 1), (-1, -1), 7.5),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#e5e7eb")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8faff")]),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]
+        for i, r in enumerate(results, start=1):
+            chance = r.get("admission_chance", "Dream")
+            style_cmds.append(("TEXTCOLOR", (3, i), (3, i), chance_colors.get(chance, colors.black)))
+            style_cmds.append(("FONTNAME", (3, i), (3, i), "Helvetica-Bold"))
+        rt.setStyle(TableStyle(style_cmds))
+        story.append(rt)
+
+        doc.build(story)
+        buf.seek(0)
+
+        safe_name = "".join(c for c in name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+        filename = f"{safe_name or 'Student'}_College_Prediction.pdf"
+
+        return send_file(
+            buf, mimetype="application/pdf",
+            as_attachment=True, download_name=filename,
+        )
+
+    except Exception as e:
+        logger.exception("PDF generation failed")
+        return jsonify({"error": f"PDF generation failed: {str(e)}"}), 500
