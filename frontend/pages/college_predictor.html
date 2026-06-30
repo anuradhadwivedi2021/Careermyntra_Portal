@@ -440,10 +440,7 @@
           <div class="field">
             <label><span class="ficon">👤</span> Gender <span class="req">*</span></label>
             <select id="gender">
-              <option value="">All Genders</option>
-              <option value="All">General (All)</option>
-              <option value="Female">Ladies</option>
-              <option value="Other">Transgender / Other</option>
+              <option value="">Loading…</option>
             </select>
             <span class="help">Used for gender-wise reservation rules</span>
           </div>
@@ -659,11 +656,8 @@
 
   // ── Exam change → authority update ──
   function onExamChange() {
-    const e = document.getElementById('exam_type').value;
-    const a = document.getElementById('authority');
-    a.innerHTML = e === 'JEE Main'
-      ? '<option>All India Quota (AI)</option><option>Maharashtra State CAP</option>'
-      : '<option>Maharashtra State CAP</option>';
+    // Admission Authority is loaded dynamically from DB via loadFilterOptions()
+    // No hardcoded override needed here.
   }
 
   // ── Multi-select toggle ──
@@ -830,6 +824,27 @@
       const catSel = document.getElementById('category');
       if (d.categories && d.categories.length) {
         catSel.innerHTML = d.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      }
+
+      // Gender — fully dynamic from Excel data
+      const genderSel = document.getElementById('gender');
+      if (d.genders && d.genders.length) {
+        genderSel.innerHTML = '<option value="">All Genders</option>' +
+          d.genders.map(g => `<option value="${g}">${g}</option>`).join('');
+      } else {
+        genderSel.innerHTML = '<option value="">All Genders</option>';
+      }
+
+      // Entrance Exam — fully dynamic from Excel data
+      const examSel = document.getElementById('exam_type');
+      if (d.exam_types && d.exam_types.length) {
+        examSel.innerHTML = d.exam_types.map(e => `<option value="${e}">${e}</option>`).join('');
+      }
+
+      // Admission Authority — dynamic from Excel seat_type/quota data
+      const authSel = document.getElementById('authority');
+      if (d.seat_types && d.seat_types.length) {
+        authSel.innerHTML = d.seat_types.map(s => `<option value="${s}">${s}</option>`).join('');
       }
 
       // Home District

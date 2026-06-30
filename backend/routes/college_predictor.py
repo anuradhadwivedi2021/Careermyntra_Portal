@@ -356,7 +356,11 @@ def upload_cutoff():
 def get_districts():
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute("SELECT DISTINCT district FROM cap_cutoff_data WHERE district IS NOT NULL ORDER BY district")
+    cur.execute("""
+        SELECT DISTINCT TRIM(district) AS district FROM cap_cutoff_data
+        WHERE district IS NOT NULL AND TRIM(district) != ''
+        ORDER BY TRIM(district)
+    """)
     rows = [r["district"] for r in cur.fetchall()]
     cur.close()
     conn.close()
@@ -435,6 +439,12 @@ def get_filter_options():
     categories = [r["category"] for r in cur.fetchall()]
     cur.execute("SELECT DISTINCT exam_type FROM cap_cutoff_data WHERE exam_type IS NOT NULL ORDER BY exam_type")
     exam_types = [r["exam_type"] for r in cur.fetchall()]
+    cur.execute("SELECT DISTINCT gender FROM cap_cutoff_data WHERE gender IS NOT NULL ORDER BY gender")
+    genders = [r["gender"] for r in cur.fetchall()]
+    cur.execute("SELECT DISTINCT seat_type FROM cap_cutoff_data WHERE seat_type IS NOT NULL ORDER BY seat_type")
+    seat_types = [r["seat_type"] for r in cur.fetchall()]
+    cur.execute("SELECT DISTINCT course_name FROM cap_cutoff_data WHERE course_name IS NOT NULL ORDER BY course_name")
+    course_names = [r["course_name"] for r in cur.fetchall()]
     cur.close()
     conn.close()
     return jsonify({
@@ -442,6 +452,9 @@ def get_filter_options():
         "rounds": rounds,
         "categories": categories,
         "exam_types": exam_types,
+        "genders": genders,
+        "seat_types": seat_types,
+        "course_names": course_names,
     })
 
 
@@ -539,7 +552,7 @@ def predict():
 
     if districts:
         placeholders = ",".join(["%s"] * len(districts))
-        where_clauses.append(f"district IN ({placeholders})")
+        where_clauses.append(f"TRIM(district) IN ({placeholders})")
         params.extend(districts)
 
     where_sql = " AND ".join(where_clauses)
