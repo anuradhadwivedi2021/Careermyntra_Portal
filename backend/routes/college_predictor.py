@@ -674,8 +674,11 @@ def clear_data():
 @college_predictor_bp.route("/college-predictor/download-pdf", methods=["POST"])
 def download_pdf():
     """
-    Generates a College Prediction Report PDF matching the on-screen layout:
-    header, student details summary, safe/moderate/dream counts, results table.
+    Generates a College Prediction Report PDF in the CareerMyntra branded
+    format: header banner with logo + contact info, plain student detail
+    lines, "College Prediction List" table (Sr/College/Branch/Status/
+    District/Cut-off/Rank/Fees/Probability/Distance), green-blue bordered
+    page frame, and a Counsellor's Note footer.
     Body: { student: {...}, results: [...] }
     """
     try:
@@ -689,174 +692,226 @@ def download_pdf():
         branches    = student.get("branches") or []
         districts   = student.get("districts") or []
         exam_type   = student.get("exam_type") or "MHT-CET"
-        cap_year    = student.get("cap_year") or ""
-        cap_round   = student.get("cap_round") or "All Rounds"
-        gender      = student.get("gender") or ""
 
-        safe_count     = sum(1 for r in results if r.get("admission_chance") == "Safe")
-        moderate_count = sum(1 for r in results if r.get("admission_chance") == "Moderate")
-        dream_count    = sum(1 for r in results if r.get("admission_chance") == "Dream")
+        logo_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "..", "frontend", "images", "logo.jpeg"
+        )
+        logo_path = os.path.normpath(logo_path)
 
         buf = io.BytesIO()
+
+        PAGE_W, PAGE_H = A4
+        MARGIN = 16 * mm
+
         doc = SimpleDocTemplate(
-            buf, pagesize=landscape(A4),
-            topMargin=14 * mm, bottomMargin=14 * mm,
-            leftMargin=14 * mm, rightMargin=14 * mm,
+            buf, pagesize=A4,
+            topMargin=MARGIN, bottomMargin=MARGIN,
+            leftMargin=MARGIN, rightMargin=MARGIN,
         )
         styles = getSampleStyleSheet()
         story = []
 
-        title_style = ParagraphStyle(
-            "ReportTitle", parent=styles["Title"], fontSize=18,
-            textColor=colors.HexColor("#0d1b3e"), alignment=TA_LEFT, spaceAfter=2,
+        # ── Header banner (logo + tagline + contact) ──
+        brand_blue  = colors.HexColor("#1565c0")
+        brand_dark  = colors.HexColor("#0d47a1")
+        brand_green = colors.HexColor("#16a34a")
+        text_dark   = colors.HexColor("#0d1b3e")
+        text_muted  = colors.HexColor("#374151")
+
+        tagline_style = ParagraphStyle(
+            "Tagline", parent=styles["Normal"], fontSize=13, fontName="Helvetica-Bold",
+            textColor=colors.white, alignment=1,
         )
-        sub_style = ParagraphStyle(
-            "ReportSub", parent=styles["Normal"], fontSize=10,
-            textColor=colors.HexColor("#6b7280"), spaceAfter=10,
-        )
-        label_style = ParagraphStyle(
-            "Label", parent=styles["Normal"], fontSize=8,
-            textColor=colors.HexColor("#9ca3af"), spaceAfter=0,
-        )
-        value_style = ParagraphStyle(
-            "Value", parent=styles["Normal"], fontSize=10,
-            textColor=colors.HexColor("#0d1b3e"), spaceAfter=6, leading=13,
+        contact_style = ParagraphStyle(
+            "Contact", parent=styles["Normal"], fontSize=9,
+            textColor=colors.white, alignment=1,
         )
 
-        # ── Title ──
-        story.append(Paragraph(f"{name} — College Prediction Report", title_style))
-        story.append(Paragraph(
-            f"{exam_type} | Percentile: {percentile} | {cap_year}", sub_style
-        ))
+        header_cells = []
+        if os.path.exists(logo_path):
+            try:
+                from reportlab.platypus import Image as RLImage
+                logo_img = RLImage(logo_path, width=22 * mm, height=22 * mm)
+                header_cells.append(logo_img)
+            except Exception:
+                pass
 
-        # ── Student details grid ──
-        def field(lbl, val):
-            if not val:
-                return None
-            return [Paragraph(lbl.upper(), label_style), Paragraph(str(val), value_style)]
-
-        details = []
-        details.append(field("Student Name", name))
-        details.append(field("Caste Category", category))
-        details.append(field("Entrance Exam", exam_type))
-        details.append(field("Course", student.get("course") or ""))
-        details.append(field("Percentile", percentile))
-        if gender:
-            details.append(field("Gender", gender))
-        details = [d for d in details if d]
-
-        # Build a grid table for details, 5 columns
-        if details:
-            rows = []
-            row = []
-            for i, d in enumerate(details):
-                cell = [d[0], d[1]]
-                row.append(cell)
-                if len(row) == 5:
-                    rows.append(row); row = []
-            if row:
-                while len(row) < 5:
-                    row.append([Paragraph("", label_style), Paragraph("", value_style)])
-                rows.append(row)
-
-            detail_table_data = []
-            for row in rows:
-                detail_table_data.append([c[0] for c in row])
-                detail_table_data.append([c[1] for c in row])
-
-            t = Table(detail_table_data, colWidths=[52 * mm] * 5)
-            t.setStyle(TableStyle([
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-                ("TOPPADDING", (0, 0), (-1, -1), 2),
-            ]))
-            story.append(t)
-            story.append(Spacer(1, 4))
-
-        if branches:
-            story.append(Paragraph("PREFERRED BRANCHES", label_style))
-            story.append(Paragraph(", ".join(branches), value_style))
-        if districts:
-            story.append(Paragraph("PREFERRED DISTRICTS", label_style))
-            story.append(Paragraph(", ".join(districts), value_style))
-        story.append(Paragraph("CAP ROUND", label_style))
-        story.append(Paragraph(cap_round, value_style))
-        story.append(Spacer(1, 10))
-
-        # ── Summary boxes (Safe / Moderate / Dream) ──
-        summary_data = [[
-            Paragraph(f"<b><font size=16 color='#16a34a'>{safe_count}</font></b><br/>"
-                      f"<font size=8 color='#6b7280'>Safe</font>", styles["Normal"]),
-            Paragraph(f"<b><font size=16 color='#d97706'>{moderate_count}</font></b><br/>"
-                      f"<font size=8 color='#6b7280'>Moderate</font>", styles["Normal"]),
-            Paragraph(f"<b><font size=16 color='#dc2626'>{dream_count}</font></b><br/>"
-                      f"<font size=8 color='#6b7280'>Dream</font>", styles["Normal"]),
-        ]]
-        sbox = Table(summary_data, colWidths=[88 * mm, 88 * mm, 88 * mm])
-        sbox.setStyle(TableStyle([
-            ("BOX", (0, 0), (0, 0), 0.75, colors.HexColor("#bbf7d0")),
-            ("BOX", (1, 0), (1, 0), 0.75, colors.HexColor("#fde68a")),
-            ("BOX", (2, 0), (2, 0), 0.75, colors.HexColor("#fecaca")),
-            ("BACKGROUND", (0, 0), (0, 0), colors.HexColor("#f0fdf4")),
-            ("BACKGROUND", (1, 0), (1, 0), colors.HexColor("#fffbeb")),
-            ("BACKGROUND", (2, 0), (2, 0), colors.HexColor("#fef2f2")),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        title_block = [Paragraph(
+            "<font size=18 color='white'><b>CAREER MYNTRA</b></font>",
+            ParagraphStyle("LogoText", alignment=1)
+        )]
+        if header_cells:
+            header_row = Table(
+                [[header_cells[0], Paragraph(
+                    "<font size=18 color='white'><b>CAREER MYNTRA</b></font>",
+                    ParagraphStyle("LogoTxt", alignment=0)
+                )]],
+                colWidths=[24 * mm, 140 * mm],
+            )
+        else:
+            header_row = Table([title_block], colWidths=[164 * mm])
+        header_row.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (0, 0), (0, 0), "CENTER"),
         ]))
-        story.append(sbox)
-        story.append(Spacer(1, 12))
+
+        banner_inner = Table(
+            [[header_row],
+             [Paragraph("Aptitude Test | Mock Exams | Admission Guidance | Skills Dev. | Jobs", tagline_style)],
+             [Paragraph("&#9742; +91 98609 38338 &nbsp;&nbsp; &#9993; info@careermyntra.com &nbsp;&nbsp; &#127760; https://careermyntra.com", contact_style)]],
+            colWidths=[(PAGE_W - 2 * MARGIN)],
+        )
+        banner_inner.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), brand_blue),
+            ("BACKGROUND", (0, 1), (-1, 1), brand_green),
+            ("BACKGROUND", (0, 2), (-1, 2), brand_blue),
+            ("TOPPADDING", (0, 0), (-1, 0), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+            ("TOPPADDING", (0, 1), (-1, 1), 6),
+            ("BOTTOMPADDING", (0, 1), (-1, 1), 6),
+            ("TOPPADDING", (0, 2), (-1, 2), 6),
+            ("BOTTOMPADDING", (0, 2), (-1, 2), 6),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ]))
+        story.append(banner_inner)
+        story.append(Spacer(1, 14))
+
+        # ── Student detail lines (plain text, like the sample) ──
+        line_style = ParagraphStyle(
+            "DetailLine", parent=styles["Normal"], fontSize=10.5,
+            textColor=text_dark, spaceAfter=6, leading=14,
+        )
+
+        def detail_line(label, value):
+            if not value:
+                return None
+            return Paragraph(f"<b>{label}:</b> {value}", line_style)
+
+        for p in [
+            detail_line("Full Name", name),
+            detail_line("Caste Category", category),
+            detail_line(f"{exam_type} Percentile", percentile),
+            detail_line("Preferred Branches", ", ".join(branches) if branches else None),
+            detail_line("Preferred City", ", ".join(districts) if districts else None),
+        ]:
+            if p:
+                story.append(p)
+
+        story.append(Spacer(1, 6))
+
+        # ── "College Prediction List" heading ──
+        heading_style = ParagraphStyle(
+            "ListHeading", parent=styles["Heading2"], fontSize=13,
+            textColor=text_dark, alignment=1, spaceAfter=10,
+        )
+        story.append(Paragraph("College Prediction List", heading_style))
 
         # ── Results table ──
-        header = ["College Name", "Branch", "University", "Status", "Quota",
-                   "District", "Cut-off", "Fees (\u20b9)", "Probability"]
-        table_data = [header]
-        for r in results:
-            chance = r.get("admission_chance", "Dream")
-            quota  = " + ".join(r.get("applicable_quota") or ["State"])
-            fees   = f"\u20b9{int(r['fees']):,}" if r.get("fees") else "-"
-            cutoff = f"{float(r['cutoff_percentile']):.2f}" if r.get("cutoff_percentile") is not None else "-"
-            prob   = "80-95%" if chance == "Safe" else "50-79%" if chance == "Moderate" else "<50%"
+        cell_style = ParagraphStyle(
+            "Cell", parent=styles["Normal"], fontSize=8, leading=10, textColor=text_dark,
+        )
+        head_style = ParagraphStyle(
+            "Head", parent=styles["Normal"], fontSize=8.5, leading=10,
+            textColor=colors.white, fontName="Helvetica-Bold", alignment=1,
+        )
+
+        header_row_cells = [
+            Paragraph(h, head_style) for h in
+            ["Sr.", "College Name", "Branches", "Status", "District",
+             "Cut-off", "Rank", "Fees (\u20b9)", "Probability", "Distance"]
+        ]
+        table_data = [header_row_cells]
+
+        prob_label = {"Safe": ("Very Low", "High"),
+                      "Moderate": ("Medium", "Moderate"),
+                      "Dream": ("High", "Low")}
+
+        for idx, r in enumerate(results, start=1):
+            chance  = r.get("admission_chance", "Dream")
+            status  = "Autonomous" if r.get("is_autonomous") else (r.get("university") or "-")
+            fees    = f"\u20b9{int(r['fees']):,} / year" if r.get("fees") else "-"
+            cutoff  = f"{float(r['cutoff_percentile']):.2f} %ile" if r.get("cutoff_percentile") is not None else "-"
+            rank    = f"{int(r['cutoff_score']):,}" if r.get("cutoff_score") else "-"
+            prob    = "80-95%" if chance == "Safe" else "50-79%" if chance == "Moderate" else "<50%"
+            dist    = r.get("distance") or "-"
             table_data.append([
-                Paragraph(str(r.get("college_name", "")), styles["Normal"]),
-                Paragraph(str(r.get("branch_name", "")), styles["Normal"]),
-                Paragraph(str(r.get("university") or "-"), styles["Normal"]),
-                chance,
-                quota,
-                r.get("district") or "-",
-                cutoff,
-                fees,
-                prob,
+                Paragraph(str(idx), cell_style),
+                Paragraph(str(r.get("college_name", "")), cell_style),
+                Paragraph(str(r.get("branch_name", "")), cell_style),
+                Paragraph(status, cell_style),
+                Paragraph(r.get("district") or "-", cell_style),
+                Paragraph(f"<b>{cutoff}</b>", cell_style),
+                Paragraph(rank, cell_style),
+                Paragraph(fees, cell_style),
+                Paragraph(f"<b>{prob}</b>", cell_style),
+                Paragraph(str(dist), cell_style),
             ])
 
-        col_widths = [50*mm, 42*mm, 38*mm, 20*mm, 32*mm, 22*mm, 18*mm, 20*mm, 22*mm]
+        col_widths = [8*mm, 34*mm, 28*mm, 24*mm, 16*mm, 16*mm, 14*mm, 18*mm, 16*mm, 14*mm]
         rt = Table(table_data, colWidths=col_widths, repeatRows=1)
-        chance_colors = {"Safe": colors.HexColor("#16a34a"),
-                          "Moderate": colors.HexColor("#d97706"),
-                          "Dream": colors.HexColor("#dc2626")}
-        style_cmds = [
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1565c0")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTSIZE", (0, 0), (-1, 0), 8),
-            ("FONTSIZE", (0, 1), (-1, -1), 7.5),
+        rt.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), brand_blue),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#9ca3af")),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#e5e7eb")),
+            ("ALIGN", (0, 0), (0, -1), "CENTER"),
+            ("ALIGN", (5, 0), (-1, -1), "CENTER"),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8faff")]),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]
-        for i, r in enumerate(results, start=1):
-            chance = r.get("admission_chance", "Dream")
-            style_cmds.append(("TEXTCOLOR", (3, i), (3, i), chance_colors.get(chance, colors.black)))
-            style_cmds.append(("FONTNAME", (3, i), (3, i), "Helvetica-Bold"))
-        rt.setStyle(TableStyle(style_cmds))
+        ]))
         story.append(rt)
+        story.append(Spacer(1, 16))
 
-        doc.build(story)
+        # ── Counsellor's Note ──
+        note_title_style = ParagraphStyle(
+            "NoteTitle", parent=styles["Normal"], fontSize=10.5,
+            fontName="Helvetica-Bold", textColor=text_dark, spaceAfter=6,
+        )
+        note_item_style = ParagraphStyle(
+            "NoteItem", parent=styles["Normal"], fontSize=8.3,
+            textColor=text_muted, leading=11, spaceAfter=4,
+        )
+        story.append(Paragraph("Counsellor's Note", note_title_style))
+        notes = [
+            "This list is a <b>prediction</b> based on your score/rank and is not an official CAP allotment or admission list.",
+            "The predictions are prepared using <b>previous CAP cut-offs, your category, rank, institute trends, seat availability</b>, and other admission parameters.",
+            "The <b>Probability (%)</b> indicates the likelihood of admission based on available data. It is meant to help you make informed decisions while filling your CAP option form and <b>does not guarantee admission</b>.",
+            "The <b>fees shown are approximate annual tuition fees</b>. The actual payable fees may vary depending on your category, scholarship eligibility, admission quota, and the institute's latest fee structure.",
+            "Cut-offs may change every year based on the number of applicants, seat availability, reservation policies, and students' option preferences.",
+            "We recommend including a <b>balanced mix of Dream, Target, and Safe colleges</b> in your option form to maximize your chances of securing admission.",
+            "Before confirming admission, please verify the latest fee structure, eligibility, and admission rules from the respective institute and the official CAP notifications.",
+            "For the best admission outcome, consult your counsellor before finalizing your college preferences and option form.",
+        ]
+        for i, n in enumerate(notes, start=1):
+            story.append(Paragraph(f"{i}. {n}", note_item_style))
+
+        # ── Page frame (green/blue border) + footer address ──
+        def draw_frame(canvas, doc_):
+            canvas.saveState()
+            canvas.setStrokeColor(brand_green)
+            canvas.setLineWidth(3)
+            canvas.rect(6 * mm, 6 * mm, PAGE_W - 12 * mm, PAGE_H - 12 * mm)
+            canvas.setStrokeColor(brand_blue)
+            canvas.setLineWidth(1)
+            canvas.rect(8 * mm, 8 * mm, PAGE_W - 16 * mm, PAGE_H - 16 * mm)
+
+            # Footer bar
+            canvas.setFillColor(brand_blue)
+            canvas.rect(6 * mm, 6 * mm, PAGE_W - 12 * mm, 10 * mm, fill=1, stroke=0)
+            canvas.setFillColor(colors.white)
+            canvas.setFont("Helvetica", 8)
+            canvas.drawCentredString(
+                PAGE_W / 2, 9.5 * mm,
+                "Sunny Pride, JM Road, Z Bridge, Deccan Gymkhana, Pune, Maharashtra 411004"
+            )
+            canvas.restoreState()
+
+        doc.build(story, onFirstPage=draw_frame, onLaterPages=draw_frame)
         buf.seek(0)
 
         safe_name = "".join(c for c in name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
-        filename = f"{safe_name or 'Student'}_College_Prediction.pdf"
+        filename = f"{safe_name or 'Student'}_Cut-off_Analysis.pdf"
 
         return send_file(
             buf, mimetype="application/pdf",
