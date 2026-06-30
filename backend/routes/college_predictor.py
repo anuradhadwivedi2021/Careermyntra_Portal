@@ -599,7 +599,7 @@ def predict():
             "quota_code":         r["quota_code"] if r["quota_code"] else "S",
             "is_autonomous":      r["is_autonomous"] if r["is_autonomous"] else False,
             "course_name":        r["course_name"] if r["course_name"] else "",
-            "probability":        _admission_probability(percentile, r["cutoff_percentile"]),
+            "probability":           _chance_label(percentile, r["cutoff_percentile"])
         })
 
     # Remove duplicate college-branch combinations (keep highest cutoff per combo)
@@ -619,8 +619,11 @@ def predict():
         r["home_university"] = home_univ or ""
 
     # Sort by cutoff percentile closest to student's percentile first
-    results.sort(key=lambda x: -x["probability"])
-
+    results.sort(
+    key=lambda x: x["cutoff_percentile"] if x["cutoff_percentile"] is not None else 0,
+    reverse=True
+)
+    
     return jsonify({
         "total": len(results),
         "student_percentile": percentile,
