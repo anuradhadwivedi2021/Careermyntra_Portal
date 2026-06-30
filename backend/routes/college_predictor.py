@@ -33,6 +33,21 @@ def _chance_label(student_percentile, cutoff_percentile):
     else:
         return "Dream"
 
+def _admission_probability(student_percentile, cutoff_percentile):
+    """
+    Returns admission probability as a percentage number (e.g. 96, 79, 54).
+    Based on margin between student's percentile and the cutoff percentile.
+    diff = +5 or more  -> ~96% (very safe)
+    diff =  0          -> ~75% (borderline)
+    diff = -5 or less  -> ~40% (tough)
+    """
+    if cutoff_percentile is None:
+        return 50
+    diff = float(student_percentile) - float(cutoff_percentile)
+    prob = 75 + (diff * 4.5)
+    prob = max(15, min(98, prob))
+    return round(prob)
+
 CHANCE_ORDER = {"Safe": 0, "Moderate": 1, "Dream": 2, "Unknown": 3}
 
 # ─── Helper functions for Excel column mapping ───────────────
@@ -460,6 +475,11 @@ def predict():
       districts: ["Pune", "Nashik"],  // optional, empty = all
       gender: "Male"
     }
+
+    Prediction Logic: ±5 Percentile Range
+    - Searches for cutoffs between (percentile - 5) and (percentile + 5)
+    - This gives a realistic list of probable admission opportunities
+      rather than a guaranteed Safe/Moderate/Dream classification.
     """
     data = request.get_json(silent=True) or {}
 
@@ -511,6 +531,11 @@ def predict():
     except (ValueError, TypeError):
         return jsonify({"error": "Percentile must be a number"}), 400
 
+    # ─── ±5 Percentile Range (Sir's logic) ───
+    PERCENTILE_RANGE = 5
+    min_percentile = max(0, percentile - PERCENTILE_RANGE)
+    max_percentile = min(100, percentile + PERCENTILE_RANGE)
+
     conn = get_connection()
     cur = get_cursor(conn)
 
@@ -519,8 +544,9 @@ def predict():
         "exam_type = %s",
         "category = %s",
         "cap_year = %s",
+        "cutoff_percentile BETWEEN %s AND %s",
     ]
-    params = [exam_type, category, cap_year]
+    params = [exam_type, category, cap_year, min_percentile, max_percentile]
 
     # Gender filter — include 'All' records always + gender-specific
     student_gender = data.get("gender", "")
@@ -564,10 +590,9 @@ def predict():
     cur.close()
     conn.close()
 
-    # Calculate chances and sort
+    # Build results — no Safe/Moderate/Dream classification, just probable list
     results = []
     for r in rows:
-        chance = _chance_label(percentile, r["cutoff_percentile"])
         results.append({
             "id":                 r["id"],
             "college_code":       r["college_code"],
@@ -589,12 +614,20 @@ def predict():
             "placement_average":  r["placement_average"],
             "website":            r["website"],
             "address":            r["address"],
-            "admission_chance":   chance,
             "gender_label":       r["gender"] if r["gender"] else "All",
             "quota_code":         r["quota_code"] if r["quota_code"] else "S",
             "is_autonomous":      r["is_autonomous"] if r["is_autonomous"] else False,
             "course_name":        r["course_name"] if r["course_name"] else "",
+            "probability":        _admission_probability(percentile, r["cutoff_percentile"]),
         })
+
+    # Remove duplicate college-branch combinations (keep highest cutoff per combo)
+    seen = {}
+    for r in results:
+        key = (r["college_name"], r["branch_name"], r["category"], r["quota_code"])
+        if key not in seen:
+            seen[key] = r
+    results = list(seen.values())
 
     # Compute applicable quota for each result based on student's home district
     home_univ = _get_home_university(home_district)
@@ -604,28 +637,20 @@ def predict():
         )
         r["home_university"] = home_univ or ""
 
-    # Sort: Safe first, then Moderate, then Dream, Unknown last
-    results.sort(key=lambda x: (CHANCE_ORDER.get(x["admission_chance"], 3),
-                                 -(x["cutoff_percentile"] or 0)))
-
-    safe     = [r for r in results if r["admission_chance"] == "Safe"]
-    moderate = [r for r in results if r["admission_chance"] == "Moderate"]
-    dream    = [r for r in results if r["admission_chance"] == "Dream"]
-    unknown  = [r for r in results if r["admission_chance"] == "Unknown"]
+    # Sort by cutoff percentile closest to student's percentile first
+    results.sort(key=lambda x: -x["probability"])
 
     return jsonify({
         "total": len(results),
         "student_percentile": percentile,
-        "summary": {
-            "safe": len(safe),
-            "moderate": len(moderate),
-            "dream": len(dream),
+        "percentile_range": {
+            "min": round(min_percentile, 2),
+            "max": round(max_percentile, 2),
         },
         "results": results
     })
 
 
-# ─── DEBUG: See exact values stored in DB ───────────────────
 @college_predictor_bp.route("/college-predictor/debug-values", methods=["GET"])
 def debug_values():
     conn = get_connection()
@@ -873,17 +898,12 @@ def download_pdf():
         ]
         table_data = [header_row_cells]
 
-        prob_label = {"Safe": ("Very Low", "High"),
-                      "Moderate": ("Medium", "Moderate"),
-                      "Dream": ("High", "Low")}
-
         for idx, r in enumerate(results, start=1):
-            chance  = r.get("admission_chance", "Dream")
             status  = "Autonomous" if r.get("is_autonomous") else (r.get("university") or "-")
             fees    = f"\u20b9{int(float(r['fees'])):,} / year" if r.get("fees") else "-"
             cutoff  = f"{float(r['cutoff_percentile']):.2f} %ile" if r.get("cutoff_percentile") is not None else "-"
             rank    = f"{int(float(r['cutoff_score'])):,}" if r.get("cutoff_score") else "-"
-            prob    = "80-95%" if chance == "Safe" else "50-79%" if chance == "Moderate" else "<50%"
+            prob    = f"{r.get('probability', 50)}% chance"
             dist    = r.get("distance") or "-"
             table_data.append([
                 Paragraph(str(idx), cell_style),
