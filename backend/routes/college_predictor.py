@@ -670,7 +670,57 @@ def clear_data():
     conn.close()
     return jsonify({"message": msg})
 
-# ─── 6. POST /college-predictor/download-pdf ─────────────────
+# ─── 7. GET /college-predictor/universities ─────────────────
+@college_predictor_bp.route("/college-predictor/universities", methods=["GET"])
+def get_universities():
+    """Returns list of unique universities from database"""
+    try:
+        conn = get_connection()
+        cur = get_cursor(conn)
+        
+        cur.execute("""
+            SELECT DISTINCT university 
+            FROM cap_cutoff_data 
+            WHERE university IS NOT NULL 
+            ORDER BY university
+        """)
+        
+        universities = [row["university"] for row in cur.fetchall()]
+        cur.close()
+        conn.close()
+        
+        return jsonify(universities if universities else [])
+    except Exception as e:
+        logger.error(f"Error fetching universities: {e}")
+        return jsonify([]), 500
+
+
+# ─── 8. GET /college-predictor/colleges ─────────────────
+@college_predictor_bp.route("/college-predictor/colleges", methods=["GET"])
+def get_colleges():
+    """Returns list of unique colleges from database"""
+    try:
+        conn = get_connection()
+        cur = get_cursor(conn)
+        
+        cur.execute("""
+            SELECT DISTINCT college_name 
+            FROM cap_cutoff_data 
+            WHERE college_name IS NOT NULL 
+            ORDER BY college_name
+        """)
+        
+        colleges = [row["college_name"] for row in cur.fetchall()]
+        cur.close()
+        conn.close()
+        
+        return jsonify(colleges if colleges else [])
+    except Exception as e:
+        logger.error(f"Error fetching colleges: {e}")
+        return jsonify([]), 500
+
+
+# ─── 9. POST /college-predictor/download-pdf ─────────────────
 @college_predictor_bp.route("/college-predictor/download-pdf", methods=["POST"])
 def download_pdf():
     """
@@ -830,9 +880,9 @@ def download_pdf():
         for idx, r in enumerate(results, start=1):
             chance  = r.get("admission_chance", "Dream")
             status  = "Autonomous" if r.get("is_autonomous") else (r.get("university") or "-")
-            fees    = f"\u20b9{int(r['fees']):,} / year" if r.get("fees") else "-"
+            fees    = f"\u20b9{int(float(r['fees'])):,} / year" if r.get("fees") else "-"
             cutoff  = f"{float(r['cutoff_percentile']):.2f} %ile" if r.get("cutoff_percentile") is not None else "-"
-            rank    = f"{int(r['cutoff_score']):,}" if r.get("cutoff_score") else "-"
+            rank    = f"{int(float(r['cutoff_score'])):,}" if r.get("cutoff_score") else "-"
             prob    = "80-95%" if chance == "Safe" else "50-79%" if chance == "Moderate" else "<50%"
             dist    = r.get("distance") or "-"
             table_data.append([
