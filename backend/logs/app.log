@@ -18763,3 +18763,273 @@
 2026-06-24 02:53:13,903 - reminder_scheduler - ERROR - Error updating for retry: value too long for type character varying(50)
 
 2026-06-24 02:53:14,626 - reminder_scheduler - ERROR - SMTP server disconnected - network issue
+2026-06-30 18:03:49,169 - main - INFO - [Startup] Calling start_monitor...
+2026-06-30 18:03:49,181 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-30 18:03:49,181 - apscheduler.scheduler - INFO - Added job "_scheduled_check" to job store "default"
+2026-06-30 18:03:49,181 - apscheduler.scheduler - INFO - Scheduler started
+2026-06-30 18:03:49,182 - main - INFO - [Startup] start_monitor returned: True
+2026-06-30 18:03:49,182 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-30 18:03:49,182 - apscheduler.scheduler - INFO - Added job "fire_due_reminders" to job store "default"
+2026-06-30 18:03:49,182 - apscheduler.scheduler - INFO - Scheduler started
+2026-06-30 18:03:49,183 - reminder_scheduler - INFO - ✓ ReminderScheduler started - checking every 60 seconds
+2026-06-30 18:03:49,183 - main - INFO - [Startup] Reminder scheduler started
+2026-06-30 18:04:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:05:49 UTC)" (scheduled at 2026-06-30 18:04:49.182616+00:00)
+2026-06-30 18:04:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:04:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:04:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:04:49,194 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:04:49,194 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:05:49 UTC)" executed successfully
+2026-06-30 18:05:20,343 - routes.college_predictor - INFO - [Predictor Upload] inserted=63531 skipped=0
+2026-06-30 18:05:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:06:49 UTC)" (scheduled at 2026-06-30 18:05:49.182616+00:00)
+2026-06-30 18:05:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:05:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:05:49,196 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:05:49,196 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:05:49,196 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:06:49 UTC)" executed successfully
+2026-06-30 18:06:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:07:49 UTC)" (scheduled at 2026-06-30 18:06:49.182616+00:00)
+2026-06-30 18:06:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:06:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:06:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:06:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:06:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:07:49 UTC)" executed successfully
+2026-06-30 18:07:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:08:49 UTC)" (scheduled at 2026-06-30 18:07:49.182616+00:00)
+2026-06-30 18:07:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:07:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:07:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:07:49,193 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:07:49,193 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:08:49 UTC)" executed successfully
+2026-06-30 18:08:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:09:49 UTC)" (scheduled at 2026-06-30 18:08:49.182616+00:00)
+2026-06-30 18:08:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:08:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:08:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:08:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:08:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:09:49 UTC)" executed successfully
+2026-06-30 18:09:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:10:49 UTC)" (scheduled at 2026-06-30 18:09:49.182616+00:00)
+2026-06-30 18:09:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:09:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:09:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:09:49,194 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:09:49,194 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:10:49 UTC)" executed successfully
+2026-06-30 18:10:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:11:49 UTC)" (scheduled at 2026-06-30 18:10:49.182616+00:00)
+2026-06-30 18:10:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:10:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:10:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:10:49,193 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:10:49,193 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:11:49 UTC)" executed successfully
+2026-06-30 18:11:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:12:49 UTC)" (scheduled at 2026-06-30 18:11:49.182616+00:00)
+2026-06-30 18:11:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:11:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:11:49,191 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:11:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:11:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:12:49 UTC)" executed successfully
+2026-06-30 18:12:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:13:49 UTC)" (scheduled at 2026-06-30 18:12:49.182616+00:00)
+2026-06-30 18:12:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:12:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:12:49,196 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:12:49,196 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:12:49,196 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:13:49 UTC)" executed successfully
+2026-06-30 18:13:49,182 - apscheduler.executors.default - INFO - Running job "_scheduled_check (trigger: interval[0:10:00], next run at: 2026-06-30 18:23:49 UTC)" (scheduled at 2026-06-30 18:13:49.181628+00:00)
+2026-06-30 18:13:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:14:49 UTC)" (scheduled at 2026-06-30 18:13:49.182616+00:00)
+2026-06-30 18:13:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:13:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:13:49,204 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:13:49,205 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:13:49,205 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:14:49 UTC)" executed successfully
+2026-06-30 18:13:54,541 - apscheduler.executors.default - INFO - Job "_scheduled_check (trigger: interval[0:10:00], next run at: 2026-06-30 18:23:49 UTC)" executed successfully
+2026-06-30 18:14:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:15:49 UTC)" (scheduled at 2026-06-30 18:14:49.182616+00:00)
+2026-06-30 18:14:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:14:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:14:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:14:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:14:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:15:49 UTC)" executed successfully
+2026-06-30 18:15:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:16:49 UTC)" (scheduled at 2026-06-30 18:15:49.182616+00:00)
+2026-06-30 18:15:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:15:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:15:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:15:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:15:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:16:49 UTC)" executed successfully
+2026-06-30 18:16:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:17:49 UTC)" (scheduled at 2026-06-30 18:16:49.182616+00:00)
+2026-06-30 18:16:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:16:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:16:49,195 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:16:49,195 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:16:49,195 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:17:49 UTC)" executed successfully
+2026-06-30 18:17:26,050 - routes.college_predictor - INFO - [Predictor Upload] inserted=63531 skipped=0
+2026-06-30 18:17:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:18:49 UTC)" (scheduled at 2026-06-30 18:17:49.182616+00:00)
+2026-06-30 18:17:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:17:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:17:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:17:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:17:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:18:49 UTC)" executed successfully
+2026-06-30 18:18:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:19:49 UTC)" (scheduled at 2026-06-30 18:18:49.182616+00:00)
+2026-06-30 18:18:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:18:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:18:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:18:49,193 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:18:49,193 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:19:49 UTC)" executed successfully
+2026-06-30 18:19:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:20:49 UTC)" (scheduled at 2026-06-30 18:19:49.182616+00:00)
+2026-06-30 18:19:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:19:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:19:49,195 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:19:49,195 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:19:49,195 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:20:49 UTC)" executed successfully
+2026-06-30 18:20:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:21:49 UTC)" (scheduled at 2026-06-30 18:20:49.182616+00:00)
+2026-06-30 18:20:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:20:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:20:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:20:49,193 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:20:49,193 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:21:49 UTC)" executed successfully
+2026-06-30 18:21:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:22:49 UTC)" (scheduled at 2026-06-30 18:21:49.182616+00:00)
+2026-06-30 18:21:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:21:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:21:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:21:49,194 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:21:49,194 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:22:49 UTC)" executed successfully
+2026-06-30 18:22:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:23:49 UTC)" (scheduled at 2026-06-30 18:22:49.182616+00:00)
+2026-06-30 18:22:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:22:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:22:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:22:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:22:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:23:49 UTC)" executed successfully
+2026-06-30 18:23:49,182 - apscheduler.executors.default - INFO - Running job "_scheduled_check (trigger: interval[0:10:00], next run at: 2026-06-30 18:33:49 UTC)" (scheduled at 2026-06-30 18:23:49.181628+00:00)
+2026-06-30 18:23:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:24:49 UTC)" (scheduled at 2026-06-30 18:23:49.182616+00:00)
+2026-06-30 18:23:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:23:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:23:49,200 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:23:49,200 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:23:49,200 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:24:49 UTC)" executed successfully
+2026-06-30 18:23:54,355 - apscheduler.executors.default - INFO - Job "_scheduled_check (trigger: interval[0:10:00], next run at: 2026-06-30 18:33:49 UTC)" executed successfully
+2026-06-30 18:24:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:25:49 UTC)" (scheduled at 2026-06-30 18:24:49.182616+00:00)
+2026-06-30 18:24:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:24:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:24:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:24:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:24:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:25:49 UTC)" executed successfully
+2026-06-30 18:25:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:26:49 UTC)" (scheduled at 2026-06-30 18:25:49.182616+00:00)
+2026-06-30 18:25:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:25:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:25:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:25:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:25:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:26:49 UTC)" executed successfully
+2026-06-30 18:26:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:27:49 UTC)" (scheduled at 2026-06-30 18:26:49.182616+00:00)
+2026-06-30 18:26:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:26:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:26:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:26:49,193 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:26:49,193 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:27:49 UTC)" executed successfully
+2026-06-30 18:27:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:28:49 UTC)" (scheduled at 2026-06-30 18:27:49.182616+00:00)
+2026-06-30 18:27:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:27:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:27:49,195 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:27:49,196 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:27:49,196 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:28:49 UTC)" executed successfully
+2026-06-30 18:28:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:29:49 UTC)" (scheduled at 2026-06-30 18:28:49.182616+00:00)
+2026-06-30 18:28:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:28:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:28:49,195 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:28:49,195 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:28:49,196 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:29:49 UTC)" executed successfully
+2026-06-30 18:29:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:30:49 UTC)" (scheduled at 2026-06-30 18:29:49.182616+00:00)
+2026-06-30 18:29:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:29:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:29:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:29:49,194 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:29:49,194 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:30:49 UTC)" executed successfully
+2026-06-30 18:30:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:31:49 UTC)" (scheduled at 2026-06-30 18:30:49.182616+00:00)
+2026-06-30 18:30:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:30:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:30:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:30:49,193 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:30:49,194 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:31:49 UTC)" executed successfully
+2026-06-30 18:31:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:32:49 UTC)" (scheduled at 2026-06-30 18:31:49.182616+00:00)
+2026-06-30 18:31:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:31:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:31:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:31:49,193 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:31:49,193 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:32:49 UTC)" executed successfully
+2026-06-30 18:32:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:33:49 UTC)" (scheduled at 2026-06-30 18:32:49.182616+00:00)
+2026-06-30 18:32:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:32:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:32:49,195 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:32:49,195 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:32:49,195 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:33:49 UTC)" executed successfully
+2026-06-30 18:33:49,182 - apscheduler.executors.default - INFO - Running job "_scheduled_check (trigger: interval[0:10:00], next run at: 2026-06-30 18:43:49 UTC)" (scheduled at 2026-06-30 18:33:49.181628+00:00)
+2026-06-30 18:33:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:34:49 UTC)" (scheduled at 2026-06-30 18:33:49.182616+00:00)
+2026-06-30 18:33:49,185 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:33:49,185 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:33:49,203 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:33:49,203 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:33:49,203 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:34:49 UTC)" executed successfully
+2026-06-30 18:33:50,496 - apscheduler.executors.default - INFO - Job "_scheduled_check (trigger: interval[0:10:00], next run at: 2026-06-30 18:43:49 UTC)" executed successfully
+2026-06-30 18:34:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:35:49 UTC)" (scheduled at 2026-06-30 18:34:49.182616+00:00)
+2026-06-30 18:34:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:34:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:34:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:34:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:34:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:35:49 UTC)" executed successfully
+2026-06-30 18:35:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:36:49 UTC)" (scheduled at 2026-06-30 18:35:49.182616+00:00)
+2026-06-30 18:35:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:35:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:35:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:35:49,193 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:35:49,193 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:36:49 UTC)" executed successfully
+2026-06-30 18:36:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:37:49 UTC)" (scheduled at 2026-06-30 18:36:49.182616+00:00)
+2026-06-30 18:36:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:36:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:36:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:36:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:36:49,192 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:37:49 UTC)" executed successfully
+2026-06-30 18:37:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:38:49 UTC)" (scheduled at 2026-06-30 18:37:49.182616+00:00)
+2026-06-30 18:37:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:37:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:37:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:37:49,194 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:37:49,194 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:38:49 UTC)" executed successfully
+2026-06-30 18:38:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:39:49 UTC)" (scheduled at 2026-06-30 18:38:49.182616+00:00)
+2026-06-30 18:38:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:38:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:38:49,194 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:38:49,194 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:38:49,194 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:39:49 UTC)" executed successfully
+2026-06-30 18:39:49,183 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:40:49 UTC)" (scheduled at 2026-06-30 18:39:49.182616+00:00)
+2026-06-30 18:39:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:39:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:39:49,193 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:39:49,194 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:39:49,194 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:40:49 UTC)" executed successfully
+2026-06-30 18:40:49,182 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:41:49 UTC)" (scheduled at 2026-06-30 18:40:49.182616+00:00)
+2026-06-30 18:40:49,183 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:40:49,183 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:40:49,192 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:40:49,192 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:40:49,193 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:41:49 UTC)" executed successfully
+2026-06-30 18:41:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:42:49 UTC)" (scheduled at 2026-06-30 18:41:49.182616+00:00)
+2026-06-30 18:41:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:41:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:41:49,194 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:41:49,195 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:41:49,195 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:42:49 UTC)" executed successfully
+2026-06-30 18:42:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:43:49 UTC)" (scheduled at 2026-06-30 18:42:49.182616+00:00)
+2026-06-30 18:42:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:42:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:42:49,194 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:42:49,195 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:42:49,195 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:43:49 UTC)" executed successfully
+2026-06-30 18:43:49,182 - apscheduler.executors.default - INFO - Running job "_scheduled_check (trigger: interval[0:10:00], next run at: 2026-06-30 18:53:49 UTC)" (scheduled at 2026-06-30 18:43:49.181628+00:00)
+2026-06-30 18:43:49,184 - apscheduler.executors.default - INFO - Running job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:44:49 UTC)" (scheduled at 2026-06-30 18:43:49.182616+00:00)
+2026-06-30 18:43:49,184 - reminder_scheduler - INFO - ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2026-06-30 18:43:49,184 - reminder_scheduler - INFO - 🔔 Starting reminder batch process...
+2026-06-30 18:43:49,200 - reminder_scheduler - INFO - Found 0 due schedules
+2026-06-30 18:43:49,200 - reminder_scheduler - INFO - No due reminders at this moment
+2026-06-30 18:43:49,200 - apscheduler.executors.default - INFO - Job "fire_due_reminders (trigger: interval[0:01:00], next run at: 2026-06-30 18:44:49 UTC)" executed successfully
+2026-06-30 18:43:54,398 - apscheduler.executors.default - INFO - Job "_scheduled_check (trigger: interval[0:10:00], next run at: 2026-06-30 18:53:49 UTC)" executed successfully
+2026-06-30 18:44:39,420 - main - INFO - [Startup] Calling start_monitor...
+2026-06-30 18:44:39,436 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-30 18:44:39,437 - apscheduler.scheduler - INFO - Added job "_scheduled_check" to job store "default"
+2026-06-30 18:44:39,437 - apscheduler.scheduler - INFO - Scheduler started
+2026-06-30 18:44:39,437 - main - INFO - [Startup] start_monitor returned: True
+2026-06-30 18:44:39,438 - apscheduler.scheduler - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-30 18:44:39,438 - apscheduler.scheduler - INFO - Added job "fire_due_reminders" to job store "default"
+2026-06-30 18:44:39,438 - apscheduler.scheduler - INFO - Scheduler started
+2026-06-30 18:44:39,438 - reminder_scheduler - INFO - ✓ ReminderScheduler started - checking every 60 seconds
+2026-06-30 18:44:39,438 - main - INFO - [Startup] Reminder scheduler started

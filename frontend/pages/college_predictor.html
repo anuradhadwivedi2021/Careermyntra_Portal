@@ -84,7 +84,6 @@
     /* Chip */
     .chip { display: inline-flex; align-items: center; gap: 4px; background: #1565c0; color: #fff; border-radius: 6px; padding: 3px 8px 3px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
     .chip.district { background: #7c3aed; }
-    .chip.university { background: #0891b2; }
     .chip-x { cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.8; margin-left: 2px; }
     .chip-x:hover { opacity: 1; }
 
@@ -403,101 +402,71 @@
 
     <div class="form-body">
 
-      <!-- 1. Student Name -->
+      <!-- Student Name -->
       <div class="field">
         <label><span class="ficon">🧑</span> Student Name <span class="req">*</span></label>
         <input type="text" id="student_name" placeholder="Enter student full name (e.g. Bushan Mahajan)"/>
         <span class="help">Name will appear on the prediction report</span>
       </div>
 
-      <!-- 2. Entrance Exam -->
-      <div class="field">
-        <label><span class="ficon">🖥️</span> Entrance Exam <span class="req">*</span></label>
-        <select id="exam_type" onchange="onExamChange()">
-          <option value="">Loading exams…</option>
-        </select>
-        <span class="help">Select the entrance exam you appeared for</span>
+      <!-- Course + Exam + Authority -->
+      <div>
+        <div class="section-title">Exam Details</div>
+        <div class="grid-2">
+          <div class="field">
+            <label><span class="ficon">📘</span> Course <span class="req">*</span></label>
+            <select id="course" onchange="onCourseChange()">
+              <option value="">Loading courses…</option>
+            </select>
+            <span class="help">Select the course type (B.Tech, M.Tech etc.)</span>
+          </div>
+          <div class="field">
+            <label><span class="ficon">🖥️</span> Entrance Exam <span class="req">*</span></label>
+            <select id="exam_type" onchange="onExamChange()">
+              <option value="MHT-CET">MHT CET – Maharashtra Common Entrance Test</option>
+              <option value="JEE Main">JEE Main – Joint Entrance Examination</option>
+            </select>
+            <span class="help">Choose the entrance exam you appeared for</span>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:18px;">
+          <div class="field">
+            <label><span class="ficon">🏛️</span> Admission Authority <span class="req">*</span></label>
+            <select id="authority">
+              <option value="Maharashtra State CAP">Maharashtra State CAP</option>
+            </select>
+            <span class="help">Choose admission authority</span>
+          </div>
+          <div class="field">
+            <label><span class="ficon">👤</span> Gender <span class="req">*</span></label>
+            <select id="gender">
+              <option value="">All Genders</option>
+              <option value="All">General (All)</option>
+              <option value="Female">Ladies</option>
+              <option value="Other">Transgender / Other</option>
+            </select>
+            <span class="help">Used for gender-wise reservation rules</span>
+          </div>
+        </div>
       </div>
 
-      <!-- 3. Course (auto-populated from exam) -->
-      <div class="field">
-        <label><span class="ficon">📘</span> Course <span class="req">*</span></label>
-        <select id="course" onchange="onCourseChange()">
-          <option value="">Select exam first</option>
-        </select>
-        <span class="help">Auto-populated based on selected Entrance Exam</span>
-      </div>
-
-      <!-- 4. Admission Authority (auto-populated from course) -->
-      <div class="field">
-        <label><span class="ficon">🏛️</span> Admission Authority <span class="req">*</span></label>
-        <select id="authority">
-          <option value="Maharashtra State CAP">Maharashtra State CAP</option>
-        </select>
-        <span class="help">Auto-populated based on selected Course</span>
-      </div>
-
-      <!-- 5. Percentile -->
+      <!-- Score -->
       <div class="field">
         <label><span class="ficon">⭐</span> Percentile <span class="req">*</span></label>
         <input type="number" id="percentile" placeholder="Enter your percentile (e.g. 88.45)" min="0" max="100" step="0.01"/>
         <span class="help">Enter your official percentile (0 – 100)</span>
       </div>
 
-      <!-- 6. Rank (optional) -->
+      <!-- Rank field -->
       <div class="field">
-        <label><span class="ficon">🏆</span> Rank <span style="font-size:11px;color:#9ca3af;font-weight:500;">(Optional)</span></label>
-        <input type="number" id="merit_rank" placeholder="Enter State Merit Rank or All India Rank (if available)"/>
-        <span class="help">Optional — enter if available</span>
+        <label><span class="ficon">🏆</span> Merit Rank / AIR <span style="font-size:11px;color:#9ca3af;font-weight:500;">(Optional)</span></label>
+        <input type="number" id="merit_rank" placeholder="Enter State Merit Rank or All India Rank"/>
+        <span class="help">Enter your State Merit Rank or AIR (if available)</span>
       </div>
 
-      <!-- 7. HSC Pass-out District (drives Home University quota) -->
+      <!-- District first, then Branch (filtered by district) -->
       <div class="field">
-        <label><span class="ficon">🏫</span> HSC (Class 12) Pass-out District <span class="req">*</span></label>
-        <select id="home_district" onchange="onHomeDistrictChange()">
-          <option value="">Select HSC pass-out district</option>
-        </select>
-        <span class="help">Used to determine your Home University and applicable quota</span>
-      </div>
-
-      <!-- Applicable Quota preview -->
-      <div class="info-box" id="quota-preview-box" style="display:none;">
-        <span class="iicon">🏠</span>
-        <div>
-          <h4>Your Home University</h4>
-          <p id="quota-preview-text">—</p>
-        </div>
-      </div>
-
-      <!-- 8. Preferred Universities (multi-select) -->
-      <div class="field">
-        <label><span class="ficon">🏛️</span> Preferred Universities</label>
-        <div class="ms-wrap" id="university-wrap">
-          <div class="ms-box" id="university-box" onclick="togglePanel('university')">
-            <span class="ms-placeholder" id="university-ph">All Universities</span>
-            <span class="ms-arrow">▼</span>
-          </div>
-          <div class="ms-panel" id="university-panel">
-            <div class="ms-search-wrap">
-              <span>🔍</span>
-              <input class="ms-search" id="university-search" placeholder="Search universities..." oninput="filterOptions('university')" onclick="event.stopPropagation()"/>
-            </div>
-            <div class="ms-options" id="university-options"></div>
-            <div class="ms-footer">
-              <span class="ms-count" id="university-count">All Universities</span>
-              <div class="ms-actions">
-                <button class="ms-btn clear" onclick="clearAll('university');event.stopPropagation()">Clear All</button>
-                <button class="ms-btn done" onclick="closePanel('university');event.stopPropagation()">Done ✓</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <span class="help">Select preferred universities (optional, populated from data)</span>
-      </div>
-
-      <!-- 9. Interested Districts (multi-select) -->
-      <div class="field">
-        <label><span class="ficon">📍</span> Interested Districts</label>
+        <label><span class="ficon">📍</span> District</label>
         <div class="ms-wrap" id="district-wrap">
           <div class="ms-box" id="district-box" onclick="togglePanel('district')">
             <span class="ms-placeholder" id="district-ph">All Districts</span>
@@ -518,10 +487,10 @@
             </div>
           </div>
         </div>
-        <span class="help">Select districts you're interested in (filters branches below)</span>
+        <span class="help">Select district to filter branches (Default: All Districts)</span>
       </div>
 
-      <!-- 10. Preferred Branches — filtered by Course + Districts -->
+      <!-- Preferred Branches — filtered by district -->
       <div class="field">
         <label><span class="ficon">🎓</span> Preferred Branches</label>
         <div class="ms-wrap" id="branch-wrap">
@@ -534,7 +503,7 @@
               <span>🔍</span>
               <input class="ms-search" id="branch-search" placeholder="Search branches..." oninput="filterOptions('branch')" onclick="event.stopPropagation()"/>
             </div>
-            <div class="ms-options" id="branch-options"><div style="padding:12px;color:#9ca3af;font-size:13px;">Select a course first to filter branches</div></div>
+            <div class="ms-options" id="branch-options"><div style="padding:12px;color:#9ca3af;font-size:13px;">Select a district first to filter branches</div></div>
             <div class="ms-footer">
               <span class="ms-count" id="branch-count">0 selected</span>
               <div class="ms-actions">
@@ -544,7 +513,7 @@
             </div>
           </div>
         </div>
-        <span class="help">Filtered by selected Course and Interested Districts</span>
+        <span class="help">Select preferred branches (filtered from DB data)</span>
       </div>
 
       <!-- CAP Info box -->
@@ -556,7 +525,7 @@
         </div>
       </div>
 
-      <!-- 11 & 12. CAP Year + Round (dynamic from DB) -->
+      <!-- CAP Year + Round (dynamic from DB) -->
       <div>
         <div class="section-title">CAP Details</div>
         <div class="grid-2">
@@ -572,12 +541,12 @@
             <select id="cap_round">
               <option value="All Rounds">All Rounds (Recommended)</option>
             </select>
-            <span class="help">Default: All Rounds (Recommended)</span>
+            <span class="help">Select the specific CAP round for accurate predictions</span>
           </div>
         </div>
       </div>
 
-      <!-- 13. Reservation Details (Category) -->
+      <!-- Category + Home District -->
       <div>
         <div class="section-title">Reservation Details</div>
         <div class="grid-2">
@@ -589,16 +558,16 @@
             <span class="help">Select your category for accurate predictions</span>
           </div>
           <div class="field">
-            <label><span class="ficon">👤</span> Gender</label>
-            <select id="gender">
-              <option value="">All Genders</option>
+            <label><span class="ficon">🏫</span> HSC Pass-out District <span class="req">*</span></label>
+            <select id="home_district">
+              <option value="">Select home district</option>
             </select>
-            <span class="help">Used for gender-wise reservation rules</span>
+            <span class="help">Used to determine Home University quota eligibility</span>
           </div>
         </div>
       </div>
 
-      <!-- 14. Pin Code (full width) -->
+      <!-- Pin Code (full width) -->
       <div class="field">
         <label><span class="ficon">📮</span> Pin Code</label>
         <input type="text" id="pin_code" placeholder="Enter PIN Code (e.g. 411001)" maxlength="6"/>
@@ -669,14 +638,13 @@
 
   // ── State (dynamic from DB) ──
   const state = {
-    branch:     { selected: new Set(), options: [], open: false },
-    district:   { selected: new Set(), options: [], open: false },
-    university: { selected: new Set(), options: [], open: false },
+    branch:   { selected: new Set(), options: [], open: false },
+    district: { selected: new Set(), options: [], open: false },
   };
 
-  // ── Course change → reload branches (filtered by course + districts) ──
+  // ── Course change: reload branches ──
   async function onCourseChange() {
-    updateAuthority();
+    const course = document.getElementById('course').value;
     const districts = [...state.district.selected];
     await loadBranches(districts.length ? districts[0] : "");
   }
@@ -689,30 +657,20 @@
     renderChips('branch');
   }
 
-  // ── Exam change → reload Course options for that exam ──
-  async function onExamChange() {
-    await loadCourses();
-    await loadGenders();
-  }
-
-  // ── HSC District change → show Home University preview ──
-  function onHomeDistrictChange() {
-    const dist = document.getElementById('home_district').value;
-    const box = document.getElementById('quota-preview-box');
-    const txt = document.getElementById('quota-preview-text');
-    if (!dist) { box.style.display = 'none'; return; }
-    const homeUniv = DISTRICT_UNIVERSITY_MAP[dist];
-    box.style.display = 'flex';
-    txt.innerHTML = homeUniv
-      ? `Based on <strong>${dist}</strong>, your Home University is <strong>${homeUniv}</strong>. You'll get <strong>Home University Quota</strong> at matching colleges, <strong>Outside Home University Quota</strong> elsewhere, and <strong>State Quota</strong> always applies. Autonomous institutes use State Quota only.`
-      : `Home University could not be determined for <strong>${dist}</strong>. State Quota will be shown for all colleges.`;
+  // ── Exam change → authority update ──
+  function onExamChange() {
+    const e = document.getElementById('exam_type').value;
+    const a = document.getElementById('authority');
+    a.innerHTML = e === 'JEE Main'
+      ? '<option>All India Quota (AI)</option><option>Maharashtra State CAP</option>'
+      : '<option>Maharashtra State CAP</option>';
   }
 
   // ── Multi-select toggle ──
   function togglePanel(type) {
     const isOpen = state[type].open;
     // close all
-    ['branch','district','university'].forEach(t => { state[t].open = false; updateBoxState(t); });
+    ['branch','district'].forEach(t => { state[t].open = false; updateBoxState(t); });
     if (!isOpen) { state[type].open = true; updateBoxState(type); renderOptions(type); }
   }
   function closePanel(type) { state[type].open = false; updateBoxState(type); }
@@ -765,13 +723,12 @@
     const sel = [...state[type].selected];
     if (sel.length === 0) {
       ph.style.display = 'inline';
-      const PH_TEXT = { branch: 'Select branches (optional)', district: 'All Districts', university: 'All Universities' };
-      ph.textContent = PH_TEXT[type] || '';
+      ph.textContent = type === 'branch' ? 'Select branches (optional)' : 'All Districts';
     } else {
       ph.style.display = 'none';
       sel.forEach(v => {
         const chip = document.createElement('span');
-        chip.className = `chip ${type === 'district' ? 'district' : (type === 'university' ? 'university' : '')}`;
+        chip.className = `chip ${type === 'district' ? 'district' : ''}`;
         chip.innerHTML = `${v.length > 22 ? v.slice(0,20)+'…' : v} <span class="chip-x" onclick="removeChip(event,'${type}','${v}')">×</span>`;
         box.insertBefore(chip, box.querySelector('.ms-arrow'));
       });
@@ -788,16 +745,15 @@
 
   function updateCount(type) {
     const n = state[type].selected.size;
-    const total = state[type].options.length;
+    const total = type === 'branch' ? BRANCHES.length : state.district.options.length;
     const el = document.getElementById(`${type}-count`);
-    const ALL_LABEL = { district: 'All Districts', university: 'All Universities', branch: '0 selected' };
-    if (type === 'branch') el.textContent = `${n} of ${total} selected`;
-    else el.textContent = n === 0 ? ALL_LABEL[type] : `${n} of ${total} selected`;
+    if (type === 'district') el.textContent = n === 0 ? 'All Districts' : `${n} of ${total} selected`;
+    else el.textContent = `${n} of ${total} selected`;
   }
 
   // ── Close on outside click ──
   document.addEventListener('click', e => {
-    ['branch','district','university'].forEach(type => {
+    ['branch','district'].forEach(type => {
       if (state[type].open && !document.getElementById(`${type}-wrap`).contains(e.target)) {
         closePanel(type);
       }
@@ -836,11 +792,9 @@
 
   async function loadBranches(district) {
     try {
-      const course = document.getElementById('course')?.value || '';
-      const params = new URLSearchParams();
-      if (district) params.set('district', district);
-      if (course)   params.set('course', course);
-      const url = `${API}/college-predictor/branches${params.toString() ? '?' + params.toString() : ''}`;
+      const url = district
+        ? `${API}/college-predictor/branches?district=${encodeURIComponent(district)}`
+        : `${API}/college-predictor/branches`;
       const res = await fetch(url);
       const d = await res.json();
       state.branch.options = (d && d.length) ? d : FALLBACK_BRANCHES;
@@ -877,19 +831,11 @@
         catSel.innerHTML = d.categories.map(c => `<option value="${c}">${c}</option>`).join('');
       }
 
-      // Entrance Exam (from filter-options exam_types)
-      const examSel = document.getElementById('exam_type');
-      if (d.exam_types && d.exam_types.length) {
-        examSel.innerHTML = d.exam_types.map(e => `<option value="${e}">${e}</option>`).join('');
-      } else {
-        examSel.innerHTML = '<option value="MHT-CET">MHT CET – Maharashtra Common Entrance Test</option><option value="JEE Main">JEE Main – Joint Entrance Examination</option>';
-      }
-
-      // HSC Pass-out District (same list as Interested Districts)
+      // Home District
       const homeSel = document.getElementById('home_district');
       const districtList = state.district.options.length ? state.district.options : (d.districts || []);
       if (districtList.length) {
-        homeSel.innerHTML = '<option value="">Select HSC pass-out district</option>' +
+        homeSel.innerHTML = '<option value="">Select home district</option>' +
           districtList.map(dist => `<option value="${dist}">${dist}</option>`).join('');
       }
     } catch(e) { console.warn('Filter options load failed', e); }
@@ -899,59 +845,19 @@
     "B.E. / B.Tech", "M.E. / M.Tech", "MCA", "MBA", "B.Pharm", "Direct Second Year (DSE)"
   ];
 
-  // ── Course list — auto-populated based on selected Entrance Exam ──
-  async function loadGenders() {
-    try {
-      const res = await fetch(`${API}/college-predictor/genders`);
-      const d = await res.json();
-      const sel = document.getElementById('gender');
-      if (d.length) {
-        sel.innerHTML = '<option value="">All Genders</option>' +
-          d.map(g => `<option value="${g}">${g}</option>`).join('');
-      }
-    } catch(e) { console.warn('Gender load failed', e); }
-  }
-
   async function loadCourses() {
     try {
-      const exam = document.getElementById('exam_type')?.value || '';
-      const url = exam
-        ? `${API}/college-predictor/courses?exam_type=${encodeURIComponent(exam)}`
-        : `${API}/college-predictor/courses`;
-      const res = await fetch(url);
+      const res = await fetch(`${API}/college-predictor/courses`);
       const d = await res.json();
       const sel = document.getElementById('course');
       const courses = (d && d.length) ? d : FALLBACK_COURSES;
       sel.innerHTML = '<option value="">Select Course</option>' +
         courses.map(c => `<option value="${c}">${c}</option>`).join('');
+      // Auto-select B.E./B.Tech
       sel.value = courses[0] || '';
-      updateAuthority();
-      // Reload branches for the newly selected course
-      await loadBranches("");
     } catch(e) {
       const sel = document.getElementById('course');
       sel.innerHTML = FALLBACK_COURSES.map(c => `<option value="${c}">${c}</option>`).join('');
-    }
-
-  }
-
-  // ── Admission Authority — auto-populated based on selected Course ──
-  function updateAuthority() {
-    const exam = document.getElementById('exam_type')?.value || '';
-    const a = document.getElementById('authority');
-    a.innerHTML = exam === 'JEE Main'
-      ? '<option>All India Quota (AI)</option><option>Maharashtra State CAP</option>'
-      : '<option>Maharashtra State CAP</option>';
-  }
-
-  // ── Preferred Universities — load from DB ──
-  async function loadUniversities() {
-    try {
-      const res = await fetch(`${API}/college-predictor/universities`);
-      const d = await res.json();
-      state.university.options = (d && d.length) ? d : [];
-    } catch(e) {
-      state.university.options = [];
     }
   }
 
@@ -1006,60 +912,11 @@
     document.getElementById('home_district').selectedIndex = 0;
     document.getElementById('pin_code').value = '';
     document.getElementById('gender').selectedIndex = 0;
-    clearAll('branch'); clearAll('district'); clearAll('university');
-    document.getElementById('quota-preview-box').style.display = 'none';
+    clearAll('branch'); clearAll('district');
     document.getElementById('results-section').innerHTML = `
       <div class="state-box"><div class="icon">🎓</div><h3>Ready to Predict!</h3>
       <p>Fill in your details above and click "Get College Predictions".</p></div>`;
     showToast('Form reset ✓');
-  }
-
-  // ── Download real PDF (matches CareerMyntra report format) ──
-  async function downloadPDF() {
-    const btn = document.getElementById('pdf-btn');
-    const originalText = btn.textContent;
-    btn.textContent = '⏳ Generating...';
-    btn.disabled = true;
-
-    const name       = (document.getElementById('student_name')?.value || '').trim() || 'Student';
-    const category   = document.getElementById('category')?.value || '';
-    const percentile = document.getElementById('percentile')?.value || '';
-    const branches   = [...state.branch.selected];
-    const districts  = [...state.district.selected];
-
-    const payload = {
-      student: { name, category, percentile, branches, districts },
-      results: allResults,
-    };
-
-    try {
-      const res = await fetch(`${API}/college-predictor/download-pdf`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        showToast('❌ ' + (err.error || 'PDF generation failed'));
-        return;
-      }
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const safeName = name.replace(/[^A-Za-z0-9_\- ]/g, '').trim().replace(/\s+/g, '_');
-      a.download = `${safeName}_College_Prediction.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      showToast('✅ PDF downloaded!');
-    } catch (e) {
-      showToast('❌ Network error while generating PDF');
-    } finally {
-      btn.textContent = originalText;
-      btn.disabled = false;
-    }
   }
 
   // ── Predict ──
@@ -1082,7 +939,6 @@
       cap_round: document.getElementById('cap_round').value,
       branches: [...state.branch.selected],
       districts: [...state.district.selected],
-      universities: [...state.university.selected],
       gender:        document.getElementById('gender')?.value || '',
       home_district: document.getElementById('home_district')?.value || '',
       course: document.getElementById('course')?.value || '',
@@ -1159,7 +1015,7 @@
             <p>${subtitle}</p>
           </div>
           <div class="ssb-actions">
-            <button class="btn-print" id="pdf-btn" onclick="downloadPDF()">⬇️ Download PDF</button>
+            <button class="btn-print" onclick="window.print()">⬇️ Download PDF</button>
           </div>
         </div>
         <div class="ssb-body">
@@ -1354,7 +1210,7 @@
     const branch = r.branch_name || '—';
 
     // ── Gender label ───────────────────────────────────────
-    const GENDER_LABELS = { 'G':'General (All)', 'L':'Ladies', 'D':'Divyangjan', 'T':'Transgender', 'P':'Orphan', 'All':'All', 'E':'EWS', 'M':'Male', 'O':'Other' };
+    const GENDER_LABELS = { 'All':'All', 'Female':'Ladies', 'Male':'Male', 'Other':'Other', 'G':'General (All)', 'L':'Ladies', 'D':'Divyangjan', 'T':'Transgender', 'P':'Orphan', 'E':'EWS', 'M':'Male', 'O':'Other' };
     const genderLabel = r.gender_label ? (GENDER_LABELS[r.gender_label] || r.gender_label) : 'All';
 
     // ── Applicable Quota — from backend (already computed) ──
@@ -1427,9 +1283,9 @@
   // ── Init ──
   (async () => {
     await loadDistricts();
+    await loadBranches("");
     await loadFilterOptions();
     await loadCourses();
-    await loadUniversities();
     loadStats();
   })();
 </script>

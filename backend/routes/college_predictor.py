@@ -1,22 +1,12 @@
 # routes/college_predictor.py — College Predictor Blueprint
 # Handles: CAP cutoff CSV/Excel upload (admin), prediction API, district list
 
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify
 import os
 import io
 import pandas as pd
-from datetime import datetime
 from db import get_connection, get_cursor
 from logger_setup import get_logger
-
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib.units import mm
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
-)
-from reportlab.lib.enums import TA_LEFT
 
 logger = get_logger(__name__)
 college_predictor_bp = Blueprint("college_predictor", __name__)
@@ -32,21 +22,6 @@ def _chance_label(student_percentile, cutoff_percentile):
         return "Moderate"
     else:
         return "Dream"
-
-def _admission_probability(student_percentile, cutoff_percentile):
-    """
-    Returns admission probability as a percentage number (e.g. 96, 79, 54).
-    Based on margin between student's percentile and the cutoff percentile.
-    diff = +5 or more  -> ~96% (very safe)
-    diff =  0          -> ~75% (borderline)
-    diff = -5 or less  -> ~40% (tough)
-    """
-    if cutoff_percentile is None:
-        return 50
-    diff = float(student_percentile) - float(cutoff_percentile)
-    prob = 75 + (diff * 4.5)
-    prob = max(15, min(98, prob))
-    return round(prob)
 
 CHANCE_ORDER = {"Safe": 0, "Moderate": 1, "Dream": 2, "Unknown": 3}
 
@@ -240,7 +215,7 @@ def upload_cutoff():
         "course": "course_name",
         "university": "university",
         "category_simple": "category",    # Simplified category (OPEN, SC, ST...)
-        "sub_category": "category_full",  # Full code (GOPENS, GSCS...) — keep for reference
+        "category": "category_full",       # Full code (GOPENS, GSCS...) — keep for reference
         "gender": "gender_code",          # G, L, P, D, T, O, E, M
         "quota": "quota_code",            # S, H, N, I, O
         "percentile": "cutoff_percentile",
@@ -339,8 +314,8 @@ def upload_cutoff():
                 row.get("college_code"),
                 row.get("college_name"),
                 row.get("branch_name"),
-                str(row.get("district")).strip() if row.get("district") else None,
-                str(row.get("university")).strip() if row.get("university") else None,
+                row.get("district"),
+                row.get("university"),
                 row.get("cap_year"),
                 row.get("cap_round"),
                 row.get("category") or row.get("category_simple") or row.get("category_full"),
@@ -355,7 +330,7 @@ def upload_cutoff():
                 row.get("placement_average"),
                 row.get("website"),
                 row.get("address"),
-                str(row.get("gender_code")).strip().upper() if row.get("gender_code") else None,
+                _map_gender(row.get("gender_code")),
                 row.get("quota_code") or "S",
                 _check_autonomous(row.get("status_full")),
                 row.get("course_name"),
@@ -382,11 +357,7 @@ def upload_cutoff():
 def get_districts():
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute("""
-        SELECT DISTINCT TRIM(district) AS district FROM cap_cutoff_data
-        WHERE district IS NOT NULL AND TRIM(district) != ''
-        ORDER BY TRIM(district)
-    """)
+    cur.execute("SELECT DISTINCT district FROM cap_cutoff_data WHERE district IS NOT NULL ORDER BY district")
     rows = [r["district"] for r in cur.fetchall()]
     cur.close()
     conn.close()
@@ -490,11 +461,6 @@ def predict():
       districts: ["Pune", "Nashik"],  // optional, empty = all
       gender: "Male"
     }
-
-    Prediction Logic: ±5 Percentile Range
-    - Searches for cutoffs between (percentile - 5) and (percentile + 5)
-    - This gives a realistic list of probable admission opportunities
-      rather than a guaranteed Safe/Moderate/Dream classification.
     """
     data = request.get_json(silent=True) or {}
 
@@ -546,11 +512,6 @@ def predict():
     except (ValueError, TypeError):
         return jsonify({"error": "Percentile must be a number"}), 400
 
-    # ─── ±5 Percentile Range (Sir's logic) ───
-    PERCENTILE_RANGE = 5
-    min_percentile = max(0, percentile - PERCENTILE_RANGE)
-    max_percentile = min(100, percentile + PERCENTILE_RANGE)
-
     conn = get_connection()
     cur = get_cursor(conn)
 
@@ -559,9 +520,8 @@ def predict():
         "exam_type = %s",
         "category = %s",
         "cap_year = %s",
-        "cutoff_percentile BETWEEN %s AND %s",
     ]
-    params = [exam_type, category, cap_year, min_percentile, max_percentile]
+    params = [exam_type, category, cap_year]
 
     # Gender filter — include 'All' records always + gender-specific
     student_gender = data.get("gender", "")
@@ -605,9 +565,10 @@ def predict():
     cur.close()
     conn.close()
 
-    # Build results — no Safe/Moderate/Dream classification, just probable list
+    # Calculate chances and sort
     results = []
     for r in rows:
+        chance = _chance_label(percentile, r["cutoff_percentile"])
         results.append({
             "id":                 r["id"],
             "college_code":       r["college_code"],
@@ -629,20 +590,12 @@ def predict():
             "placement_average":  r["placement_average"],
             "website":            r["website"],
             "address":            r["address"],
+            "admission_chance":   chance,
             "gender_label":       r["gender"] if r["gender"] else "All",
             "quota_code":         r["quota_code"] if r["quota_code"] else "S",
             "is_autonomous":      r["is_autonomous"] if r["is_autonomous"] else False,
             "course_name":        r["course_name"] if r["course_name"] else "",
-            "probability":        _admission_probability(percentile, r["cutoff_percentile"]),
         })
-
-    # Remove duplicate college-branch combinations (keep highest cutoff per combo)
-    seen = {}
-    for r in results:
-        key = (r["college_name"], r["branch_name"], r["category"], r["quota_code"])
-        if key not in seen:
-            seen[key] = r
-    results = list(seen.values())
 
     # Compute applicable quota for each result based on student's home district
     home_univ = _get_home_university(home_district)
@@ -652,20 +605,28 @@ def predict():
         )
         r["home_university"] = home_univ or ""
 
-    # Sort by cutoff percentile closest to student's percentile first
-    results.sort(key=lambda x: -x["probability"])
+    # Sort: Safe first, then Moderate, then Dream, Unknown last
+    results.sort(key=lambda x: (CHANCE_ORDER.get(x["admission_chance"], 3),
+                                 -(x["cutoff_percentile"] or 0)))
+
+    safe     = [r for r in results if r["admission_chance"] == "Safe"]
+    moderate = [r for r in results if r["admission_chance"] == "Moderate"]
+    dream    = [r for r in results if r["admission_chance"] == "Dream"]
+    unknown  = [r for r in results if r["admission_chance"] == "Unknown"]
 
     return jsonify({
         "total": len(results),
         "student_percentile": percentile,
-        "percentile_range": {
-            "min": round(min_percentile, 2),
-            "max": round(max_percentile, 2),
+        "summary": {
+            "safe": len(safe),
+            "moderate": len(moderate),
+            "dream": len(dream),
         },
         "results": results
     })
 
 
+# ─── DEBUG: See exact values stored in DB ───────────────────
 @college_predictor_bp.route("/college-predictor/debug-values", methods=["GET"])
 def debug_values():
     conn = get_connection()
@@ -709,300 +670,3 @@ def clear_data():
     cur.close()
     conn.close()
     return jsonify({"message": msg})
-
-# ─── 7. GET /college-predictor/universities ─────────────────
-@college_predictor_bp.route("/college-predictor/universities", methods=["GET"])
-def get_universities():
-    """Returns list of unique universities from database"""
-    try:
-        conn = get_connection()
-        cur = get_cursor(conn)
-
-        cur.execute("""
-            SELECT DISTINCT TRIM(university) AS university
-            FROM cap_cutoff_data
-            WHERE university IS NOT NULL AND TRIM(university) != ''
-            ORDER BY TRIM(university)
-        """)
-
-        universities = [row["university"] for row in cur.fetchall()]
-        cur.close()
-        conn.close()
-
-        return jsonify(universities if universities else [])
-    except Exception as e:
-        logger.error(f"Error fetching universities: {e}")
-        return jsonify([]), 500
-
-
-# ─── 8. GET /college-predictor/colleges ─────────────────
-@college_predictor_bp.route("/college-predictor/colleges", methods=["GET"])
-def get_colleges():
-    """Returns list of unique colleges from database"""
-    try:
-        conn = get_connection()
-        cur = get_cursor(conn)
-        
-        cur.execute("""
-            SELECT DISTINCT college_name 
-            FROM cap_cutoff_data 
-            WHERE college_name IS NOT NULL 
-            ORDER BY college_name
-        """)
-        
-        colleges = [row["college_name"] for row in cur.fetchall()]
-        cur.close()
-        conn.close()
-        
-        return jsonify(colleges if colleges else [])
-    except Exception as e:
-        logger.error(f"Error fetching colleges: {e}")
-        return jsonify([]), 500
-
-
-# ─── 9. POST /college-predictor/download-pdf ─────────────────
-@college_predictor_bp.route("/college-predictor/download-pdf", methods=["POST"])
-def download_pdf():
-    """
-    Generates a College Prediction Report PDF in the CareerMyntra branded
-    format: header banner with logo + contact info, plain student detail
-    lines, "College Prediction List" table (Sr/College/Branch/Status/
-    District/Cut-off/Rank/Fees/Probability/Distance), green-blue bordered
-    page frame, and a Counsellor's Note footer.
-    Body: { student: {...}, results: [...] }
-    """
-    try:
-        data = request.get_json(silent=True) or {}
-        student = data.get("student", {}) or {}
-        results = data.get("results", []) or []
-
-        name        = (student.get("name") or "Student").strip()
-        category    = student.get("category") or ""
-        percentile  = student.get("percentile") or ""
-        branches    = student.get("branches") or []
-        districts   = student.get("districts") or []
-        exam_type   = student.get("exam_type") or "MHT-CET"
-
-        logo_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "..", "frontend", "images", "logo.jpeg"
-        )
-        logo_path = os.path.normpath(logo_path)
-
-        buf = io.BytesIO()
-
-        PAGE_W, PAGE_H = A4
-        MARGIN = 16 * mm
-
-        doc = SimpleDocTemplate(
-            buf, pagesize=A4,
-            topMargin=MARGIN, bottomMargin=MARGIN,
-            leftMargin=MARGIN, rightMargin=MARGIN,
-        )
-        styles = getSampleStyleSheet()
-        story = []
-
-        # ── Header banner (logo + tagline + contact) ──
-        brand_blue  = colors.HexColor("#1565c0")
-        brand_dark  = colors.HexColor("#0d47a1")
-        brand_green = colors.HexColor("#16a34a")
-        text_dark   = colors.HexColor("#0d1b3e")
-        text_muted  = colors.HexColor("#374151")
-
-        tagline_style = ParagraphStyle(
-            "Tagline", parent=styles["Normal"], fontSize=13, fontName="Helvetica-Bold",
-            textColor=colors.white, alignment=1,
-        )
-        contact_style = ParagraphStyle(
-            "Contact", parent=styles["Normal"], fontSize=9,
-            textColor=colors.white, alignment=1,
-        )
-
-        header_cells = []
-        if os.path.exists(logo_path):
-            try:
-                from reportlab.platypus import Image as RLImage
-                logo_img = RLImage(logo_path, width=22 * mm, height=22 * mm)
-                header_cells.append(logo_img)
-            except Exception:
-                pass
-
-        title_block = [Paragraph(
-            "<font size=18 color='white'><b>CAREER MYNTRA</b></font>",
-            ParagraphStyle("LogoText", alignment=1)
-        )]
-        if header_cells:
-            header_row = Table(
-                [[header_cells[0], Paragraph(
-                    "<font size=18 color='white'><b>CAREER MYNTRA</b></font>",
-                    ParagraphStyle("LogoTxt", alignment=0)
-                )]],
-                colWidths=[24 * mm, 140 * mm],
-            )
-        else:
-            header_row = Table([title_block], colWidths=[164 * mm])
-        header_row.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ALIGN", (0, 0), (0, 0), "CENTER"),
-        ]))
-
-        banner_inner = Table(
-            [[header_row],
-             [Paragraph("Aptitude Test | Mock Exams | Admission Guidance | Skills Dev. | Jobs", tagline_style)],
-             [Paragraph("&#9742; +91 98609 38338 &nbsp;&nbsp; &#9993; info@careermyntra.com &nbsp;&nbsp; &#127760; https://careermyntra.com", contact_style)]],
-            colWidths=[(PAGE_W - 2 * MARGIN)],
-        )
-        banner_inner.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), brand_blue),
-            ("BACKGROUND", (0, 1), (-1, 1), brand_green),
-            ("BACKGROUND", (0, 2), (-1, 2), brand_blue),
-            ("TOPPADDING", (0, 0), (-1, 0), 10),
-            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
-            ("TOPPADDING", (0, 1), (-1, 1), 6),
-            ("BOTTOMPADDING", (0, 1), (-1, 1), 6),
-            ("TOPPADDING", (0, 2), (-1, 2), 6),
-            ("BOTTOMPADDING", (0, 2), (-1, 2), 6),
-            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ]))
-        story.append(banner_inner)
-        story.append(Spacer(1, 14))
-
-        # ── Student detail lines (plain text, like the sample) ──
-        line_style = ParagraphStyle(
-            "DetailLine", parent=styles["Normal"], fontSize=10.5,
-            textColor=text_dark, spaceAfter=6, leading=14,
-        )
-
-        def detail_line(label, value):
-            if not value:
-                return None
-            return Paragraph(f"<b>{label}:</b> {value}", line_style)
-
-        for p in [
-            detail_line("Full Name", name),
-            detail_line("Caste Category", category),
-            detail_line(f"{exam_type} Percentile", percentile),
-            detail_line("Preferred Branches", ", ".join(branches) if branches else None),
-            detail_line("Preferred City", ", ".join(districts) if districts else None),
-        ]:
-            if p:
-                story.append(p)
-
-        story.append(Spacer(1, 6))
-
-        # ── "College Prediction List" heading ──
-        heading_style = ParagraphStyle(
-            "ListHeading", parent=styles["Heading2"], fontSize=13,
-            textColor=text_dark, alignment=1, spaceAfter=10,
-        )
-        story.append(Paragraph("College Prediction List", heading_style))
-
-        # ── Results table ──
-        cell_style = ParagraphStyle(
-            "Cell", parent=styles["Normal"], fontSize=8, leading=10, textColor=text_dark,
-        )
-        head_style = ParagraphStyle(
-            "Head", parent=styles["Normal"], fontSize=8.5, leading=10,
-            textColor=colors.white, fontName="Helvetica-Bold", alignment=1,
-        )
-
-        header_row_cells = [
-            Paragraph(h, head_style) for h in
-            ["Sr.", "College Name", "Branches", "Status", "District",
-             "Cut-off", "Rank", "Fees (\u20b9)", "Probability", "Distance"]
-        ]
-        table_data = [header_row_cells]
-
-        for idx, r in enumerate(results, start=1):
-            status  = "Autonomous" if r.get("is_autonomous") else (r.get("university") or "-")
-            fees    = f"\u20b9{int(float(r['fees'])):,} / year" if r.get("fees") else "-"
-            cutoff  = f"{float(r['cutoff_percentile']):.2f} %ile" if r.get("cutoff_percentile") is not None else "-"
-            rank    = f"{int(float(r['cutoff_score'])):,}" if r.get("cutoff_score") else "-"
-            prob    = f"{r.get('probability', 50)}% chance"
-            dist    = r.get("distance") or "-"
-            table_data.append([
-                Paragraph(str(idx), cell_style),
-                Paragraph(str(r.get("college_name", "")), cell_style),
-                Paragraph(str(r.get("branch_name", "")), cell_style),
-                Paragraph(status, cell_style),
-                Paragraph(r.get("district") or "-", cell_style),
-                Paragraph(f"<b>{cutoff}</b>", cell_style),
-                Paragraph(rank, cell_style),
-                Paragraph(fees, cell_style),
-                Paragraph(f"<b>{prob}</b>", cell_style),
-                Paragraph(str(dist), cell_style),
-            ])
-
-        col_widths = [8*mm, 34*mm, 28*mm, 24*mm, 16*mm, 16*mm, 14*mm, 18*mm, 16*mm, 14*mm]
-        rt = Table(table_data, colWidths=col_widths, repeatRows=1)
-        rt.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), brand_blue),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#9ca3af")),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ALIGN", (0, 0), (0, -1), "CENTER"),
-            ("ALIGN", (5, 0), (-1, -1), "CENTER"),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8faff")]),
-        ]))
-        story.append(rt)
-        story.append(Spacer(1, 16))
-
-        # ── Counsellor's Note ──
-        note_title_style = ParagraphStyle(
-            "NoteTitle", parent=styles["Normal"], fontSize=10.5,
-            fontName="Helvetica-Bold", textColor=text_dark, spaceAfter=6,
-        )
-        note_item_style = ParagraphStyle(
-            "NoteItem", parent=styles["Normal"], fontSize=8.3,
-            textColor=text_muted, leading=11, spaceAfter=4,
-        )
-        story.append(Paragraph("Counsellor's Note", note_title_style))
-        notes = [
-            "This list is a <b>prediction</b> based on your score/rank and is not an official CAP allotment or admission list.",
-            "The predictions are prepared using <b>previous CAP cut-offs, your category, rank, institute trends, seat availability</b>, and other admission parameters.",
-            "The <b>Probability (%)</b> indicates the likelihood of admission based on available data. It is meant to help you make informed decisions while filling your CAP option form and <b>does not guarantee admission</b>.",
-            "The <b>fees shown are approximate annual tuition fees</b>. The actual payable fees may vary depending on your category, scholarship eligibility, admission quota, and the institute's latest fee structure.",
-            "Cut-offs may change every year based on the number of applicants, seat availability, reservation policies, and students' option preferences.",
-            "We recommend including a <b>balanced mix of Dream, Target, and Safe colleges</b> in your option form to maximize your chances of securing admission.",
-            "Before confirming admission, please verify the latest fee structure, eligibility, and admission rules from the respective institute and the official CAP notifications.",
-            "For the best admission outcome, consult your counsellor before finalizing your college preferences and option form.",
-        ]
-        for i, n in enumerate(notes, start=1):
-            story.append(Paragraph(f"{i}. {n}", note_item_style))
-
-        # ── Page frame (green/blue border) + footer address ──
-        def draw_frame(canvas, doc_):
-            canvas.saveState()
-            canvas.setStrokeColor(brand_green)
-            canvas.setLineWidth(3)
-            canvas.rect(6 * mm, 6 * mm, PAGE_W - 12 * mm, PAGE_H - 12 * mm)
-            canvas.setStrokeColor(brand_blue)
-            canvas.setLineWidth(1)
-            canvas.rect(8 * mm, 8 * mm, PAGE_W - 16 * mm, PAGE_H - 16 * mm)
-
-            # Footer bar
-            canvas.setFillColor(brand_blue)
-            canvas.rect(6 * mm, 6 * mm, PAGE_W - 12 * mm, 10 * mm, fill=1, stroke=0)
-            canvas.setFillColor(colors.white)
-            canvas.setFont("Helvetica", 8)
-            canvas.drawCentredString(
-                PAGE_W / 2, 9.5 * mm,
-                "Sunny Pride, JM Road, Z Bridge, Deccan Gymkhana, Pune, Maharashtra 411004"
-            )
-            canvas.restoreState()
-
-        doc.build(story, onFirstPage=draw_frame, onLaterPages=draw_frame)
-        buf.seek(0)
-
-        safe_name = "".join(c for c in name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
-        filename = f"{safe_name or 'Student'}_Cut-off_Analysis.pdf"
-
-        return send_file(
-            buf, mimetype="application/pdf",
-            as_attachment=True, download_name=filename,
-        )
-
-    except Exception as e:
-        logger.exception("PDF generation failed")
-        return jsonify({"error": f"PDF generation failed: {str(e)}"}), 500

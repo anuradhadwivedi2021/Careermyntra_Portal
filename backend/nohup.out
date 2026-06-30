@@ -1,0 +1,10 @@
+[2026-06-29 10:15:50 +0000] [911936] [INFO] Starting gunicorn 26.0.0
+[2026-06-29 10:15:50 +0000] [911936] [INFO] Listening at: http://0.0.0.0:5000 (911936)
+[2026-06-29 10:15:50 +0000] [911936] [INFO] Using worker: gthread
+[2026-06-29 10:15:50 +0000] [911938] [INFO] Booting worker with pid: 911938
+[2026-06-29 10:15:50 +0000] [911936] [INFO] Control socket listening at /run/user/0/gunicorn.ctl
+[2026-06-29 10:16:08 +0000] [911967] [INFO] Starting gunicorn 26.0.0
+[2026-06-29 10:16:08 +0000] [911967] [INFO] Listening at: http://0.0.0.0:5000 (911967)
+[2026-06-29 10:16:08 +0000] [911967] [INFO] Using worker: gthread
+[2026-06-29 10:16:08 +0000] [911968] [INFO] Booting worker with pid: 911968
+[2026-06-29 10:16:08 +0000] [911967] [INFO] Control socket listening at /run/user/0/gunicorn.ctl
