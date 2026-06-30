@@ -841,10 +841,12 @@
         examSel.innerHTML = d.exam_types.map(e => `<option value="${e}">${e}</option>`).join('');
       }
 
-      // Admission Authority — dynamic from Excel seat_type/quota data
+      // Admission Authority — fully dynamic from Excel 'Admission Authority' column
       const authSel = document.getElementById('authority');
-      if (d.seat_types && d.seat_types.length) {
-        authSel.innerHTML = d.seat_types.map(s => `<option value="${s}">${s}</option>`).join('');
+      if (d.admission_authorities && d.admission_authorities.length) {
+        authSel.innerHTML = d.admission_authorities.map(s => `<option value="${s}">${s}</option>`).join('');
+      } else {
+        authSel.innerHTML = '<option value="Maharashtra State CAP">Maharashtra State CAP</option>';
       }
 
       // Home District
@@ -937,6 +939,54 @@
 
   // ── Predict ──
   let allResults = [];
+  // ── Download real PDF (matches CareerMyntra report format) ──
+  async function downloadPDF() {
+    const btn = document.getElementById('pdf-btn');
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Generating...';
+    btn.disabled = true;
+
+    const name       = (document.getElementById('student_name')?.value || '').trim() || 'Student';
+    const category   = document.getElementById('category')?.value || '';
+    const percentile = document.getElementById('percentile')?.value || '';
+    const branches   = [...state.branch.selected];
+    const districts  = [...state.district.selected];
+
+    const payload = {
+      student: { name, category, percentile, branches, districts },
+      results: allResults,
+    };
+
+    try {
+      const res = await fetch(`${API}/college-predictor/download-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast('❌ ' + (err.error || 'PDF generation failed'));
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeName = name.replace(/[^A-Za-z0-9_\- ]/g, '').trim().replace(/\s+/g, '_');
+      a.download = `${safeName}_College_Prediction.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('✅ PDF downloaded!');
+    } catch (e) {
+      showToast('❌ Network error while generating PDF');
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+
   async function runPredict() {
     const percentile = parseFloat(document.getElementById('percentile').value);
     if (isNaN(percentile) || percentile < 0 || percentile > 100) {
@@ -955,6 +1005,7 @@
       cap_round: document.getElementById('cap_round').value,
       branches: [...state.branch.selected],
       districts: [...state.district.selected],
+      universities: [...(state.university ? state.university.selected : [])],
       gender:        document.getElementById('gender')?.value || '',
       home_district: document.getElementById('home_district')?.value || '',
       course: document.getElementById('course')?.value || '',
@@ -1031,7 +1082,7 @@
             <p>${subtitle}</p>
           </div>
           <div class="ssb-actions">
-            <button class="btn-print" onclick="window.print()">⬇️ Download PDF</button>
+            <button class="btn-print" id="pdf-btn" onclick="downloadPDF()">⬇️ Download PDF</button>
           </div>
         </div>
         <div class="ssb-body">

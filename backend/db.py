@@ -367,6 +367,7 @@ def init_db():
         "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS quota_code VARCHAR(10) DEFAULT 'S'",
         "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS is_autonomous BOOLEAN DEFAULT FALSE",
         "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS course_name VARCHAR(100)",
+        "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS admission_authority VARCHAR(200)",
     ]:
         try:
             cur.execute(col_sql)
