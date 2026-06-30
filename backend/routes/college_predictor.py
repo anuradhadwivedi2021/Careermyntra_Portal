@@ -215,7 +215,6 @@ def upload_cutoff():
         "course": "course_name",
         "university": "university",
         "category_simple": "category",    # Simplified category (OPEN, SC, ST...)
-        "category": "category_full",       # Full code (GOPENS, GSCS...) — keep for reference
         "gender": "gender_code",          # G, L, P, D, T, O, E, M
         "quota": "quota_code",            # S, H, N, I, O
         "percentile": "cutoff_percentile",
