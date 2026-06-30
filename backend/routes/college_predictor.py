@@ -1,30 +1,31 @@
 # routes/college_predictor.py — College Predictor Blueprint
 # Handles: CAP cutoff CSV/Excel upload (admin), prediction API, district list
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 import os
 import io
-import re
 import pandas as pd
+from datetime import datetime
 from db import get_connection, get_cursor
 from logger_setup import get_logger
+
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.units import mm
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
+)
+from reportlab.lib.enums import TA_LEFT
 
 logger = get_logger(__name__)
 college_predictor_bp = Blueprint("college_predictor", __name__)
 
-# ─── Helper: chance label based on percentile vs cutoff ─────
+# ─── Helper: ±5 percentile range — all results are "Probable" ─────────
 def _chance_label(student_percentile, cutoff_percentile):
-    if cutoff_percentile is None:
-        return "Unknown"
-    diff = float(student_percentile) - float(cutoff_percentile)
-    if diff >= 5:
-        return "Safe"
-    elif diff >= 0:
-        return "Moderate"
-    else:
-        return "Dream"
+    return "Probable"
 
-CHANCE_ORDER = {"Safe": 0, "Moderate": 1, "Dream": 2, "Unknown": 3}
+CHANCE_ORDER = {"Probable": 0}
 
 # ─── Helper functions for Excel column mapping ───────────────
 
@@ -187,41 +188,56 @@ def upload_cutoff():
     except Exception as e:
         return jsonify({"error": f"File read error: {str(e)}"}), 400
 
-    # ── Normalize column names: strip, lowercase, spaces→underscore ──
-    df = df.rename(columns={c: c.strip().lower().replace(" ", "_") for c in df.columns})
+    # Normalize column names
+    # Normalize column names but preserve category(1)
+    new_cols = {}
+    for c in df.columns:
+        normalized = c.strip().lower().replace(" ", "_")
+        new_cols[c] = normalized
+    df = df.rename(columns=new_cols)
 
-    # Fix common misspellings in source files
-    if "admission_autherity" in df.columns:
-        df = df.rename(columns={"admission_autherity": "admission_authority"})
+    # Special fix: category(1) → category_1_ after normalize — rename to category_simple
+    if 'category(1)' in df.columns:
+        df = df.rename(columns={'category(1)': 'category_simple'})
+    # Also handle post-normalization name
+    for col in df.columns:
+        if '(1)' in col or col in ('category_1_', 'category_(1)', 'category(1)'):
+            df = df.rename(columns={col: 'category_simple'})
+            break
 
-    # If both 'category' and 'category(1)' exist, 'category' is the FULL code
-    # (e.g. GOPENS) and 'category(1)' is the SIMPLE code (e.g. OPEN) we want.
-    # Rename in the right order so the simple one wins.
-    if "category(1)" in df.columns:
-        if "category" in df.columns:
-            df = df.rename(columns={"category": "category_full"})
-        df = df.rename(columns={"category(1)": "category"})
-
-    # ── Column alias mapping — handle different source file formats ──
+    # ── Column alias mapping — handle different CSV formats ──
     ALIASES = {
-        "institute_code":      "college_code",
-        "inst_code":           "college_code",
-        "institute_name":      "college_name",
-        "inst_name":           "college_name",
-        "branch":              "branch_name",
-        "branch_code":         "branch_code",
-        "course":              "course_name",
-        "gender":              "gender_code",     # G, L, P, D, T, O, E, M
-        "quota":               "quota_code",      # S, H, N, I, O
-        "percentile":          "cutoff_percentile",
-        "rank":                "cutoff_score",
-        "year":                "cap_year",
-        "cap_round":           "cap_round",
-        "round":               "cap_round",
-        "status":              "status_full",     # Full status string
-        "entrance_exam":       "exam_type",
-        "admission_authority": "admission_authority",
-        "sub_category":        "sub_category",
+        "institute_code": "college_code", "inst_code": "college_code",
+        "institute_name": "college_name", "inst_name": "college_name",
+        # Direct column renames
+        "institute name": "college_name",
+        "institute code": "college_code",
+        "branch": "branch_name",
+        "branch code": "branch_code",
+        "course": "course_name",
+        "university": "university",
+        "category_simple": "category",    # Simplified category (OPEN, SC, ST...)
+        "sub_category": "category_full",  # Full code (GOPENS, GSCS...) — keep for reference
+        "gender": "gender_code",          # G, L, P, D, T, O, E, M
+        "quota": "quota_code",            # S, H, N, I, O
+        "percentile": "cutoff_percentile",
+        "rank": "cutoff_score",
+        "year": "cap_year",
+        "cap round": "cap_round",
+        "district": "district",
+        "address": "address",
+        "pincode": "pincode",
+        "status": "status_full",          # Full status string
+        # Also handle already-mapped names
+        "course_name": "course_name",
+        "branch_name": "branch_name",
+        "is_autonomous": "is_autonomous",
+        "category(1)": "category",
+        "percentile": "cutoff_percentile", "cutoff": "cutoff_percentile",
+        "year": "cap_year",
+        "cap_round": "cap_round", "round": "cap_round",
+        "rank": "cutoff_score",
+        "quota": "seat_type",
     }
     df.rename(columns={k: v for k, v in ALIASES.items() if k in df.columns}, inplace=True)
 
@@ -267,47 +283,46 @@ def upload_cutoff():
                     cutoff_percentile, cutoff_score, fees, naac_grade,
                     nba_accredited, placement_highest, placement_average,
                     website, address,
-                    gender, quota_code, is_autonomous, course_name, admission_authority
+                    gender, quota_code, is_autonomous, course_name
                 ) VALUES (
                     %s,%s,%s,%s,%s,
                     %s,%s,%s,%s,%s,
                     %s,%s,%s,%s,
                     %s,%s,%s,
                     %s,%s,
-                    %s,%s,%s,%s,%s
+                    %s,%s,%s,%s
                 )
                 ON CONFLICT (college_name, branch_name, cap_year, cap_round, category, seat_type)
                 DO UPDATE SET
-                    college_code         = EXCLUDED.college_code,
-                    district             = EXCLUDED.district,
-                    university           = EXCLUDED.university,
-                    exam_type            = EXCLUDED.exam_type,
-                    cutoff_percentile    = EXCLUDED.cutoff_percentile,
-                    cutoff_score         = EXCLUDED.cutoff_score,
-                    fees                 = EXCLUDED.fees,
-                    naac_grade           = EXCLUDED.naac_grade,
-                    nba_accredited       = EXCLUDED.nba_accredited,
-                    placement_highest    = EXCLUDED.placement_highest,
-                    placement_average    = EXCLUDED.placement_average,
-                    website              = EXCLUDED.website,
-                    address              = EXCLUDED.address,
-                    gender               = EXCLUDED.gender,
-                    quota_code           = EXCLUDED.quota_code,
-                    is_autonomous        = EXCLUDED.is_autonomous,
-                    course_name          = EXCLUDED.course_name,
-                    admission_authority  = EXCLUDED.admission_authority,
-                    updated_at           = CURRENT_TIMESTAMP
+                    college_code      = EXCLUDED.college_code,
+                    district          = EXCLUDED.district,
+                    university        = EXCLUDED.university,
+                    exam_type         = EXCLUDED.exam_type,
+                    cutoff_percentile = EXCLUDED.cutoff_percentile,
+                    cutoff_score      = EXCLUDED.cutoff_score,
+                    fees              = EXCLUDED.fees,
+                    naac_grade        = EXCLUDED.naac_grade,
+                    nba_accredited    = EXCLUDED.nba_accredited,
+                    placement_highest = EXCLUDED.placement_highest,
+                    placement_average = EXCLUDED.placement_average,
+                    website           = EXCLUDED.website,
+                    address           = EXCLUDED.address,
+                    gender            = EXCLUDED.gender,
+                    quota_code        = EXCLUDED.quota_code,
+                    is_autonomous     = EXCLUDED.is_autonomous,
+                    course_name       = EXCLUDED.course_name,
+                    updated_at        = CURRENT_TIMESTAMP
             """, (
                 row.get("college_code"),
                 row.get("college_name"),
                 row.get("branch_name"),
-                row.get("district"),
-                row.get("university"),
+                str(row.get("district")).strip() if row.get("district") else None,
+                str(row.get("university")).strip() if row.get("university") else None,
                 row.get("cap_year"),
                 row.get("cap_round"),
-                row.get("category"),
+                row.get("category") or row.get("category_simple") or row.get("category_full"),
                 row.get("seat_type", "AI"),
-                row.get("exam_type") or "MHT-CET",
+                row.get("exam_type", "MHT-CET"),
                 row.get("cutoff_percentile"),
                 row.get("cutoff_score"),
                 row.get("fees"),
@@ -317,11 +332,10 @@ def upload_cutoff():
                 row.get("placement_average"),
                 row.get("website"),
                 row.get("address"),
-                _map_gender(row.get("gender_code")),
+                str(row.get("gender_code")).strip().upper() if row.get("gender_code") else None,
                 row.get("quota_code") or "S",
                 _check_autonomous(row.get("status_full")),
                 row.get("course_name"),
-                row.get("admission_authority"),
             ))
             inserted += 1
         except Exception as e:
@@ -359,68 +373,44 @@ def get_districts():
 # ─── NEW: GET /college-predictor/courses — unique course/branch types ──
 @college_predictor_bp.route("/college-predictor/courses", methods=["GET"])
 def get_courses():
-    """Returns distinct course_name values, optionally filtered by exam_type"""
-    exam_type = request.args.get("exam_type", "")
+    """Returns distinct branch values from 'branch' column (B.Tech, M.Tech etc)"""
     conn = get_connection()
     cur = get_cursor(conn)
-    if exam_type:
-        cur.execute("""
-            SELECT DISTINCT course_name FROM cap_cutoff_data
-            WHERE exam_type = %s AND course_name IS NOT NULL
-            ORDER BY course_name
-        """, (exam_type,))
-    else:
-        cur.execute("""
-            SELECT DISTINCT course_name FROM cap_cutoff_data
-            WHERE course_name IS NOT NULL
-            ORDER BY course_name
-        """)
-    courses = [r["course_name"] for r in cur.fetchall()]
+    # 'branch' column in CSV maps to branch_name in DB but contains course type
+    # We store it as branch_name — get distinct top-level course names
+    cur.execute("""
+        SELECT DISTINCT branch_name FROM cap_cutoff_data
+        WHERE branch_name IS NOT NULL
+        ORDER BY branch_name
+    """)
+    # Return unique course types — group by first word to get B.Tech, M.Tech etc
+    all_branches = [r["branch_name"] for r in cur.fetchall()]
     cur.close()
     conn.close()
+    # Extract course type (B.Tech, M.Tech etc) from branch names
+    courses = sorted(set(b.split(" - ")[0].strip() if " - " in b else b.split(",")[0].strip() for b in all_branches))
     return jsonify(courses)
 
 
-# ─── NEW: GET /college-predictor/universities — unique university list ──
-@college_predictor_bp.route("/college-predictor/universities", methods=["GET"])
-def get_universities():
-    conn = get_connection()
-    cur = get_cursor(conn)
-    cur.execute("""
-        SELECT DISTINCT university FROM cap_cutoff_data
-        WHERE university IS NOT NULL AND university != ''
-        ORDER BY university
-    """)
-    rows = [r["university"] for r in cur.fetchall()]
-    cur.close()
-    conn.close()
-    return jsonify(rows)
-
-
-# ─── GET /college-predictor/branches?district=Pune&course=B.Tech ────
+# ─── NEW: GET /college-predictor/branches?district=Pune ─────
 @college_predictor_bp.route("/college-predictor/branches", methods=["GET"])
 def get_branches():
-    """Returns distinct branch_name values, optionally filtered by district and/or course"""
+    """Returns distinct branch_name values, optionally filtered by district"""
     district = request.args.get("district", "")
-    course   = request.args.get("course", "")
     conn = get_connection()
     cur = get_cursor(conn)
-
-    where  = ["branch_name IS NOT NULL"]
-    params = []
     if district:
-        where.append("district = %s")
-        params.append(district)
-    if course:
-        where.append("course_name = %s")
-        params.append(course)
-
-    where_sql = " AND ".join(where)
-    cur.execute(f"""
-        SELECT DISTINCT branch_name FROM cap_cutoff_data
-        WHERE {where_sql}
-        ORDER BY branch_name
-    """, params)
+        cur.execute("""
+            SELECT DISTINCT branch_name FROM cap_cutoff_data
+            WHERE district = %s AND branch_name IS NOT NULL
+            ORDER BY branch_name
+        """, (district,))
+    else:
+        cur.execute("""
+            SELECT DISTINCT branch_name FROM cap_cutoff_data
+            WHERE branch_name IS NOT NULL
+            ORDER BY branch_name
+        """)
     rows = [r["branch_name"] for r in cur.fetchall()]
     cur.close()
     conn.close()
@@ -441,16 +431,6 @@ def get_filter_options():
     categories = [r["category"] for r in cur.fetchall()]
     cur.execute("SELECT DISTINCT exam_type FROM cap_cutoff_data WHERE exam_type IS NOT NULL ORDER BY exam_type")
     exam_types = [r["exam_type"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT gender FROM cap_cutoff_data WHERE gender IS NOT NULL ORDER BY gender")
-    genders = [r["gender"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT seat_type FROM cap_cutoff_data WHERE seat_type IS NOT NULL ORDER BY seat_type")
-    seat_types = [r["seat_type"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT course_name FROM cap_cutoff_data WHERE course_name IS NOT NULL ORDER BY course_name")
-    course_names = [r["course_name"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT admission_authority FROM cap_cutoff_data WHERE admission_authority IS NOT NULL AND admission_authority != '' ORDER BY admission_authority")
-    authorities = [r["admission_authority"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT university FROM cap_cutoff_data WHERE university IS NOT NULL AND university != '' ORDER BY university")
-    universities = [r["university"] for r in cur.fetchall()]
     cur.close()
     conn.close()
     return jsonify({
@@ -458,11 +438,6 @@ def get_filter_options():
         "rounds": rounds,
         "categories": categories,
         "exam_types": exam_types,
-        "genders": genders,
-        "seat_types": seat_types,
-        "course_names": course_names,
-        "admission_authorities": authorities,
-        "universities": universities,
     })
 
 
@@ -481,6 +456,11 @@ def predict():
       districts: ["Pune", "Nashik"],  // optional, empty = all
       gender: "Male"
     }
+
+    Prediction Logic: ±5 Percentile Range
+    - Searches for cutoffs between (percentile - 5) and (percentile + 5)
+    - This gives a realistic list of probable admission opportunities
+      rather than a guaranteed Safe/Moderate/Dream classification.
     """
     data = request.get_json(silent=True) or {}
 
@@ -491,7 +471,6 @@ def predict():
     cap_round   = data.get("cap_round", "All Rounds")
     branches     = data.get("branches", [])
     districts    = data.get("districts", [])
-    universities = data.get("universities", [])
     home_district = data.get("home_district", "")
 
     # Normalize frontend display values to DB values
@@ -533,6 +512,11 @@ def predict():
     except (ValueError, TypeError):
         return jsonify({"error": "Percentile must be a number"}), 400
 
+    # ─── ±5 Percentile Range (Sir's logic) ───
+    PERCENTILE_RANGE = 5
+    min_percentile = max(0, percentile - PERCENTILE_RANGE)
+    max_percentile = min(100, percentile + PERCENTILE_RANGE)
+
     conn = get_connection()
     cur = get_cursor(conn)
 
@@ -541,8 +525,9 @@ def predict():
         "exam_type = %s",
         "category = %s",
         "cap_year = %s",
+        "cutoff_percentile BETWEEN %s AND %s",
     ]
-    params = [exam_type, category, cap_year]
+    params = [exam_type, category, cap_year, min_percentile, max_percentile]
 
     # Gender filter — include 'All' records always + gender-specific
     student_gender = data.get("gender", "")
@@ -561,13 +546,8 @@ def predict():
 
     if districts:
         placeholders = ",".join(["%s"] * len(districts))
-        where_clauses.append(f"TRIM(district) IN ({placeholders})")
+        where_clauses.append(f"district IN ({placeholders})")
         params.extend(districts)
-
-    if universities:
-        placeholders = ",".join(["%s"] * len(universities))
-        where_clauses.append(f"university IN ({placeholders})")
-        params.extend(universities)
 
     where_sql = " AND ".join(where_clauses)
 
@@ -580,7 +560,7 @@ def predict():
             fees, naac_grade, nba_accredited,
             placement_highest, placement_average,
             website, address,
-            gender, quota_code, is_autonomous, course_name, admission_authority
+            gender, quota_code, is_autonomous, course_name
         FROM cap_cutoff_data
         WHERE {where_sql}
         ORDER BY cutoff_percentile DESC
@@ -591,10 +571,9 @@ def predict():
     cur.close()
     conn.close()
 
-    # Calculate chances and sort
+    # Build results — no Safe/Moderate/Dream classification, just probable list
     results = []
     for r in rows:
-        chance = _chance_label(percentile, r["cutoff_percentile"])
         results.append({
             "id":                 r["id"],
             "college_code":       r["college_code"],
@@ -616,13 +595,20 @@ def predict():
             "placement_average":  r["placement_average"],
             "website":            r["website"],
             "address":            r["address"],
-            "admission_chance":   chance,
             "gender_label":       r["gender"] if r["gender"] else "All",
             "quota_code":         r["quota_code"] if r["quota_code"] else "S",
             "is_autonomous":      r["is_autonomous"] if r["is_autonomous"] else False,
             "course_name":        r["course_name"] if r["course_name"] else "",
-            "admission_authority": r["admission_authority"] if r["admission_authority"] else "",
+            "probability":        _admission_probability(percentile, r["cutoff_percentile"]),
         })
+
+    # Remove duplicate college-branch combinations (keep highest cutoff per combo)
+    seen = {}
+    for r in results:
+        key = (r["college_name"], r["branch_name"], r["category"], r["quota_code"])
+        if key not in seen:
+            seen[key] = r
+    results = list(seen.values())
 
     # Compute applicable quota for each result based on student's home district
     home_univ = _get_home_university(home_district)
@@ -632,28 +618,20 @@ def predict():
         )
         r["home_university"] = home_univ or ""
 
-    # Sort: Safe first, then Moderate, then Dream, Unknown last
-    results.sort(key=lambda x: (CHANCE_ORDER.get(x["admission_chance"], 3),
-                                 -(x["cutoff_percentile"] or 0)))
-
-    safe     = [r for r in results if r["admission_chance"] == "Safe"]
-    moderate = [r for r in results if r["admission_chance"] == "Moderate"]
-    dream    = [r for r in results if r["admission_chance"] == "Dream"]
-    unknown  = [r for r in results if r["admission_chance"] == "Unknown"]
+    # Sort by cutoff percentile closest to student's percentile first
+    results.sort(key=lambda x: -x["probability"])
 
     return jsonify({
         "total": len(results),
         "student_percentile": percentile,
-        "summary": {
-            "safe": len(safe),
-            "moderate": len(moderate),
-            "dream": len(dream),
+        "percentile_range": {
+            "min": round(min_percentile, 2),
+            "max": round(max_percentile, 2),
         },
         "results": results
     })
 
 
-# ─── DEBUG: See exact values stored in DB ───────────────────
 @college_predictor_bp.route("/college-predictor/debug-values", methods=["GET"])
 def debug_values():
     conn = get_connection()
@@ -698,197 +676,343 @@ def clear_data():
     conn.close()
     return jsonify({"message": msg})
 
-# ─── 6. POST /college-predictor/download-pdf ── Generate PDF ────────────────
+# ─── 7. GET /college-predictor/universities ─────────────────
+@college_predictor_bp.route("/college-predictor/universities", methods=["GET"])
+def get_universities():
+    """Returns list of unique universities from database"""
+    try:
+        conn = get_connection()
+        cur = get_cursor(conn)
+
+        cur.execute("""
+            SELECT DISTINCT TRIM(university) AS university
+            FROM cap_cutoff_data
+            WHERE university IS NOT NULL AND TRIM(university) != ''
+            ORDER BY TRIM(university)
+        """)
+
+        universities = [row["university"] for row in cur.fetchall()]
+        cur.close()
+        conn.close()
+
+        return jsonify(universities if universities else [])
+    except Exception as e:
+        logger.error(f"Error fetching universities: {e}")
+        return jsonify([]), 500
+
+
+# ─── 8. GET /college-predictor/colleges ─────────────────
+@college_predictor_bp.route("/college-predictor/colleges", methods=["GET"])
+def get_colleges():
+    """Returns list of unique colleges from database"""
+    try:
+        conn = get_connection()
+        cur = get_cursor(conn)
+        
+        cur.execute("""
+            SELECT DISTINCT college_name 
+            FROM cap_cutoff_data 
+            WHERE college_name IS NOT NULL 
+            ORDER BY college_name
+        """)
+        
+        colleges = [row["college_name"] for row in cur.fetchall()]
+        cur.close()
+        conn.close()
+        
+        return jsonify(colleges if colleges else [])
+    except Exception as e:
+        logger.error(f"Error fetching colleges: {e}")
+        return jsonify([]), 500
+
+
+# ─── 9. POST /college-predictor/download-pdf ─────────────────
 @college_predictor_bp.route("/college-predictor/download-pdf", methods=["POST"])
-def download_prediction_pdf():
-    """
-    POST body (JSON):
-    {
-      student: { name, category, percentile, branches, districts },
-      results: [ { college_name, branch_name, district, university,
-                   cap_round, cutoff_percentile, fees, admission_chance }, ... ]
-    }
-    Returns a PDF file download.
-    """
-    import io
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib import colors
-    from reportlab.lib.units import mm
-    from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
-    )
-    from reportlab.lib.styles import ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-    from flask import send_file
+def download_pdf():
+    """Generates CareerMyntra branded College Prediction PDF — exact sample format"""
+    try:
+        import io
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.units import mm
+        from reportlab.platypus import (
+            SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+            HRFlowable, Image as RLImage
+        )
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+        from flask import send_file
 
-    data    = request.get_json(silent=True) or {}
-    student = data.get("student", {})
-    results = data.get("results", [])
+        data     = request.get_json(silent=True) or {}
+        student  = data.get("student", {}) or {}
+        results  = data.get("results", []) or []
 
-    if not results:
-        return jsonify({"error": "No results to generate PDF"}), 400
+        name       = (student.get("name") or "Student").strip()
+        category   = student.get("category") or ""
+        percentile = student.get("percentile") or ""
+        branches   = student.get("branches") or []
+        districts  = student.get("districts") or []
+        exam_type  = student.get("exam_type") or "MHT-CET"
 
-    student_name       = student.get("name", "Student").strip() or "Student"
-    student_category   = student.get("category", "—")
-    student_percentile = student.get("percentile", "—")
-    student_branches   = ", ".join(student.get("branches", [])) or "All Branches"
-    student_cities     = ", ".join(student.get("districts", [])) or "All Districts"
+        # Logo path
+        logo_path = os.path.normpath(os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "..", "frontend", "images", "logo.jpeg"
+        ))
 
-    safe_name = re.sub(r"[^A-Za-z0-9_\- ]", "", student_name).strip().replace(" ", "_")
-    filename  = f"{safe_name}_College_Prediction.pdf"
+        # ── Colours ──────────────────────────────────────────
+        GREEN      = colors.HexColor("#1A7A3E")
+        DARK_GREEN = colors.HexColor("#145C2E")
+        NAVY       = colors.HexColor("#1B2A5A")
+        LIGHT_BG   = colors.HexColor("#F5FFF8")
+        BORDER_CLR = colors.HexColor("#B2DFCC")
+        TEXT       = colors.HexColor("#111111")
+        MUTED      = colors.HexColor("#555555")
+        WHITE      = colors.white
 
-    # ── Colours ──────────────────────────────────────────────
-    CM_GREEN      = colors.HexColor("#1A7A3E")
-    CM_DARK_GREEN = colors.HexColor("#145C2E")
-    CM_LIGHT_BG   = colors.HexColor("#F0FAF4")
-    CM_BORDER     = colors.HexColor("#B2DFCC")
-    CM_TEXT       = colors.HexColor("#1A1A1A")
-    CM_MUTED      = colors.HexColor("#6B6B6B")
-    CM_SAFE       = colors.HexColor("#16A34A")
-    CM_MODERATE   = colors.HexColor("#D97706")
-    CM_DREAM      = colors.HexColor("#DC2626")
+        buf = io.BytesIO()
+        PAGE_W, PAGE_H = A4
+        M = 14 * mm
 
-    def S(name, **kw): return ParagraphStyle(name, **kw)
+        doc = SimpleDocTemplate(
+            buf, pagesize=A4,
+            leftMargin=M, rightMargin=M,
+            topMargin=M, bottomMargin=M,
+        )
+        styles = getSampleStyleSheet()
+        story  = []
 
-    sty_info    = S("info",  fontSize=10, textColor=CM_TEXT,    fontName="Helvetica",           spaceAfter=3)
-    sty_tbl_hd  = S("thd",  fontSize=9,  textColor=colors.white, fontName="Helvetica-Bold",    alignment=TA_CENTER)
-    sty_cell    = S("cell",  fontSize=8,  textColor=CM_TEXT,    fontName="Helvetica",           leading=11)
-    sty_cell_c  = S("cellc", fontSize=8, textColor=CM_TEXT,    fontName="Helvetica",           alignment=TA_CENTER, leading=11)
-    sty_safe    = S("safe",  fontSize=8,  textColor=CM_SAFE,    fontName="Helvetica-Bold",      alignment=TA_CENTER)
-    sty_mod     = S("mod",   fontSize=8,  textColor=CM_MODERATE, fontName="Helvetica-Bold",     alignment=TA_CENTER)
-    sty_dream   = S("drm",   fontSize=8,  textColor=CM_DREAM,   fontName="Helvetica-Bold",      alignment=TA_CENTER)
-    sty_note    = S("note",  fontSize=8,  textColor=CM_MUTED,   fontName="Helvetica-Oblique",   leading=12)
-    sty_footer  = S("ft",    fontSize=7,  textColor=CM_MUTED,   fontName="Helvetica",           alignment=TA_CENTER)
+        def ps(name, **kw):
+            return ParagraphStyle(name, **kw)
 
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer, pagesize=A4,
-        leftMargin=15*mm, rightMargin=15*mm,
-        topMargin=12*mm, bottomMargin=15*mm,
-        title=f"{student_name} – College Prediction",
-        author="CareerMyntra",
-    )
-    story = []
+        # ── 1. TOP HEADER — Logo + Brand + Tagline ────────────
+        brand_name = Paragraph(
+            "<b>CAREER MYNTRA</b>",
+            ps("bn", fontSize=26, fontName="Helvetica-Bold",
+               textColor=WHITE, alignment=TA_LEFT, leading=30)
+        )
+        tagline = Paragraph(
+            "Aptitude Test | Mock Exams | Admission Guidance | Skills Dev. | Jobs",
+            ps("tg", fontSize=10, fontName="Helvetica",
+               textColor=WHITE, alignment=TA_LEFT, leading=14)
+        )
+        brand_col = Table([[brand_name], [tagline]],
+                          colWidths=[130*mm])
+        brand_col.setStyle(TableStyle([
+            ("TOPPADDING",    (0,0),(-1,-1), 2),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 2),
+        ]))
 
-    # ── Header ───────────────────────────────────────────────
-    hdr = Table([[
-        Paragraph("<b>CAREER MYNTRA</b>",
-                  S("lg", fontSize=20, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)),
-        Paragraph("Aptitude Test | Mock Exams | Admission Guidance | Skills Dev. | Jobs",
-                  S("tg", fontSize=9,  textColor=colors.white, fontName="Helvetica",       alignment=TA_CENTER)),
-    ]], colWidths=[55*mm, 125*mm])
-    hdr.setStyle(TableStyle([
-        ("BACKGROUND",   (0,0),(-1,-1), CM_GREEN),
-        ("VALIGN",       (0,0),(-1,-1), "MIDDLE"),
-        ("TOPPADDING",   (0,0),(-1,-1), 10),
-        ("BOTTOMPADDING",(0,0),(-1,-1), 10),
-    ]))
-    story.append(hdr)
+        if os.path.exists(logo_path):
+            logo_img = RLImage(logo_path, width=22*mm, height=22*mm)
+            hdr_data = [[logo_img, brand_col]]
+            hdr_cw   = [28*mm, 142*mm]
+        else:
+            hdr_data = [[brand_col]]
+            hdr_cw   = [170*mm]
 
-    # Contact strip
-    ct = Table([[
-        Paragraph("+91 98609 38338",   S("c1", fontSize=8, textColor=CM_DARK_GREEN, fontName="Helvetica")),
-        Paragraph("info@careermyntra.com", S("c2", fontSize=8, textColor=CM_DARK_GREEN, fontName="Helvetica", alignment=TA_CENTER)),
-        Paragraph("https://careermyntra.com", S("c3", fontSize=8, textColor=CM_DARK_GREEN, fontName="Helvetica", alignment=TA_RIGHT)),
-    ]], colWidths=[60*mm, 60*mm, 60*mm])
-    ct.setStyle(TableStyle([
-        ("BACKGROUND",   (0,0),(-1,-1), CM_LIGHT_BG),
-        ("TOPPADDING",   (0,0),(-1,-1), 5),
-        ("BOTTOMPADDING",(0,0),(-1,-1), 5),
-        ("LEFTPADDING",  (0,0),(-1,-1), 6),
-        ("RIGHTPADDING", (0,0),(-1,-1), 6),
-        ("BOX",          (0,0),(-1,-1), 0.5, CM_BORDER),
-    ]))
-    story.append(ct)
-    story.append(Spacer(1, 5*mm))
+        hdr = Table(hdr_data, colWidths=hdr_cw)
+        hdr.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0),(-1,-1), GREEN),
+            ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+            ("LEFTPADDING",   (0,0),(0,-1),  6),
+            ("RIGHTPADDING",  (0,0),(-1,-1), 6),
+            ("TOPPADDING",    (0,0),(-1,-1), 8),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 8),
+        ]))
+        story.append(hdr)
 
-    # ── Student info ─────────────────────────────────────────
-    story.append(Paragraph(f"Full Name: {student_name}",           sty_info))
-    story.append(Paragraph(f"Caste Category: {student_category}",  sty_info))
-    story.append(Paragraph(f"MHT-CET PCM Percentile: {student_percentile}", sty_info))
-    if student.get("branches"):
-        story.append(Paragraph(f"Preferred Branches: {student_branches}", sty_info))
-    if student.get("districts"):
-        story.append(Paragraph(f"Preferred City: {student_cities}", sty_info))
-    story.append(Spacer(1, 4*mm))
+        # ── 2. CONTACT STRIP ──────────────────────────────────
+        contact = Table([[
+            Paragraph("📞 +91 98609 38338",
+                      ps("c1", fontSize=9, fontName="Helvetica-Bold",
+                         textColor=WHITE, alignment=TA_LEFT)),
+            Paragraph("✉ info@careermyntra.com",
+                      ps("c2", fontSize=9, fontName="Helvetica",
+                         textColor=WHITE, alignment=TA_CENTER)),
+            Paragraph("🌐 https://careermyntra.com",
+                      ps("c3", fontSize=9, fontName="Helvetica",
+                         textColor=WHITE, alignment=TA_RIGHT)),
+        ]], colWidths=[57*mm, 57*mm, 56*mm])
+        contact.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0),(-1,-1), NAVY),
+            ("TOPPADDING",    (0,0),(-1,-1), 5),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 5),
+            ("LEFTPADDING",   (0,0),(-1,-1), 4),
+            ("RIGHTPADDING",  (0,0),(-1,-1), 4),
+        ]))
+        story.append(contact)
+        story.append(Spacer(1, 8*mm))
 
-    story.append(Paragraph("College Prediction List",
-                            S("pt", fontSize=14, textColor=CM_TEXT, fontName="Helvetica-Bold",
-                              alignment=TA_CENTER, spaceAfter=6)))
+        # ── 3. STUDENT DETAILS ────────────────────────────────
+        det = ps("det", fontSize=10.5, fontName="Helvetica",
+                 textColor=TEXT, spaceAfter=5, leading=15)
 
-    # ── Prediction Table ─────────────────────────────────────
-    col_w = [8*mm, 45*mm, 32*mm, 22*mm, 16*mm, 22*mm, 22*mm, 13*mm]
-    heads = [Paragraph(h, sty_tbl_hd) for h in
-             ["Sr.", "College Name", "Branches", "Status", "District", "Cut-off", "Fees (Rs.)", "Chance"]]
-    rows  = [heads]
+        story.append(Paragraph(f"Full Name: {name}", det))
+        story.append(Paragraph(f"Caste Category: {category}", det))
+        story.append(Paragraph(f"MHT-CET PCM Percentile: {percentile}", det))
+        if branches:
+            story.append(Paragraph(f"Preffred Branches :  {', '.join(branches)}", det))
+        if districts:
+            story.append(Paragraph(f"Preffred City : {', '.join(districts)}", det))
+        story.append(Spacer(1, 6*mm))
 
-    CHANCE_LBL = {"Safe": "High", "Moderate": "Medium", "Dream": "Very Low", "Unknown": "—"}
+        # ── 4. TABLE HEADING ──────────────────────────────────
+        story.append(Paragraph(
+            "<u><b>College Prediction List</b></u>",
+            ps("th", fontSize=13, fontName="Helvetica-Bold",
+               textColor=TEXT, alignment=TA_CENTER, spaceAfter=6)
+        ))
 
-    for i, r in enumerate(results, 1):
-        chance    = r.get("admission_chance", "Unknown")
-        cutoff    = r.get("cutoff_percentile")
-        cutoff_s  = f"{float(cutoff):.2f} %ile" if cutoff is not None else "—"
-        fees_raw  = r.get("fees")
-        fees_s    = f"Rs.{int(fees_raw):,}" if fees_raw else "—"
-        prob_s    = CHANCE_LBL.get(chance, "—")
-        univ      = r.get("university") or r.get("seat_type") or "—"
-        ch_sty    = sty_safe if chance == "Safe" else (sty_mod if chance == "Moderate" else sty_dream)
+        # ── 5. PROBABILITY LABEL HELPER ───────────────────────
+        def prob_label(pct):
+            if pct is None: return (15, "Very Low")
+            p = int(pct)
+            if p >= 95: return (p, "Very High")
+            if p >= 80: return (p, "High")
+            if p >= 55: return (p, "Medium")
+            if p >= 35: return (p, "Low")
+            return (p, "Very Low")
 
-        rows.append([
-            Paragraph(str(i),                     sty_cell_c),
-            Paragraph(r.get("college_name", "—"), sty_cell),
-            Paragraph(r.get("branch_name",  "—"), sty_cell),
-            Paragraph(univ,                       sty_cell_c),
-            Paragraph(r.get("district",     "—"), sty_cell_c),
-            Paragraph(f"<b>{cutoff_s}</b>",
-                      S("co", fontSize=8, fontName="Helvetica-Bold", alignment=TA_CENTER)),
-            Paragraph(fees_s,                     sty_cell_c),
-            Paragraph(prob_s,                     ch_sty),
-        ])
+        PROB_COLOR = {
+            "Very High": colors.HexColor("#15803d"),
+            "High":      colors.HexColor("#16a34a"),
+            "Medium":    colors.HexColor("#d97706"),
+            "Low":       colors.HexColor("#dc2626"),
+            "Very Low":  colors.HexColor("#991b1b"),
+        }
 
-    pred_t = Table(rows, colWidths=col_w, repeatRows=1)
-    pred_t.setStyle(TableStyle([
-        ("BACKGROUND",    (0,0), (-1,0),  CM_GREEN),
-        ("TEXTCOLOR",     (0,0), (-1,0),  colors.white),
-        ("ALIGN",         (0,0), (-1,-1), "CENTER"),
-        ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
-        ("TOPPADDING",    (0,0), (-1,-1), 4),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 4),
-        ("LEFTPADDING",   (0,0), (-1,-1), 3),
-        ("RIGHTPADDING",  (0,0), (-1,-1), 3),
-        ("GRID",          (0,0), (-1,-1), 0.4, CM_BORDER),
-        ("ROWBACKGROUNDS",(0,1), (-1,-1), [colors.white, CM_LIGHT_BG]),
-    ]))
-    story.append(pred_t)
-    story.append(Spacer(1, 6*mm))
+        # ── 6. STATUS HELPER ──────────────────────────────────
+        def status_label(r):
+            is_auto = r.get("is_autonomous") or False
+            univ    = (r.get("university") or "").strip()
+            if "unitary public" in univ.lower():
+                return "University Autonomous"
+            if is_auto and "un-aided" in univ.lower():
+                return "Un-Aided Autonomous"
+            if is_auto:
+                return "Autonomous"
+            if univ:
+                return "Un-Aided"
+            return "—"
 
-    # ── Counsellor Notes ─────────────────────────────────────
-    story.append(Paragraph("Counsellor's Note",
-                            S("cn", fontSize=10, fontName="Helvetica-Bold",
-                              textColor=CM_TEXT, spaceBefore=4, spaceAfter=4)))
-    notes = [
-        "This list is a <b>prediction</b> based on your score/rank and is <b>not an official CAP allotment or admission list</b>.",
-        "The predictions are prepared using <b>previous CAP cut-offs, your category, rank, institute trends, seat availability, and other admission parameters</b>.",
-        "The <b>Probability</b> indicates the likelihood of admission based on available data and <b>does not guarantee admission</b>.",
-        "Fees shown are approximate annual tuition fees and may vary based on category and scholarship eligibility.",
-        "Cut-offs may change every year based on applicants, seat availability, and reservation policies.",
-        "We recommend including a <b>balanced mix of Dream, Target, and Safe colleges</b> in your option form.",
-        "Before confirming admission, verify the latest fee structure and eligibility from the institute and official CAP notifications.",
-        "For the best outcome, consult your counsellor before finalizing your college preferences.",
-    ]
-    for idx, note in enumerate(notes, 1):
-        story.append(Paragraph(f"{idx}. {note}", sty_note))
-        story.append(Spacer(1, 1.5*mm))
+        # ── 7. PREDICTION TABLE ───────────────────────────────
+        hs = ps("hs", fontSize=8.5, fontName="Helvetica-Bold",
+                textColor=WHITE, alignment=TA_CENTER, leading=11)
+        cs = ps("cs", fontSize=8,   fontName="Helvetica",
+                textColor=TEXT, leading=10)
+        cc = ps("cc", fontSize=8,   fontName="Helvetica",
+                textColor=TEXT, alignment=TA_CENTER, leading=10)
+        cb = ps("cb", fontSize=8,   fontName="Helvetica-Bold",
+                textColor=TEXT, alignment=TA_CENTER, leading=10)
 
-    story.append(Spacer(1, 5*mm))
-    story.append(HRFlowable(width="100%", thickness=1, color=CM_GREEN))
-    story.append(Spacer(1, 2*mm))
-    story.append(Paragraph(
-        "Sunny Pride, JM Road, Z Bridge, Deccan Gymkhana, Pune, Maharashtra 411004",
-        sty_footer
-    ))
+        header_row = [
+            Paragraph("Sr.",          hs),
+            Paragraph("College Name", hs),
+            Paragraph("Branches",     hs),
+            Paragraph("Status",       hs),
+            Paragraph("District",     hs),
+            Paragraph("Cut-off",      hs),
+            Paragraph("Rank",         hs),
+            Paragraph("Fees (₹)",     hs),
+            Paragraph("Probability",  hs),
+            Paragraph("Distance",     hs),
+        ]
 
-    doc.build(story)
-    buffer.seek(0)
-    return send_file(buffer, mimetype="application/pdf",
-                     as_attachment=True, download_name=filename)
+        col_w = [7*mm, 38*mm, 27*mm, 22*mm, 14*mm, 16*mm, 12*mm, 18*mm, 16*mm, 14*mm]
+        tdata = [header_row]
+
+        for idx, r in enumerate(results, 1):
+            cutoff  = f"{float(r['cutoff_percentile']):.2f} %ile" if r.get("cutoff_percentile") is not None else "—"
+            rank_v  = f"{int(float(r['cutoff_score'])):,}" if r.get("cutoff_score") else "—"
+            fees_v  = f"₹{int(float(r['fees'])):,} / year" if r.get("fees") else "—"
+            prob_v  = r.get("probability")
+            p_val, p_lbl = prob_label(prob_v)
+            p_clr   = PROB_COLOR.get(p_lbl, MUTED)
+            dist_v  = r.get("distance") or "—"
+            status  = status_label(r)
+
+            tdata.append([
+                Paragraph(str(idx),                      cc),
+                Paragraph(str(r.get("college_name","")), cs),
+                Paragraph(str(r.get("branch_name","")),  cs),
+                Paragraph(status,                        cc),
+                Paragraph(r.get("district") or "—",     cc),
+                Paragraph(f"<b>{cutoff}</b>",            cb),
+                Paragraph(rank_v,                        cc),
+                Paragraph(fees_v,                        cc),
+                Paragraph(
+                    f"<b>{p_val}%</b> {p_lbl}",
+                    ps(f"prob{idx}", fontSize=8, fontName="Helvetica",
+                       textColor=p_clr, alignment=TA_CENTER, leading=10)
+                ),
+                Paragraph(dist_v,                        cc),
+            ])
+
+        pred_t = Table(tdata, colWidths=col_w, repeatRows=1)
+        pred_t.setStyle(TableStyle([
+            # Header
+            ("BACKGROUND",    (0,0), (-1,0),  GREEN),
+            ("TEXTCOLOR",     (0,0), (-1,0),  WHITE),
+            # Grid
+            ("GRID",          (0,0), (-1,-1), 0.5, colors.HexColor("#9ca3af")),
+            ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
+            ("ALIGN",         (0,0), (-1,-1), "CENTER"),
+            ("LEFTPADDING",   (0,0), (-1,-1), 3),
+            ("RIGHTPADDING",  (0,0), (-1,-1), 3),
+            ("TOPPADDING",    (0,0), (-1,-1), 5),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+            # Alternating rows
+            ("ROWBACKGROUNDS",(0,1), (-1,-1), [WHITE, colors.HexColor("#f0fff4")]),
+            # Left green border on data rows
+            ("LINEAFTER",     (0,0), (0,-1),  2, GREEN),
+        ]))
+        story.append(pred_t)
+        story.append(Spacer(1, 8*mm))
+
+        # ── 8. COUNSELLOR'S NOTE ──────────────────────────────
+        story.append(Paragraph(
+            "<b>Counsellor's Note</b>",
+            ps("cn", fontSize=10.5, fontName="Helvetica-Bold",
+               textColor=TEXT, spaceAfter=5)
+        ))
+        note_s = ps("ns", fontSize=8.5, fontName="Helvetica",
+                    textColor=MUTED, leading=12, spaceAfter=4)
+        notes = [
+            "This list is a <b>prediction</b> based on your score/rank and is <b>not an official CAP allotment or admission list</b>.",
+            "The predictions are prepared using <b>previous CAP cut-offs, your category, rank, institute trends, seat availability</b>, and other admission parameters.",
+            "The <b>Probability (%)</b> indicates the likelihood of admission based on available data. It is meant to help you make informed decisions while filling your CAP option form and <b>does not guarantee admission</b>.",
+            "The <b>fees shown are approximate annual tuition fees</b>. The actual payable fees may vary depending on your category, scholarship eligibility, admission quota, and the institute's latest fee structure.",
+            "Cut-offs may change every year based on the number of applicants, seat availability, reservation policies, and students' option preferences.",
+            "We recommend including a <b>balanced mix of Dream, Target, and Safe colleges</b> in your option form to maximize your chances of securing admission.",
+            "Before confirming admission, please verify the latest fee structure, eligibility, and admission rules from the respective institute and the official CAP notifications.",
+            "For the best admission outcome, consult your counsellor before finalizing your college preferences and option form.",
+        ]
+        for i, note in enumerate(notes, 1):
+            story.append(Paragraph(f"{i}. {note}", note_s))
+
+        # ── 9. FOOTER ─────────────────────────────────────────
+        def draw_footer(canvas, doc):
+            canvas.saveState()
+            canvas.setFillColor(GREEN)
+            canvas.rect(M, 6*mm, PAGE_W - 2*M, 8*mm, fill=1, stroke=0)
+            canvas.setFont("Helvetica-Bold", 8)
+            canvas.setFillColor(WHITE)
+            canvas.drawCentredString(
+                PAGE_W / 2, 9*mm,
+                "📍 Sunny Pride, JM Road, Z Bridge, Deccan Gymkhana, Pune, Maharashtra 411004"
+            )
+            canvas.restoreState()
+
+        doc.build(story, onFirstPage=draw_footer, onLaterPages=draw_footer)
+        buf.seek(0)
+
+        safe_name = "".join(c for c in name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+        filename  = f"{safe_name or 'Student'}_Cut-off_Analysis.pdf"
+
+        return send_file(buf, mimetype="application/pdf",
+                         as_attachment=True, download_name=filename)
+
+    except Exception as e:
+        logger.exception("PDF generation failed")
+        return jsonify({"error": f"PDF generation failed: {str(e)}"}), 500
