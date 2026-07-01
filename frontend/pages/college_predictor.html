@@ -1370,11 +1370,13 @@
     const cutoff = r.cutoff_percentile != null ? Number(r.cutoff_percentile).toFixed(2) + ' %ile' : '—';
     const rank   = r.cutoff_score ? Number(r.cutoff_score).toLocaleString('en-IN') : '—';
     const dist   = r.district || 'Maharashtra';
-    const icon   = r.admission_chance === 'Safe' ? '✅' : r.admission_chance === 'Moderate' ? '⚡' : '🌟';
 
     // Accurate probability based on diff
     const studentPct = parseFloat(document.getElementById('percentile')?.value || 0);
     const { pct: prob, label: probLabel } = calcProbability(studentPct, r.cutoff_percentile);
+    // PATCH: dynamic color for probability bar (green=High, orange=Medium, red=Low)
+    const probColorCls = (probLabel === 'Very High' || probLabel === 'High') ? 'Safe'
+                        : (probLabel === 'Medium') ? 'Moderate' : 'Dream';
 
     const naac = r.naac_grade ? ` • NAAC: ${r.naac_grade}` : '';
     const web  = r.website ? `<a class="btn-sm btn-website" href="${r.website}" target="_blank">🌐</a>` : '';
@@ -1423,7 +1425,7 @@
       <td class="td-rank">${rank}</td>
       <td class="td-fees">${fees}</td>
       <td class="td-prob">
-        <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill Safe" style="width:${prob}%"></div></div><span class="prob-pct">${prob}% ${probLabel}</span></div>
+        <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill ${probColorCls}" style="width:${prob}%"></div></div><span class="prob-pct">${prob}% ${probLabel}</span></div>
         <div style="margin-top:5px;display:flex;gap:5px;">${web}<button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id}, this)">🔖</button></div>
       </td>
     </tr>`;
