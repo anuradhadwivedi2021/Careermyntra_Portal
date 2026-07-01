@@ -7,6 +7,7 @@
 #   3. Added missing /college-predictor/universities route
 #   4. Added missing "universities" filter support inside /predict
 #   5. Added missing /college-predictor/download-pdf route
+#   6. Made download_pdf crash-proof: safe number formatting + traceback in response
 #
 # NOTE: all original logic is preserved as-is. New/changed lines are marked with "# PATCH:"
 
@@ -744,13 +745,21 @@ def clear_data():
     return jsonify({"message": msg})
 
 
-# ─── PATCH: NEW — POST /college-predictor/download-pdf ──────
+# ─── PATCHED: POST /college-predictor/download-pdf ──────────
 # The frontend's downloadPDF() JS function was already calling this endpoint,
 # but it never existed on the backend — that's why "PDF generation failed"
 # always showed after predicting. Adding a working implementation using
 # reportlab (pure-python, no external binary dependency needed).
 #
 # Install once if not already present:  pip install reportlab
+#
+# PATCH (this round): made this route crash-proof —
+#   1. Safe number formatting for fees/rank (won't crash if value is a
+#      string, Decimal, None, or has extra characters like "Rs." or ",").
+#   2. Wrapped entire body in try/except so any unexpected error returns
+#      a JSON error WITH the real message instead of a blank 500 — makes
+#      debugging from the browser Network tab possible.
+#   3. Logs the full traceback to the server log via logger.exception().
 @college_predictor_bp.route("/college-predictor/download-pdf", methods=["POST"])
 def download_pdf():
     data = request.get_json(silent=True) or {}
@@ -771,99 +780,129 @@ def download_pdf():
                      "Run: pip install reportlab"
         }), 500
 
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer, pagesize=A4,
-        topMargin=15 * mm, bottomMargin=15 * mm,
-        leftMargin=12 * mm, rightMargin=12 * mm
-    )
+    # PATCH: safe numeric formatter — never crashes on weird input
+    def _fmt_number(val):
+        if val is None or val == "":
+            return "-"
+        try:
+            if isinstance(val, str):
+                cleaned = val.replace(",", "").replace("₹", "").replace("Rs.", "").strip()
+                num = float(cleaned)
+            else:
+                num = float(val)
+            if num == int(num):
+                return f"{int(num):,}"
+            return f"{num:,.2f}"
+        except (ValueError, TypeError):
+            return str(val)
 
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        "TitleBlue", parent=styles["Heading1"],
-        textColor=colors.HexColor("#1565c0"), fontSize=16, spaceAfter=4
-    )
-    sub_style = ParagraphStyle(
-        "SubGrey", parent=styles["Normal"],
-        textColor=colors.HexColor("#6b7280"), fontSize=10, spaceAfter=12
-    )
+    try:
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer, pagesize=A4,
+            topMargin=15 * mm, bottomMargin=15 * mm,
+            leftMargin=12 * mm, rightMargin=12 * mm
+        )
 
-    elements = []
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            "TitleBlue", parent=styles["Heading1"],
+            textColor=colors.HexColor("#1565c0"), fontSize=16, spaceAfter=4
+        )
+        sub_style = ParagraphStyle(
+            "SubGrey", parent=styles["Normal"],
+            textColor=colors.HexColor("#6b7280"), fontSize=10, spaceAfter=12
+        )
 
-    name = student.get("name") or "Student"
-    category = student.get("category") or ""
-    percentile = student.get("percentile") or ""
-    branches = student.get("branches") or []
-    districts = student.get("districts") or []
+        elements = []
 
-    elements.append(Paragraph(f"{name} — College Prediction Report", title_style))
-    subtitle_bits = []
-    if percentile:
-        subtitle_bits.append(f"Percentile: {percentile}")
-    if category:
-        subtitle_bits.append(f"Category: {category}")
-    if branches:
-        subtitle_bits.append(f"Branches: {', '.join(branches)}")
-    if districts:
-        subtitle_bits.append(f"Districts: {', '.join(districts)}")
-    elements.append(Paragraph(" | ".join(subtitle_bits), sub_style))
-    elements.append(Spacer(1, 6))
+        name = student.get("name") or "Student"
+        category = student.get("category") or ""
+        percentile = student.get("percentile") or ""
+        branches = student.get("branches") or []
+        districts = student.get("districts") or []
 
-    table_data = [[
-        "Sr.", "College Name", "Branch", "District",
-        "Cut-off %ile", "Rank", "Fees (Rs.)", "Chance"
-    ]]
-    for i, r in enumerate(results, start=1):
-        fees = f"{r.get('fees'):,}" if r.get("fees") else "-"
-        cutoff = f"{float(r['cutoff_percentile']):.2f}" if r.get("cutoff_percentile") is not None else "-"
-        rank = f"{r.get('cutoff_score'):,}" if r.get("cutoff_score") else "-"
-        table_data.append([
-            str(i),
-            r.get("college_name", "-"),
-            r.get("branch_name", "-"),
-            r.get("district", "-"),
-            cutoff,
-            rank,
-            fees,
-            r.get("admission_chance", "-"),
+        elements.append(Paragraph(f"{name} — College Prediction Report", title_style))
+        subtitle_bits = []
+        if percentile:
+            subtitle_bits.append(f"Percentile: {percentile}")
+        if category:
+            subtitle_bits.append(f"Category: {category}")
+        if branches:
+            subtitle_bits.append(f"Branches: {', '.join(branches)}")
+        if districts:
+            subtitle_bits.append(f"Districts: {', '.join(districts)}")
+        elements.append(Paragraph(" | ".join(subtitle_bits), sub_style))
+        elements.append(Spacer(1, 6))
+
+        table_data = [[
+            "Sr.", "College Name", "Branch", "District",
+            "Cut-off %ile", "Rank", "Fees (Rs.)", "Chance"
+        ]]
+        for i, r in enumerate(results, start=1):
+            fees = _fmt_number(r.get("fees"))          # PATCH: was f"{...:,}"
+            rank = _fmt_number(r.get("cutoff_score"))   # PATCH: was f"{...:,}"
+            cp = r.get("cutoff_percentile")
+            try:
+                cutoff = f"{float(cp):.2f}" if cp is not None and cp != "" else "-"
+            except (ValueError, TypeError):
+                cutoff = str(cp) if cp else "-"
+
+            table_data.append([
+                str(i),
+                str(r.get("college_name", "-") or "-"),
+                str(r.get("branch_name", "-") or "-"),
+                str(r.get("district", "-") or "-"),
+                cutoff,
+                rank,
+                fees,
+                str(r.get("admission_chance", "-") or "-"),
+            ])
+
+        tbl = Table(table_data, repeatRows=1, colWidths=[
+            20, 130, 90, 60, 55, 45, 60, 45
         ])
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1565c0")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 7),
+            ("FONTSIZE", (0, 0), (-1, 0), 8),
+            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8faff")]),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(tbl)
 
-    tbl = Table(table_data, repeatRows=1, colWidths=[
-        20, 130, 90, 60, 55, 45, 60, 45
-    ])
-    tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1565c0")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTSIZE", (0, 0), (-1, -1), 7),
-        ("FONTSIZE", (0, 0), (-1, 0), 8),
-        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8faff")]),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-    ]))
-    elements.append(tbl)
+        elements.append(Spacer(1, 14))
+        note_style = ParagraphStyle(
+            "Note", parent=styles["Normal"], fontSize=8,
+            textColor=colors.HexColor("#374151")
+        )
+        elements.append(Paragraph(
+            "This is a prediction based on previous CAP cut-offs and is not an "
+            "official admission list. Please verify the latest fee structure and "
+            "eligibility with the respective institute before finalizing preferences.",
+            note_style
+        ))
 
-    elements.append(Spacer(1, 14))
-    note_style = ParagraphStyle(
-        "Note", parent=styles["Normal"], fontSize=8,
-        textColor=colors.HexColor("#374151")
-    )
-    elements.append(Paragraph(
-        "This is a prediction based on previous CAP cut-offs and is not an "
-        "official admission list. Please verify the latest fee structure and "
-        "eligibility with the respective institute before finalizing preferences.",
-        note_style
-    ))
+        doc.build(elements)
+        buffer.seek(0)
 
-    doc.build(elements)
-    buffer.seek(0)
+        safe_name = "".join(c for c in name if c.isalnum() or c in " _-").strip().replace(" ", "_") or "Student"
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"{safe_name}_College_Prediction.pdf",
+            mimetype="application/pdf",
+        )
 
-    safe_name = "".join(c for c in name if c.isalnum() or c in " _-").strip().replace(" ", "_") or "Student"
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name=f"{safe_name}_College_Prediction.pdf",
-        mimetype="application/pdf",
-    )
+    except Exception as e:
+        # PATCH: log full traceback server-side AND send the message back
+        # so the browser Network tab shows exactly what broke.
+        logger.exception("[download_pdf] PDF generation failed")
+        return jsonify({
+            "error": f"PDF generation failed: {str(e)}"
+        }), 500
