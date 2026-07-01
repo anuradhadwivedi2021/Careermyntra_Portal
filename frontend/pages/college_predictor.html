@@ -173,6 +173,45 @@
     .td-branch { font-size:12px; font-weight:700; color:#1565c0; min-width:160px; }
     .td-status .chance-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:11px; font-weight:800; white-space:nowrap; }
     .chance-pill.Safe     { background:#dcfce7; color:#15803d; }
+
+/* Column Visibility Toggle */
+.column-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 15px 0;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    align-items: center;
+}
+
+.column-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    user-select: none;
+}
+
+.column-toggle input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+
+
+
+
+
+
+
+
     /* Quota pills */
     .quota-pill { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; white-space:nowrap; }
     .quota-home    { background:#eff6ff; color:#1565c0; border:1px solid #dbeafe; }
@@ -1230,13 +1269,27 @@
         <span class="results-count">Found <strong>${total}</strong> probable colleges for percentile <strong>${student_percentile}</strong> (Range: ${pRange.min || ''} – ${pRange.max || ''})</span>
       </div>`;
 
+  const columnToggleHTML = `
+<div class="column-toggle">
+<label><input type="checkbox" class="col-toggle" data-col="cutoff" checked> Cut-off</label>
+<label><input type="checkbox" class="col-toggle" data-col="rank" checked> Rank</label>
+<label><input type="checkbox" class="col-toggle" data-col="fees" checked> Fees</label>
+<label><input type="checkbox" class="col-toggle" data-col="probability" checked> Probability</label>
+<label><input type="checkbox" class="col-toggle" data-col="distance" checked> Distance</label>
+</div>
+`;
+
+
     const tableHTML = `
       <div class="results-wrap">
         <div class="table-scroll">
           <table class="pred-table">
             <thead><tr>
-              <th>Sr.</th><th>College Name</th><th>Branch / Gender</th><th>University</th>
-              <th>Applicable Quota</th><th>District</th><th>Cut-off %ile</th><th>Rank</th><th>Fees (₹)</th><th>Probability</th>
+             <th class="col-cutoff">Cut-off %ile</th>
+            <th class="col-rank">Rank</th>
+            <th class="col-fees">Fees (₹)</th>
+            <th class="col-probability">Probability</th>
+            <th class="col-distance">Distance</th>
             </tr></thead>
             <tbody id="cards-list">${results.map((r,i) => renderCard(r,i+1)).join('')}</tbody>
           </table>
@@ -1258,9 +1311,32 @@
         </ol>
       </div>`;
 
-    sec.innerHTML = buildStudentSummary(student_percentile) + summaryHTML + filterHTML + tableHTML + counsellorHTML;
+   sec.innerHTML =
+    buildStudentSummary(student_percentile) +
+    summaryHTML +
+    filterHTML +
+    columnToggleHTML +
+    tableHTML +
+    counsellorHTML;
+
+document.querySelectorAll(".col-toggle").forEach(toggle => {
+    toggle.addEventListener("change", function () {
+        const col = this.dataset.col;
+
+        document.querySelectorAll(".col-" + col).forEach(cell => {
+            cell.style.display = this.checked ? "" : "none";
+        });
+    });
+});
+
+
+
     sec.scrollIntoView({ behavior:'smooth', block:'start' });
   }
+
+
+
+
 
   // ── University-District Mapping (Maharashtra) ──
   const DISTRICT_UNIVERSITY_MAP = {
@@ -1421,10 +1497,10 @@
       <td style="font-size:11px;color:#374151;">${university}</td>
       <td style="font-size:11px;">${quotaHTML}</td>
       <td class="td-dist">${dist}</td>
-      <td class="td-cutoff">${cutoff}</td>
-      <td class="td-rank">${rank}</td>
-      <td class="td-fees">${fees}</td>
-      <td class="td-prob">
+      <td class="td-cutoff col-cutoff">${cutoff}</td>
+      <td class="td-rank col-rank">${rank}</td>
+      <td class="td-fees col-fees">${fees}</td>
+      <td class="td-prob col-probability">
         <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill ${probColorCls}" style="width:${prob}%"></div></div><span class="prob-pct">${prob}% ${probLabel}</span></div>
         <div style="margin-top:5px;display:flex;gap:5px;">${web}<button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id}, this)">🔖</button></div>
       </td>
