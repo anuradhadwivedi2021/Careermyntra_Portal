@@ -424,22 +424,36 @@ def get_courses():
 # ─── NEW: GET /college-predictor/branches?district=Pune ─────
 @college_predictor_bp.route("/college-predictor/branches", methods=["GET"])
 def get_branches():
-    """Returns distinct branch_name values, optionally filtered by district"""
-    district = request.args.get("district", "")
+    # Multi-district support: ?districts=Pune,Nashik,Mumbai
+    districts_raw = request.args.get("districts", "")
+    district_single = request.args.get("district", "")
+
+    # Support both ?district=Pune and ?districts=Pune,Nashik
+    if districts_raw:
+        districts = [d.strip() for d in districts_raw.split(",") if d.strip()]
+    elif district_single:
+        districts = [district_single.strip()]
+    else:
+        districts = []
+
     conn = get_connection()
     cur = get_cursor(conn)
-    if district:
-        cur.execute("""
+
+    if districts:
+        placeholders = ",".join(["%s"] * len(districts))
+        cur.execute(f"""
             SELECT DISTINCT branch_name FROM cap_cutoff_data
-            WHERE district = %s AND branch_name IS NOT NULL
+            WHERE TRIM(district) IN ({placeholders})
+            AND branch_name IS NOT NULL
             ORDER BY branch_name
-        """, (district,))
+        """, districts)
     else:
         cur.execute("""
             SELECT DISTINCT branch_name FROM cap_cutoff_data
             WHERE branch_name IS NOT NULL
             ORDER BY branch_name
         """)
+
     rows = [r["branch_name"] for r in cur.fetchall()]
     cur.close()
     conn.close()
@@ -503,7 +517,6 @@ def get_filter_options():
         "admission_authorities": admission_authorities,  # PATCH: new field
     })
 
-
 # ─── 3. POST /college-predictor/predict — main prediction ───
 @college_predictor_bp.route("/college-predictor/predict", methods=["POST"])
 def predict():
@@ -515,23 +528,31 @@ def predict():
       category: "OPEN",
       cap_year: "2024-25",
       cap_round: "All Rounds",
-      branches: ["Computer Engineering", "Information Technology"],  // optional
-      districts: ["Pune", "Nashik"],  // optional, empty = all
-      universities: ["Savitribai Phule Pune University"],  // PATCH: optional, empty = all
-      gender: "Male"
+      branches: ["Computer Engineering", "Information Technology"],
+      districts: ["Pune", "Nashik"],
+      universities: ["Savitribai Phule Pune University"],
+      gender: "Male",
+      course_name: "B.Tech",
+      admission_authority: "CET CELL",
+      quota: "S",
+      rank: 12000
     }
     """
     data = request.get_json(silent=True) or {}
 
-    exam_type   = data.get("exam_type", "MHT-CET")
-    percentile  = data.get("percentile")
-    category    = data.get("category", "OPEN")
-    cap_year    = data.get("cap_year", "2024-25")
-    cap_round   = data.get("cap_round", "All Rounds")
+    exam_type    = data.get("exam_type", "MHT-CET")
+    percentile   = data.get("percentile")
+    category     = data.get("category", "OPEN")
+    cap_year     = data.get("cap_year", "2024-25")
+    cap_round    = data.get("cap_round", "All Rounds")
     branches     = data.get("branches", [])
     districts    = data.get("districts", [])
-    universities = data.get("universities", [])  # PATCH: was missing — never read from payload
+    universities = data.get("universities", [])
+    course_name  = data.get("course_name", "")
+    admission_authority = data.get("admission_authority", "")
     home_district = data.get("home_district", "")
+    quota        = data.get("quota", "")
+    rank         = data.get("rank", "")
 
     # Normalize frontend display values to DB values
     CATEGORY_MAP = {
@@ -549,7 +570,13 @@ def predict():
         "Round 2": "Round II", "Round 3": "Round III",
         "1": "Round I", "2": "Round II", "3": "Round III",
     }
-    cap_round = CAP_ROUND_MAP.get(cap_round, cap_round)
+
+    # PATCH: cap_round can now be a single string OR a list (multi-select ready)
+    if isinstance(cap_round, list):
+        cap_rounds_normalized = [CAP_ROUND_MAP.get(r, r) for r in cap_round if r and r != "All Rounds"]
+    else:
+        single = CAP_ROUND_MAP.get(cap_round, cap_round)
+        cap_rounds_normalized = [] if (not single or single == "All Rounds") else [single]
 
     # cap_year: "2025 (2025-2026)" -> "2025-26"
     if cap_year and "(" in cap_year:
@@ -564,9 +591,6 @@ def predict():
     }
     exam_type = EXAM_MAP.get(exam_type, exam_type)
 
-    # PATCH: normalize gender coming from frontend the same way upload does,
-    # so that "General"/"Ladies"/etc typed or selected on the frontend also
-    # resolves to the same DB value ("All"/"Female"/etc) that was stored on upload.
     student_gender_raw = data.get("gender", "")
     student_gender = _map_gender(student_gender_raw) if student_gender_raw else ""
 
@@ -581,7 +605,6 @@ def predict():
     conn = get_connection()
     cur = get_cursor(conn)
 
-    # Build dynamic query
     where_clauses = [
         "exam_type = %s",
         "category = %s",
@@ -589,14 +612,15 @@ def predict():
     ]
     params = [exam_type, category, cap_year]
 
-    # Gender filter — include 'All' records always + gender-specific
     if student_gender and student_gender != "Other":
         where_clauses.append("(gender = %s OR gender = 'All' OR gender IS NULL)")
         params.append(student_gender)
 
-    if cap_round and cap_round != "All Rounds":
-        where_clauses.append("cap_round = %s")
-        params.append(cap_round)
+    # PATCH: multi-select CAP round support
+    if cap_rounds_normalized:
+        placeholders = ",".join(["%s"] * len(cap_rounds_normalized))
+        where_clauses.append(f"cap_round IN ({placeholders})")
+        params.extend(cap_rounds_normalized)
 
     if branches:
         placeholders = ",".join(["%s"] * len(branches))
@@ -608,11 +632,25 @@ def predict():
         where_clauses.append(f"TRIM(district) IN ({placeholders})")
         params.extend(districts)
 
-    # PATCH: university filter was never applied even though the frontend sends it
     if universities:
         placeholders = ",".join(["%s"] * len(universities))
         where_clauses.append(f"university IN ({placeholders})")
         params.extend(universities)
+
+    # PATCH: Course filter (was completely missing before)
+    if course_name:
+        where_clauses.append("course_name = %s")
+        params.append(course_name)
+
+    # PATCH: Admission Authority filter (was completely missing before)
+    if admission_authority:
+        where_clauses.append("admission_authority = %s")
+        params.append(admission_authority)
+
+    # PATCH: Quota filter (was completely missing before)
+    if quota:
+        where_clauses.append("quota_code = %s")
+        params.append(quota)
 
     where_sql = " AND ".join(where_clauses)
 
@@ -630,14 +668,13 @@ def predict():
         FROM cap_cutoff_data
         WHERE {where_sql}
         ORDER BY cutoff_percentile DESC
-        LIMIT 200
+        LIMIT 2000
     """, params)
 
     rows = cur.fetchall()
     cur.close()
     conn.close()
 
-    # Calculate chances and sort
     results = []
     for r in rows:
         chance = _chance_label(percentile, r["cutoff_percentile"])
@@ -667,10 +704,9 @@ def predict():
             "quota_code":         r["quota_code"] if r["quota_code"] else "S",
             "is_autonomous":      r["is_autonomous"] if r["is_autonomous"] else False,
             "course_name":        r["course_name"] if r["course_name"] else "",
-            "admission_authority": r["admission_authority"] if r["admission_authority"] else "CET CELL",  # PATCH
+            "admission_authority": r["admission_authority"] if r["admission_authority"] else "CET CELL",
         })
 
-    # Compute applicable quota for each result based on student's home district
     home_univ = _get_home_university(home_district)
     for r in results:
         r["applicable_quota"] = _get_applicable_quota(
@@ -678,14 +714,12 @@ def predict():
         )
         r["home_university"] = home_univ or ""
 
-    # Sort: Safe first, then Moderate, then Dream, Unknown last
     results.sort(key=lambda x: (CHANCE_ORDER.get(x["admission_chance"], 3),
                                  -(x["cutoff_percentile"] or 0)))
 
     safe     = [r for r in results if r["admission_chance"] == "Safe"]
     moderate = [r for r in results if r["admission_chance"] == "Moderate"]
     dream    = [r for r in results if r["admission_chance"] == "Dream"]
-    unknown  = [r for r in results if r["admission_chance"] == "Unknown"]
 
     return jsonify({
         "total": len(results),
@@ -697,7 +731,6 @@ def predict():
         },
         "results": results
     })
-
 
 # ─── DEBUG: See exact values stored in DB ───────────────────
 @college_predictor_bp.route("/college-predictor/debug-values", methods=["GET"])
