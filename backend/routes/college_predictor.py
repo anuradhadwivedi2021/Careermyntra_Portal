@@ -1,7 +1,16 @@
 # routes/college_predictor.py — College Predictor Blueprint
 # Handles: CAP cutoff CSV/Excel upload (admin), prediction API, district list
+#
+# PATCHED VERSION — fixes:
+#   1. Gender mapping (Excel has full words like "General","Ladies" not single letters)
+#   2. Admission Authority was wrongly mapped into seat_type — now goes to its own column
+#   3. Added missing /college-predictor/universities route
+#   4. Added missing "universities" filter support inside /predict
+#   5. Added missing /college-predictor/download-pdf route
+#
+# NOTE: all original logic is preserved as-is. New/changed lines are marked with "# PATCH:"
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 import os
 import io
 import pandas as pd
@@ -27,7 +36,13 @@ CHANCE_ORDER = {"Safe": 0, "Moderate": 1, "Dream": 2, "Unknown": 3}
 
 # ─── Helper functions for Excel column mapping ───────────────
 
+# PATCH: Original GENDER_MAP only had single-letter keys (G, L, P, D, T, O, E, M).
+# But the actual uploaded Excel's Gender column has FULL WORDS:
+# General, Ladies, PWD, Defense, TFWS, EWS, Minority, Orphan.
+# We keep the old letter-based entries (in case some other source file uses
+# letters) AND add the full-word keys so both formats map correctly.
 GENDER_MAP = {
+    # ── original letter-based mapping (kept, unchanged) ──
     'G': 'All',    # General (All genders)
     'L': 'Female', # Ladies
     'P': 'All',    # Persons with Disability
@@ -36,6 +51,17 @@ GENDER_MAP = {
     'O': 'Other',  # Others
     'E': 'All',    # Ex-serviceman
     'M': 'Male',   # Male
+
+    # ── PATCH: full-word mapping (matches actual Excel values) ──
+    'GENERAL':  'All',
+    'LADIES':   'Female',
+    'PWD':      'All',
+    'DEFENSE':  'All',
+    'DEFENCE':  'All',
+    'TFWS':     'All',
+    'EWS':      'All',
+    'MINORITY': 'All',
+    'ORPHAN':   'All',
 }
 
 QUOTA_MAP = {
@@ -114,6 +140,7 @@ def _get_applicable_quota(college_university, home_university, is_autonomous):
 
 def _map_gender(g):
     if not g: return 'All'
+    # PATCH: uppercase + strip so both "General" and "GENERAL" match the map
     return GENDER_MAP.get(str(g).strip().upper(), str(g).strip())
 
 def _map_quota(q):
@@ -215,10 +242,14 @@ def upload_cutoff():
         "course": "course_name",
         "university": "university",
         "category_simple": "category",    # Simplified category (OPEN, SC, ST...)
-        "gender": "gender_code",          # G, L, P, D, T, O, E, M
+        "gender": "gender_code",          # Excel: General, Ladies, PWD, Defense, TFWS, EWS, Minority, Orphan
         "quota": "quota_code",            # S, H, N, I, O
-        "admission_autherity": "seat_type",  # CET CELL (typo in source Excel)
-        "admission_authority": "seat_type",  # CET CELL (correct spelling)
+        # PATCH: "Admission Autherity" (typo col in source Excel) must map to its
+        # OWN column, not to seat_type. seat_type is a different concept
+        # (AI/AllIndia etc) and was being silently overwritten with "CET CELL"
+        # before this fix, which broke the Admission Authority dropdown.
+        "admission_autherity": "admission_authority",  # CET CELL (typo in source Excel)
+        "admission_authority": "admission_authority",  # CET CELL (correct spelling)
         "entrance_exam": "exam_type",        # MHT-CET, JEE Main
         "percentile": "cutoff_percentile",
         "rank": "cutoff_score",
@@ -280,35 +311,38 @@ def upload_cutoff():
                     cutoff_percentile, cutoff_score, fees, naac_grade,
                     nba_accredited, placement_highest, placement_average,
                     website, address,
-                    gender, quota_code, is_autonomous, course_name
+                    gender, quota_code, is_autonomous, course_name,
+                    admission_authority
                 ) VALUES (
                     %s,%s,%s,%s,%s,
                     %s,%s,%s,%s,%s,
                     %s,%s,%s,%s,
                     %s,%s,%s,
                     %s,%s,
-                    %s,%s,%s,%s
+                    %s,%s,%s,%s,
+                    %s
                 )
                 ON CONFLICT (college_name, branch_name, cap_year, cap_round, category, seat_type)
                 DO UPDATE SET
-                    college_code      = EXCLUDED.college_code,
-                    district          = EXCLUDED.district,
-                    university        = EXCLUDED.university,
-                    exam_type         = EXCLUDED.exam_type,
-                    cutoff_percentile = EXCLUDED.cutoff_percentile,
-                    cutoff_score      = EXCLUDED.cutoff_score,
-                    fees              = EXCLUDED.fees,
-                    naac_grade        = EXCLUDED.naac_grade,
-                    nba_accredited    = EXCLUDED.nba_accredited,
-                    placement_highest = EXCLUDED.placement_highest,
-                    placement_average = EXCLUDED.placement_average,
-                    website           = EXCLUDED.website,
-                    address           = EXCLUDED.address,
-                    gender            = EXCLUDED.gender,
-                    quota_code        = EXCLUDED.quota_code,
-                    is_autonomous     = EXCLUDED.is_autonomous,
-                    course_name       = EXCLUDED.course_name,
-                    updated_at        = CURRENT_TIMESTAMP
+                    college_code        = EXCLUDED.college_code,
+                    district            = EXCLUDED.district,
+                    university          = EXCLUDED.university,
+                    exam_type           = EXCLUDED.exam_type,
+                    cutoff_percentile   = EXCLUDED.cutoff_percentile,
+                    cutoff_score        = EXCLUDED.cutoff_score,
+                    fees                = EXCLUDED.fees,
+                    naac_grade          = EXCLUDED.naac_grade,
+                    nba_accredited      = EXCLUDED.nba_accredited,
+                    placement_highest   = EXCLUDED.placement_highest,
+                    placement_average   = EXCLUDED.placement_average,
+                    website             = EXCLUDED.website,
+                    address             = EXCLUDED.address,
+                    gender              = EXCLUDED.gender,
+                    quota_code          = EXCLUDED.quota_code,
+                    is_autonomous       = EXCLUDED.is_autonomous,
+                    course_name         = EXCLUDED.course_name,
+                    admission_authority = EXCLUDED.admission_authority,
+                    updated_at          = CURRENT_TIMESTAMP
             """, (
                 row.get("college_code"),
                 row.get("college_name"),
@@ -333,6 +367,8 @@ def upload_cutoff():
                 row.get("quota_code") or "S",
                 _check_autonomous(row.get("status_full")),
                 row.get("course_name"),
+                # PATCH: admission_authority now saved into its own column
+                row.get("admission_authority") or "CET CELL",
             ))
             inserted += 1
         except Exception as e:
@@ -409,6 +445,27 @@ def get_branches():
     return jsonify(rows)
 
 
+# ─── PATCH: NEW — GET /college-predictor/universities ────────
+# This route was being called by the frontend (loadUniversities())
+# but never existed in the backend, so "Preferred Universities" dropdown
+# always came back empty. Adding it now, following the same pattern as
+# get_districts()/get_courses().
+@college_predictor_bp.route("/college-predictor/universities", methods=["GET"])
+def get_universities():
+    """Returns distinct university values for the Preferred Universities dropdown"""
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute("""
+        SELECT DISTINCT university FROM cap_cutoff_data
+        WHERE university IS NOT NULL AND TRIM(university) != ''
+        ORDER BY university
+    """)
+    rows = [r["university"] for r in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify(rows)
+
+
 # ─── NEW: GET /college-predictor/filter-options ─────────────
 @college_predictor_bp.route("/college-predictor/filter-options", methods=["GET"])
 def get_filter_options():
@@ -429,6 +486,9 @@ def get_filter_options():
     seat_types = [r["seat_type"] for r in cur.fetchall()]
     cur.execute("SELECT DISTINCT course_name FROM cap_cutoff_data WHERE course_name IS NOT NULL ORDER BY course_name")
     course_names = [r["course_name"] for r in cur.fetchall()]
+    # PATCH: also expose admission_authority values for the Admission Authority dropdown
+    cur.execute("SELECT DISTINCT admission_authority FROM cap_cutoff_data WHERE admission_authority IS NOT NULL ORDER BY admission_authority")
+    admission_authorities = [r["admission_authority"] for r in cur.fetchall()]
     cur.close()
     conn.close()
     return jsonify({
@@ -439,6 +499,7 @@ def get_filter_options():
         "genders": genders,
         "seat_types": seat_types,
         "course_names": course_names,
+        "admission_authorities": admission_authorities,  # PATCH: new field
     })
 
 
@@ -455,6 +516,7 @@ def predict():
       cap_round: "All Rounds",
       branches: ["Computer Engineering", "Information Technology"],  // optional
       districts: ["Pune", "Nashik"],  // optional, empty = all
+      universities: ["Savitribai Phule Pune University"],  // PATCH: optional, empty = all
       gender: "Male"
     }
     """
@@ -467,6 +529,7 @@ def predict():
     cap_round   = data.get("cap_round", "All Rounds")
     branches     = data.get("branches", [])
     districts    = data.get("districts", [])
+    universities = data.get("universities", [])  # PATCH: was missing — never read from payload
     home_district = data.get("home_district", "")
 
     # Normalize frontend display values to DB values
@@ -500,6 +563,12 @@ def predict():
     }
     exam_type = EXAM_MAP.get(exam_type, exam_type)
 
+    # PATCH: normalize gender coming from frontend the same way upload does,
+    # so that "General"/"Ladies"/etc typed or selected on the frontend also
+    # resolves to the same DB value ("All"/"Female"/etc) that was stored on upload.
+    student_gender_raw = data.get("gender", "")
+    student_gender = _map_gender(student_gender_raw) if student_gender_raw else ""
+
     if percentile is None:
         return jsonify({"error": "Percentile is required"}), 400
 
@@ -520,7 +589,6 @@ def predict():
     params = [exam_type, category, cap_year]
 
     # Gender filter — include 'All' records always + gender-specific
-    student_gender = data.get("gender", "")
     if student_gender and student_gender != "Other":
         where_clauses.append("(gender = %s OR gender = 'All' OR gender IS NULL)")
         params.append(student_gender)
@@ -539,6 +607,12 @@ def predict():
         where_clauses.append(f"TRIM(district) IN ({placeholders})")
         params.extend(districts)
 
+    # PATCH: university filter was never applied even though the frontend sends it
+    if universities:
+        placeholders = ",".join(["%s"] * len(universities))
+        where_clauses.append(f"university IN ({placeholders})")
+        params.extend(universities)
+
     where_sql = " AND ".join(where_clauses)
 
     cur.execute(f"""
@@ -550,7 +624,8 @@ def predict():
             fees, naac_grade, nba_accredited,
             placement_highest, placement_average,
             website, address,
-            gender, quota_code, is_autonomous, course_name
+            gender, quota_code, is_autonomous, course_name,
+            admission_authority
         FROM cap_cutoff_data
         WHERE {where_sql}
         ORDER BY cutoff_percentile DESC
@@ -591,6 +666,7 @@ def predict():
             "quota_code":         r["quota_code"] if r["quota_code"] else "S",
             "is_autonomous":      r["is_autonomous"] if r["is_autonomous"] else False,
             "course_name":        r["course_name"] if r["course_name"] else "",
+            "admission_authority": r["admission_authority"] if r["admission_authority"] else "CET CELL",  # PATCH
         })
 
     # Compute applicable quota for each result based on student's home district
@@ -666,3 +742,128 @@ def clear_data():
     cur.close()
     conn.close()
     return jsonify({"message": msg})
+
+
+# ─── PATCH: NEW — POST /college-predictor/download-pdf ──────
+# The frontend's downloadPDF() JS function was already calling this endpoint,
+# but it never existed on the backend — that's why "PDF generation failed"
+# always showed after predicting. Adding a working implementation using
+# reportlab (pure-python, no external binary dependency needed).
+#
+# Install once if not already present:  pip install reportlab
+@college_predictor_bp.route("/college-predictor/download-pdf", methods=["POST"])
+def download_pdf():
+    data = request.get_json(silent=True) or {}
+    student = data.get("student", {}) or {}
+    results = data.get("results", []) or []
+
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import mm
+        from reportlab.platypus import (
+            SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        )
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    except ImportError:
+        return jsonify({
+            "error": "reportlab is not installed on the server. "
+                     "Run: pip install reportlab"
+        }), 500
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        topMargin=15 * mm, bottomMargin=15 * mm,
+        leftMargin=12 * mm, rightMargin=12 * mm
+    )
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "TitleBlue", parent=styles["Heading1"],
+        textColor=colors.HexColor("#1565c0"), fontSize=16, spaceAfter=4
+    )
+    sub_style = ParagraphStyle(
+        "SubGrey", parent=styles["Normal"],
+        textColor=colors.HexColor("#6b7280"), fontSize=10, spaceAfter=12
+    )
+
+    elements = []
+
+    name = student.get("name") or "Student"
+    category = student.get("category") or ""
+    percentile = student.get("percentile") or ""
+    branches = student.get("branches") or []
+    districts = student.get("districts") or []
+
+    elements.append(Paragraph(f"{name} — College Prediction Report", title_style))
+    subtitle_bits = []
+    if percentile:
+        subtitle_bits.append(f"Percentile: {percentile}")
+    if category:
+        subtitle_bits.append(f"Category: {category}")
+    if branches:
+        subtitle_bits.append(f"Branches: {', '.join(branches)}")
+    if districts:
+        subtitle_bits.append(f"Districts: {', '.join(districts)}")
+    elements.append(Paragraph(" | ".join(subtitle_bits), sub_style))
+    elements.append(Spacer(1, 6))
+
+    table_data = [[
+        "Sr.", "College Name", "Branch", "District",
+        "Cut-off %ile", "Rank", "Fees (Rs.)", "Chance"
+    ]]
+    for i, r in enumerate(results, start=1):
+        fees = f"{r.get('fees'):,}" if r.get("fees") else "-"
+        cutoff = f"{float(r['cutoff_percentile']):.2f}" if r.get("cutoff_percentile") is not None else "-"
+        rank = f"{r.get('cutoff_score'):,}" if r.get("cutoff_score") else "-"
+        table_data.append([
+            str(i),
+            r.get("college_name", "-"),
+            r.get("branch_name", "-"),
+            r.get("district", "-"),
+            cutoff,
+            rank,
+            fees,
+            r.get("admission_chance", "-"),
+        ])
+
+    tbl = Table(table_data, repeatRows=1, colWidths=[
+        20, 130, 90, 60, 55, 45, 60, 45
+    ])
+    tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1565c0")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTSIZE", (0, 0), (-1, -1), 7),
+        ("FONTSIZE", (0, 0), (-1, 0), 8),
+        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8faff")]),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(tbl)
+
+    elements.append(Spacer(1, 14))
+    note_style = ParagraphStyle(
+        "Note", parent=styles["Normal"], fontSize=8,
+        textColor=colors.HexColor("#374151")
+    )
+    elements.append(Paragraph(
+        "This is a prediction based on previous CAP cut-offs and is not an "
+        "official admission list. Please verify the latest fee structure and "
+        "eligibility with the respective institute before finalizing preferences.",
+        note_style
+    ))
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    safe_name = "".join(c for c in name if c.isalnum() or c in " _-").strip().replace(" ", "_") or "Student"
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"{safe_name}_College_Prediction.pdf",
+        mimetype="application/pdf",
+    )
