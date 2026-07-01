@@ -173,45 +173,6 @@
     .td-branch { font-size:12px; font-weight:700; color:#1565c0; min-width:160px; }
     .td-status .chance-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:11px; font-weight:800; white-space:nowrap; }
     .chance-pill.Safe     { background:#dcfce7; color:#15803d; }
-
-/* Column Visibility Toggle */
-.column-toggle {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin: 15px 0;
-    padding: 12px;
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    align-items: center;
-}
-
-.column-toggle label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #374151;
-    cursor: pointer;
-    user-select: none;
-}
-
-.column-toggle input[type="checkbox"] {
-    cursor: pointer;
-    width: 16px;
-    height: 16px;
-}
-
-
-
-
-
-
-
-
-
     /* Quota pills */
     .quota-pill { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; white-space:nowrap; }
     .quota-home    { background:#eff6ff; color:#1565c0; border:1px solid #dbeafe; }
@@ -396,6 +357,22 @@
     /* Toast */
     #toast { position:fixed; bottom:24px; right:24px; background:#1e293b; color:#fff; padding:12px 18px; border-radius:12px; font-size:13px; font-weight:600; z-index:9999; opacity:0; transform:translateY(10px); transition:all 0.3s; pointer-events:none; max-width:300px; }
     #toast.show { opacity:1; transform:translateY(0); }
+
+/* ── Column Toggle Bar ── */
+.col-toggle-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#fff; border:1.5px solid #e5e7eb; border-radius:12px; padding:10px 16px; }
+.col-toggle-bar .label { font-size:11px; font-weight:800; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-right:4px; }
+.col-toggle { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid #e5e7eb; background:#fff; color:#374151; transition:all 0.2s; user-select:none; font-family:inherit; }
+.col-toggle.active { background:#1565c0; color:#fff; border-color:#1565c0; }
+.col-toggle .dot { width:7px; height:7px; border-radius:50%; background:currentColor; opacity:0.7; }  
+
+
+
+
+
+
+
+
+
   </style>
 </head>
 <body>
@@ -698,6 +675,10 @@
       <div class="btn-row">
         <button class="btn-reset" onclick="resetForm()">↩ Reset Form</button>
         <button class="btn-predict" id="predict-btn" onclick="runPredict()">
+
+
+
+
           <span id="btn-text">🎯 Get College Predictions</span>
           <div class="spinner" id="btn-spinner" style="display:none;"></div>
         </button>
@@ -764,19 +745,20 @@
   };
 
   // ── Course change → reload branches (filtered by course + districts) ──
-  async function onCourseChange() {
+ async function onCourseChange() {
     updateAuthority();
     const districts = [...state.district.selected];
-    await loadBranches(districts.length ? districts[0] : "");
-  }
+    await loadBranches(districts);
+}
 
   // ── District Done → reload branches for selected districts ──
-  async function onDistrictChange() {
+ async function onDistrictChange() {
     const districts = [...state.district.selected];
-    await loadBranches(districts.length ? districts[0] : "");
+    // Pass ALL selected districts — not just the first one
+    await loadBranches(districts);
     state.branch.selected.clear();
     renderChips('branch');
-  }
+}
 
   // ── Exam change → reload Course options for that exam ──
   async function onExamChange() {
@@ -922,12 +904,15 @@
     "Instrumentation Engineering",
   ];
 
-  async function loadBranches(district) {
+  async function loadBranches(districts) {
     try {
-      const course = document.getElementById('course')?.value || '';
+      // districts can be array or single string
+      const districtList = Array.isArray(districts)
+        ? districts.map(d => d.trim()).filter(Boolean)
+        : (districts ? [districts.trim()] : []);
+
       const params = new URLSearchParams();
-      if (district) params.set('district', district);
-      if (course)   params.set('course', course);
+      if (districtList.length) params.set('districts', districtList.join(','));
       const url = `${API}/college-predictor/branches${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const d = await res.json();
@@ -1150,7 +1135,7 @@
     document.getElementById('btn-spinner').style.display = 'block';
     btn.disabled = true;
 
-    const payload = {
+   const payload = {
       exam_type: document.getElementById('exam_type').value,
       percentile,
       category: document.getElementById('category').value,
@@ -1161,8 +1146,12 @@
       universities: [...state.university.selected],
       gender:        document.getElementById('gender')?.value || '',
       home_district: document.getElementById('home_district')?.value || '',
-      course: document.getElementById('course')?.value || '',
+      course_name: document.getElementById('course')?.value || '',
+      admission_authority: document.getElementById('authority')?.value || '',
+      quota: document.getElementById('quota')?.value || '',
+      rank: document.getElementById('merit_rank')?.value || '',
     };
+
 
     try {
       const res = await fetch(`${API}/college-predictor/predict`, {
@@ -1265,36 +1254,37 @@
       </div>`;
 
     const filterHTML = `
+
+
+
+
       <div class="results-bar">
         <span class="results-count">Found <strong>${total}</strong> probable colleges for percentile <strong>${student_percentile}</strong> (Range: ${pRange.min || ''} – ${pRange.max || ''})</span>
       </div>`;
-
-  const columnToggleHTML = `
-<div class="column-toggle">
-<label><input type="checkbox" class="col-toggle" data-col="cutoff" checked> Cut-off</label>
-<label><input type="checkbox" class="col-toggle" data-col="rank" checked> Rank</label>
-<label><input type="checkbox" class="col-toggle" data-col="fees" checked> Fees</label>
-<label><input type="checkbox" class="col-toggle" data-col="probability" checked> Probability</label>
-<label><input type="checkbox" class="col-toggle" data-col="distance" checked> Distance</label>
-</div>
-`;
-
 
     const tableHTML = `
       <div class="results-wrap">
         <div class="table-scroll">
           <table class="pred-table">
             <thead><tr>
-             <th class="col-cutoff">Cut-off %ile</th>
-            <th class="col-rank">Rank</th>
-            <th class="col-fees">Fees (₹)</th>
-            <th class="col-probability">Probability</th>
-            <th class="col-distance">Distance</th>
+              <th>Sr.</th><th>College Name</th><th>Branch / Gender</th><th>University</th>
+              <th>Applicable Quota</th><th>District</th><th>Cut-off %ile</th><th>Rank</th><th>Fees (₹)</th><th>Probability</th>
             </tr></thead>
             <tbody id="cards-list">${results.map((r,i) => renderCard(r,i+1)).join('')}</tbody>
           </table>
         </div>
       </div>`;
+
+  const colToggleHTML = `
+      <div class="col-toggle-bar">
+        <span class="label">📊 Columns:</span>
+        <button class="col-toggle active" onclick="toggleCol('cutoff', this)"><span class="dot"></span> Cut-off</button>
+        <button class="col-toggle active" onclick="toggleCol('rank', this)"><span class="dot"></span> Rank</button>
+        <button class="col-toggle active" onclick="toggleCol('fees', this)"><span class="dot"></span> Fees</button>
+        <button class="col-toggle active" onclick="toggleCol('prob', this)"><span class="dot"></span> Probability</button>
+        <button class="col-toggle active" onclick="toggleCol('univ', this)"><span class="dot"></span> University</button>
+        <button class="col-toggle active" onclick="toggleCol('quota', this)"><span class="dot"></span> Quota</button>
+      </div>`
 
     const counsellorHTML = `
       <div class="counsellor-note">
@@ -1311,32 +1301,9 @@
         </ol>
       </div>`;
 
-   sec.innerHTML =
-    buildStudentSummary(student_percentile) +
-    summaryHTML +
-    filterHTML +
-    columnToggleHTML +
-    tableHTML +
-    counsellorHTML;
-
-document.querySelectorAll(".col-toggle").forEach(toggle => {
-    toggle.addEventListener("change", function () {
-        const col = this.dataset.col;
-
-        document.querySelectorAll(".col-" + col).forEach(cell => {
-            cell.style.display = this.checked ? "" : "none";
-        });
-    });
-});
-
-
-
+    sec.innerHTML = buildStudentSummary(student_percentile) + summaryHTML + filterHTML + colToggleHTML + tableHTML + counsellorHTML;
     sec.scrollIntoView({ behavior:'smooth', block:'start' });
   }
-
-
-
-
 
   // ── University-District Mapping (Maharashtra) ──
   const DISTRICT_UNIVERSITY_MAP = {
@@ -1497,10 +1464,10 @@ document.querySelectorAll(".col-toggle").forEach(toggle => {
       <td style="font-size:11px;color:#374151;">${university}</td>
       <td style="font-size:11px;">${quotaHTML}</td>
       <td class="td-dist">${dist}</td>
-      <td class="td-cutoff col-cutoff">${cutoff}</td>
-      <td class="td-rank col-rank">${rank}</td>
-      <td class="td-fees col-fees">${fees}</td>
-      <td class="td-prob col-probability">
+      <td class="td-cutoff">${cutoff}</td>
+      <td class="td-rank">${rank}</td>
+      <td class="td-fees">${fees}</td>
+      <td class="td-prob">
         <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill ${probColorCls}" style="width:${prob}%"></div></div><span class="prob-pct">${prob}% ${probLabel}</span></div>
         <div style="margin-top:5px;display:flex;gap:5px;">${web}<button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id}, this)">🔖</button></div>
       </td>
@@ -1531,6 +1498,22 @@ document.querySelectorAll(".col-toggle").forEach(toggle => {
     t.textContent = msg; t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3000);
   }
+const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4 };
+
+  function toggleCol(colKey, btn) {
+    btn.classList.toggle('active');
+    const isVisible = btn.classList.contains('active');
+    const colIdx = COL_MAP[colKey];
+    const table = document.querySelector('.pred-table');
+    if (!table) return;
+    table.querySelectorAll('thead th')[colIdx].style.display = isVisible ? '' : 'none';
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      const td = tr.querySelectorAll('td')[colIdx];
+      if (td) td.style.display = isVisible ? '' : 'none';
+    });
+  }
+
+
 
   // ── Init ──
   (async () => {
