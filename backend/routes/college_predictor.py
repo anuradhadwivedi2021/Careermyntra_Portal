@@ -782,111 +782,220 @@ def download_pdf():
 
     # PATCH: safe numeric formatter — never crashes on weird input
     def _fmt_number(val):
+
         if val is None or val == "":
             return "-"
         try:
-            if isinstance(val, str):
-                cleaned = val.replace(",", "").replace("₹", "").replace("Rs.", "").strip()
-                num = float(cleaned)
-            else:
-                num = float(val)
-            if num == int(num):
-                return f"{int(num):,}"
-            return f"{num:,.2f}"
-        except (ValueError, TypeError):
-            return str(val)
+            return f"{int(float(str(val).replace(',','').replace('Rs.','').strip())):,}"
+        except:
+            return str(val).strip() or "-"
 
     try:
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer, pagesize=A4,
-            topMargin=15 * mm, bottomMargin=15 * mm,
-            leftMargin=12 * mm, rightMargin=12 * mm
+            topMargin=12*mm, bottomMargin=12*mm,
+            leftMargin=10*mm, rightMargin=10*mm
         )
 
         styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            "TitleBlue", parent=styles["Heading1"],
-            textColor=colors.HexColor("#1565c0"), fontSize=16, spaceAfter=4
-        )
-        sub_style = ParagraphStyle(
-            "SubGrey", parent=styles["Normal"],
-            textColor=colors.HexColor("#6b7280"), fontSize=10, spaceAfter=12
-        )
-
         elements = []
 
-        name = student.get("name") or "Student"
-        category = student.get("category") or ""
+        # ── HEADER — Logo + Contact ──────────────────────────
+        from reportlab.platypus import HRFlowable, Image as RLImage
+        from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+
+        # Header table: Logo left | Contact right
+        header_contact = Paragraph(
+            "<b>+91 98609 38338</b><br/>info@careermyntra.com<br/>https://careermyntra.com",
+            ParagraphStyle("contact", parent=styles["Normal"], fontSize=9,
+                           textColor=colors.HexColor("#374151"), leading=14, alignment=TA_RIGHT)
+        )
+        logo_para = Paragraph(
+            "<b><font color='#1565c0' size=14>Career</font><font color='#16a34a' size=14>Myntra</font></b>",
+            ParagraphStyle("logo", parent=styles["Normal"], fontSize=14, leading=18)
+        )
+        header_tbl = Table([[logo_para, header_contact]],
+                           colWidths=[90*mm, 90*mm])
+        header_tbl.setStyle(TableStyle([
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("ALIGN", (1,0), (1,0), "RIGHT"),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+        ]))
+        elements.append(header_tbl)
+
+        # Tagline bar
+        tagline_tbl = Table([["Aptitude Test  |  Mock Exams  |  Admission Guidance  |  Skills Dev.  |  Jobs"]],
+                            colWidths=[180*mm])
+        tagline_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,-1), colors.HexColor("#1565c0")),
+            ("TEXTCOLOR", (0,0), (-1,-1), colors.white),
+            ("FONTSIZE", (0,0), (-1,-1), 9),
+            ("FONTNAME", (0,0), (-1,-1), "Helvetica-Bold"),
+            ("ALIGN", (0,0), (-1,-1), "CENTER"),
+            ("TOPPADDING", (0,0), (-1,-1), 5),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+        ]))
+        elements.append(tagline_tbl)
+        elements.append(Spacer(1, 8))
+
+        # ── STUDENT INFO ─────────────────────────────────────
+        name       = student.get("name") or "Student"
+        category   = student.get("category") or ""
         percentile = student.get("percentile") or ""
-        branches = student.get("branches") or []
-        districts = student.get("districts") or []
+        branches   = student.get("branches") or []
+        districts  = student.get("districts") or []
 
-        elements.append(Paragraph(f"{name} — College Prediction Report", title_style))
-        subtitle_bits = []
-        if percentile:
-            subtitle_bits.append(f"Percentile: {percentile}")
+        info_style = ParagraphStyle("info", parent=styles["Normal"], fontSize=10,
+                                    textColor=colors.HexColor("#0d1b3e"), leading=16)
+        elements.append(Paragraph(f"<b>Full Name:</b> {name}", info_style))
         if category:
-            subtitle_bits.append(f"Category: {category}")
+            elements.append(Paragraph(f"<b>Caste Category:</b> {category}", info_style))
+        if percentile:
+            elements.append(Paragraph(f"<b>MHT-CET PCM Percentile:</b> {percentile}", info_style))
         if branches:
-            subtitle_bits.append(f"Branches: {', '.join(branches)}")
+            elements.append(Paragraph(f"<b>Preferred Branches:</b>  {', '.join(branches)}", info_style))
         if districts:
-            subtitle_bits.append(f"Districts: {', '.join(districts)}")
-        elements.append(Paragraph(" | ".join(subtitle_bits), sub_style))
-        elements.append(Spacer(1, 6))
+            elements.append(Paragraph(f"<b>Preferred City:</b>  {', '.join(districts)}", info_style))
+        elements.append(Spacer(1, 10))
 
-        table_data = [[
-            "Sr.", "College Name", "Branch", "District",
-            "Cut-off %ile", "Rank", "Fees (Rs.)", "Chance"
-        ]]
+        # ── TABLE TITLE ──────────────────────────────────────
+        title_style = ParagraphStyle("title", parent=styles["Normal"], fontSize=13,
+                                     fontName="Helvetica-Bold", alignment=TA_CENTER,
+                                     textColor=colors.HexColor("#0d1b3e"), spaceAfter=6)
+        elements.append(Paragraph("College Prediction List", title_style))
+        elements.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#0d1b3e")))
+        elements.append(Spacer(1, 4))
+
+        # ── PROBABILITY CALC (same as frontend) ──────────────
+        def calc_probability(student_pct, cutoff_pct):
+            if cutoff_pct is None: return (15, "Very Low")
+            try:
+                diff = float(student_pct) - float(cutoff_pct)
+            except: return (15, "Very Low")
+            if diff >= 5:    return (99, "Very High")
+            if diff >= 2:    return (98, "Very High")
+            if diff >= 0.5:  return (95, "Very High")
+            if diff >= -1:   return (92, "High")
+            if diff >= -3:   return (86, "High")
+            if diff >= -4:   return (82, "High")
+            if diff >= -5.5: return (60, "Medium")
+            if diff >= -6:   return (55, "Medium")
+            if diff >= -6.5: return (52, "Medium")
+            if diff >= -7:   return (48, "Low")
+            if diff >= -7.5: return (45, "Low")
+            if diff >= -8:   return (40, "Low")
+            if diff >= -8.5: return (35, "Low")
+            if diff >= -9:   return (22, "Very Low")
+            if diff >= -9.5: return (18, "Very Low")
+            if diff >= -9.8: return (12, "Very Low")
+            return (10, "Very Low")
+
+        # ── TABLE DATA ───────────────────────────────────────
+        try:
+            student_pct_float = float(percentile)
+        except:
+            student_pct_float = 0
+
+        col_headers = ["Sr.", "College Name", "Branches", "Status", "District",
+                       "Cut-off", "Rank", "Fees (₹)", "Probability"]
+        table_data = [col_headers]
+
         for i, r in enumerate(results, start=1):
-            fees = _fmt_number(r.get("fees"))          # PATCH: was f"{...:,}"
-            rank = _fmt_number(r.get("cutoff_score"))   # PATCH: was f"{...:,}"
             cp = r.get("cutoff_percentile")
             try:
-                cutoff = f"{float(cp):.2f}" if cp is not None and cp != "" else "-"
-            except (ValueError, TypeError):
-                cutoff = str(cp) if cp else "-"
+                cutoff_str = f"{float(cp):.2f} %ile" if cp is not None else "—"
+            except: cutoff_str = str(cp) if cp else "—"
+
+            fees = _fmt_number(r.get("fees"))
+            fees_str = f"₹{fees} / year" if fees != "-" else "—"
+
+            rank_str = _fmt_number(r.get("cutoff_score"))
+
+            # Status
+            status = "Un-Aided"
+            if r.get("is_autonomous"):
+                status = "University Autonomous" if r.get("university") else "Autonomous"
+            elif r.get("nba_accredited") == "Yes":
+                status = "Un-Aided Autonomous"
+
+            prob_pct, prob_label = calc_probability(student_pct_float, cp)
+            prob_str = f"{prob_pct}% {prob_label}"
 
             table_data.append([
                 str(i),
-                str(r.get("college_name", "-") or "-"),
-                str(r.get("branch_name", "-") or "-"),
-                str(r.get("district", "-") or "-"),
-                cutoff,
-                rank,
-                fees,
-                str(r.get("admission_chance", "-") or "-"),
+                Paragraph(str(r.get("college_name") or "—"), ParagraphStyle("cn", fontSize=8, leading=10)),
+                Paragraph(str(r.get("branch_name") or "—"), ParagraphStyle("bn", fontSize=8, leading=10)),
+                status,
+                str(r.get("district") or "—"),
+                cutoff_str,
+                rank_str,
+                fees_str,
+                prob_str,
             ])
 
-        tbl = Table(table_data, repeatRows=1, colWidths=[
-            20, 130, 90, 60, 55, 45, 60, 45
-        ])
-        tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1565c0")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTSIZE", (0, 0), (-1, -1), 7),
-            ("FONTSIZE", (0, 0), (-1, 0), 8),
-            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e5e7eb")),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8faff")]),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
-        elements.append(tbl)
+        tbl = Table(table_data, repeatRows=1,
+                    colWidths=[12, 48, 38, 28, 20, 22, 16, 26, 26])
 
-        elements.append(Spacer(1, 14))
-        note_style = ParagraphStyle(
-            "Note", parent=styles["Normal"], fontSize=8,
-            textColor=colors.HexColor("#374151")
-        )
-        elements.append(Paragraph(
-            "This is a prediction based on previous CAP cut-offs and is not an "
-            "official admission list. Please verify the latest fee structure and "
-            "eligibility with the respective institute before finalizing preferences.",
-            note_style
-        ))
+        # Row colors
+        row_styles = [
+            ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#1565c0")),
+            ("TEXTCOLOR",  (0,0), (-1,0), colors.white),
+            ("FONTNAME",   (0,0), (-1,0), "Helvetica-Bold"),
+            ("FONTSIZE",   (0,0), (-1,0), 8),
+            ("FONTSIZE",   (0,1), (-1,-1), 7),
+            ("ALIGN",      (0,0), (-1,-1), "CENTER"),
+            ("ALIGN",      (1,1), (2,-1), "LEFT"),
+            ("VALIGN",     (0,0), (-1,-1), "MIDDLE"),
+            ("GRID",       (0,0), (-1,-1), 0.4, colors.HexColor("#d1d5db")),
+            ("TOPPADDING", (0,0), (-1,-1), 4),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+            ("LINEBELOW",  (0,0), (-1,0), 1.5, colors.HexColor("#0d47a1")),
+        ]
+        # Alternate row background
+        for row_idx in range(1, len(table_data)):
+            bg = colors.white if row_idx % 2 == 0 else colors.HexColor("#f8faff")
+            row_styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg))
+
+        tbl.setStyle(TableStyle(row_styles))
+        elements.append(tbl)
+        elements.append(Spacer(1, 12))
+
+        # ── COUNSELLOR NOTE ──────────────────────────────────
+        note_title = ParagraphStyle("nt", parent=styles["Normal"], fontSize=9,
+                                    fontName="Helvetica-Bold", textColor=colors.HexColor("#0d1b3e"),
+                                    spaceAfter=4)
+        note_body  = ParagraphStyle("nb", parent=styles["Normal"], fontSize=8,
+                                    textColor=colors.HexColor("#374151"), leading=13)
+        elements.append(Paragraph("Counsellor's Note", note_title))
+        notes = [
+            "This list is a <b>prediction</b> based on your score/rank and is <b>not an official CAP allotment or admission list</b>.",
+            "The predictions are prepared using <b>previous CAP cut-offs, your category, rank, institute trends, seat availability, and other admission parameters</b>.",
+            "The <b>Probability (%)</b> indicates the likelihood of admission. It does <b>not guarantee admission</b>.",
+            "The <b>fees shown are approximate annual tuition fees</b>. Actual fees may vary.",
+            "Cut-offs may change every year based on applicants, seat availability, and reservation policies.",
+            "We recommend a <b>balanced mix of Dream, Target, and Safe colleges</b> in your option form.",
+            "Before confirming admission, verify latest fee structure and eligibility from the respective institute.",
+            "For the best outcome, <b>consult your counsellor</b> before finalizing your option form.",
+        ]
+        for idx, note in enumerate(notes, 1):
+            elements.append(Paragraph(f"{idx}. {note}", note_body))
+
+        elements.append(Spacer(1, 10))
+
+        # ── GREEN FOOTER ─────────────────────────────────────
+        footer_tbl = Table([["📍 Sunny Pride, JM Road, Z Bridge, Deccan Gymkhana, Pune, Maharashtra 411004"]],
+                           colWidths=[180*mm])
+        footer_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,-1), colors.HexColor("#16a34a")),
+            ("TEXTCOLOR",  (0,0), (-1,-1), colors.white),
+            ("FONTSIZE",   (0,0), (-1,-1), 9),
+            ("FONTNAME",   (0,0), (-1,-1), "Helvetica-Bold"),
+            ("ALIGN",      (0,0), (-1,-1), "CENTER"),
+            ("TOPPADDING", (0,0), (-1,-1), 7),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 7),
+        ]))
+        elements.append(footer_tbl)
 
         doc.build(elements)
         buffer.seek(0)
@@ -895,7 +1004,7 @@ def download_pdf():
         return send_file(
             buffer,
             as_attachment=True,
-            download_name=f"{safe_name}_College_Prediction.pdf",
+            download_name=f"{safe_name}_Cut-off_Analysis.pdf",
             mimetype="application/pdf",
         )
 
