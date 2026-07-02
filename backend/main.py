@@ -30,6 +30,8 @@ from routes.streams import streams_bp
 from routes.monitor import monitor_bp
 from routes.reminder import reminders_bp
 from routes.college_predictor import college_predictor_bp
+from routes.college_predictor_dynamic_filters import college_predictor_filters_bp
+from routes.student_data import student_data_bp
 
 from db import init_db
 from monitor_service import start_monitor
@@ -118,6 +120,8 @@ app.register_blueprint(streams_bp,        url_prefix="/api")
 app.register_blueprint(monitor_bp,        url_prefix="/api")
 app.register_blueprint(reminders_bp,          url_prefix="/api")
 app.register_blueprint(college_predictor_bp,  url_prefix="/api")
+app.register_blueprint(college_predictor_filters_bp, url_prefix="/api")
+app.register_blueprint(student_data_bp, url_prefix="/api")
 
 # Targeted limits on monitor endpoints that change state (password/config,
 # start/stop) — these are not polled repeatedly by the frontend like
