@@ -859,19 +859,31 @@ def download_pdf():
         from reportlab.platypus import HRFlowable, Image as RLImage
         from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+
+        DEJAVU_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    
+        if os.path.exists(DEJAVU_PATH):
+             pdfmetrics.registerFont(TTFont("DejaVuSans", DEJAVU_PATH))
+             FEE_FONT = "DejaVuSans" if os.path.exists(DEJAVU_PATH) else "Helvetica"
+
+
+
+
         # Header table: Logo left | Contact right
         from reportlab.platypus import HRFlowable, Image as RLImage
         header_contact = Paragraph(
-            "<b>+91 98609 38338</b><br/>info@careermyntra.com<br/>https://careermyntra.com",
+             "<b>+91 98609 38338</b><br/>info@careermyntra.com<br/>https://careermyntra.com",
             ParagraphStyle("contact", parent=styles["Normal"], fontSize=9,
                            textColor=colors.HexColor("#374151"), leading=14, alignment=TA_RIGHT)
         )
         # PATCH: logo now centered alone on top, matching Vinay's reference —
         # contact info moved out of the logo row into its own blue bar below tagline.
         LOGO_PATH = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "frontend", "images", "logo.jpeg"
-        )
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "   frontend", "images", "logo.jpeg"
+       )
         if os.path.exists(LOGO_PATH):
             logo_element = RLImage(LOGO_PATH, width=60*mm, height=26*mm, kind="proportional")
         else:
@@ -1034,27 +1046,29 @@ def download_pdf():
             except: cutoff_str = str(cp) if cp else "—"
 
             fees = _fmt_number(r.get("fees"))
-            fees_str = f"₹{fees} / year" if fees != "-" else "—"
+            fees_str = Paragraph(
+            f"₹{fees} / year" if fees != "-" else "—",
+        ParagraphStyle("fee", fontSize=7, leading=9, fontName=FEE_FONT, alignment=1)
+        )
+        rank_str = _fmt_number(r.get("cutoff_score"))
 
-            rank_str = _fmt_number(r.get("cutoff_score"))
-
-            # Status
-            status = "Un-Aided"
-            if r.get("is_autonomous"):
+              # Status
+        status = "Un-Aided"
+        if r.get("is_autonomous"):
                 status = "University Autonomous" if r.get("university") else "Autonomous"
-            elif r.get("nba_accredited") == "Yes":
+        elif r.get("nba_accredited") == "Yes":
                 status = "Un-Aided Autonomous"
 
-            prob_pct, prob_label = calc_probability(student_pct_float, cp)
-            prob_str = f"{prob_pct}% {prob_label}"
+        prob_pct, prob_label = calc_probability(student_pct_float, cp)
+        prob_str = f"{prob_pct}% {prob_label}"
 
-            univ_str = str(r.get("university") or "—")
+        univ_str = str(r.get("university") or "—")
 
-            quota_list = r.get("applicable_quota") or ["State"]
-            quota_str = ", ".join(quota_list)
+        quota_list = r.get("applicable_quota") or ["State"]
+        quota_str = ", ".join(quota_list)
 
             # Fixed columns row values
-            row = [
+        row = [
                 str(i),
                 Paragraph(str(r.get("college_name") or "—"), ParagraphStyle("cn", fontSize=8, leading=10)),
                 Paragraph(str(r.get("branch_name") or "—"), ParagraphStyle("bn", fontSize=8, leading=10)),
@@ -1063,7 +1077,7 @@ def download_pdf():
             ]
 
             # PATCH: append only the toggle columns that are ON
-            TOGGLE_VALUES = {
+        TOGGLE_VALUES = {
                 "cutoff":   cutoff_str,
                 "rank":     rank_str,
                 "fees":     fees_str,
@@ -1072,10 +1086,10 @@ def download_pdf():
                 "quota":    Paragraph(quota_str, ParagraphStyle("qt", fontSize=7, leading=9)),
                 "distance": "—",
             }
-            for key, _label, _w in active_toggle_cols:
+        for key, _label, _w in active_toggle_cols:
                 row.append(TOGGLE_VALUES[key])
 
-            table_data.append(row)
+        table_data.append(row)
 
         tbl = Table(table_data, repeatRows=1, colWidths=col_widths)
 
@@ -1129,7 +1143,7 @@ def download_pdf():
         elements.append(Spacer(1, 10))
 
         # ── GREEN FOOTER ─────────────────────────────────────
-        footer_tbl = Table([["📍 Sunny Pride, JM Road, Z Bridge, Deccan Gymkhana, Pune, Maharashtra 411004"]],
+        footer_tbl = Table([["Sunny Pride, JM Road, Z Bridge, Deccan Gymkhana, Pune, Maharashtra 411004"]],
                            colWidths=[180*mm])
         footer_tbl.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,-1), colors.HexColor("#16a34a")),
