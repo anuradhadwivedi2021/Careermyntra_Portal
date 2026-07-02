@@ -851,11 +851,6 @@ def download_pdf():
 
     try:
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(
-            buffer, pagesize=A4,
-            topMargin=12*mm, bottomMargin=12*mm,
-            leftMargin=10*mm, rightMargin=10*mm
-        )
 
         styles = getSampleStyleSheet()
         elements = []
@@ -970,22 +965,31 @@ def download_pdf():
         # Column definitions: (key, header_label, col_width)
         # key=None means always-shown fixed column
         FIXED_COLS = [
-            (None, "Sr.", 12),
-            (None, "College Name", 48),
-            (None, "Branches", 38),
-            (None, "Status", 28),
-            (None, "District", 20),
+            (None, "Sr.", 10),
+            (None, "College Name", 42),
+            (None, "Branches", 32),
+            (None, "Status", 22),
+            (None, "District", 16),
         ]
         TOGGLE_COLS = [
-            ("cutoff", "Cut-off", 22),
-            ("rank",   "Rank",    16),
-            ("fees",   "Fees (₹)", 26),
-            ("prob",   "Probability", 26),
-            ("univ",   "University", 34),
-            ("quota",  "Quota", 26),
+            ("cutoff", "Cut-off", 18),
+            ("rank",   "Rank",    14),
+            ("fees",   "Fees (₹)", 20),
+            ("prob",   "Probability", 22),
+            ("univ",   "University", 26),
+            ("quota",  "Quota", 20),
         ]
 
         active_toggle_cols = [c for c in TOGGLE_COLS if _is_on(c[0])]
+
+        # PATCH: create the doc now that we know how many toggle columns are active
+        from reportlab.lib.pagesizes import landscape
+        page_size = landscape(A4) if len(active_toggle_cols) > 4 else A4
+        doc = SimpleDocTemplate(
+            buffer, pagesize=page_size,
+            topMargin=12*mm, bottomMargin=12*mm,
+            leftMargin=10*mm, rightMargin=10*mm
+        )
 
         col_headers = [c[1] for c in FIXED_COLS] + [c[1] for c in active_toggle_cols]
         col_widths  = [c[2] for c in FIXED_COLS] + [c[2] for c in active_toggle_cols]
