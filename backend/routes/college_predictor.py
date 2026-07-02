@@ -376,8 +376,13 @@ def upload_cutoff():
             ))
             inserted += 1
         except Exception as e:
+
+            conn.rollback()
             logger.warning(f"[Predictor Upload] Row skipped: {e}")
             skipped += 1
+
+
+            
 
     conn.commit()
     cur.close()
