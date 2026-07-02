@@ -627,11 +627,25 @@
             <span class="help">Select the admission year for accurate cutoff predictions</span>
           </div>
           <div class="field">
-            <label><span class="ficon">🔄</span> CAP Round <span class="req">*</span></label>
-            <select id="cap_round">
-              <option value="All Rounds">All Rounds (Recommended)</option>
-            </select>
-            <span class="help">Default: All Rounds (Recommended)</span>
+  <label><span class="ficon">🔄</span> CAP Round</label>
+  <div class="ms-wrap" id="capround-wrap">
+    <div class="ms-box" id="capround-box" onclick="togglePanel('capround')">
+      <span class="ms-placeholder" id="capround-ph">All Rounds (Recommended)</span>
+      <span class="ms-arrow">▼</span>
+    </div>
+    <div class="ms-panel" id="capround-panel">
+      <div class="ms-options" id="capround-options"></div>
+      <div class="ms-footer">
+        <span class="ms-count" id="capround-count">All Rounds</span>
+        <div class="ms-actions">
+          <button class="ms-btn clear" onclick="clearAll('capround');event.stopPropagation()">Clear All</button>
+          <button class="ms-btn done" onclick="closePanel('capround');event.stopPropagation()">Done ✓</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="help">Default: All Rounds (Recommended)</span>
+</div>
           </div>
         </div>
       </div>
@@ -742,7 +756,8 @@
     branch:     { selected: new Set(), options: [], open: false },
     district:   { selected: new Set(), options: [], open: false },
     university: { selected: new Set(), options: [], open: false },
-  };
+    capround:   { selected: new Set(), options: [], open: false },
+};
 
   // ── Course change → reload branches (filtered by course + districts) ──
  async function onCourseChange() {
@@ -782,7 +797,7 @@
   function togglePanel(type) {
     const isOpen = state[type].open;
     // close all
-    ['branch','district','university'].forEach(t => { state[t].open = false; updateBoxState(t); });
+    ['branch','district','university','capround'].forEach(t => { state[t].open = false; updateBoxState(t); });
     if (!isOpen) { state[type].open = true; updateBoxState(type); renderOptions(type); }
   }
   function closePanel(type) { state[type].open = false; updateBoxState(type); }
@@ -796,7 +811,8 @@
 
   // ── Render options ──
   function renderOptions(type) {
-    const q = document.getElementById(`${type}-search`).value.toLowerCase();
+    const searchEl = document.getElementById(`${type}-search`);
+const q = searchEl ? searchEl.value.toLowerCase() : '';
     const el = document.getElementById(`${type}-options`);
     const options = state[type].options;
     const filtered = options.filter(o => o.toLowerCase().includes(q));
@@ -835,7 +851,7 @@
     const sel = [...state[type].selected];
     if (sel.length === 0) {
       ph.style.display = 'inline';
-      const PH_TEXT = { branch: 'Select branches (optional)', district: 'All Districts', university: 'All Universities' };
+      const PH_TEXT = { branch: 'Select branches (optional)', district: 'All Districts', university: 'All Universities', capround: 'All Rounds (Recommended)' };
       ph.textContent = PH_TEXT[type] || '';
     } else {
       ph.style.display = 'none';
@@ -867,7 +883,7 @@
 
   // ── Close on outside click ──
   document.addEventListener('click', e => {
-    ['branch','district','university'].forEach(type => {
+    ['branch','district','university','capround'].forEach(type => {
       if (state[type].open && !document.getElementById(`${type}-wrap`).contains(e.target)) {
         closePanel(type);
       }
@@ -938,11 +954,9 @@
       }
 
       // CAP Round
-      const roundSel = document.getElementById('cap_round');
-      if (d.rounds && d.rounds.length) {
-        roundSel.innerHTML = '<option value="All Rounds">All Rounds (Recommended)</option>' +
-          d.rounds.map(r => `<option value="${r}">${r}</option>`).join('');
-      }
+     if (d.rounds && d.rounds.length) {
+    state.capround.options = d.rounds;
+}
 
       // Category
       const catSel = document.getElementById('category');
@@ -1062,12 +1076,12 @@
     document.getElementById('percentile').value = '';
     document.getElementById('exam_type').selectedIndex = 0;
     document.getElementById('cap_year').selectedIndex = 0;
-    document.getElementById('cap_round').selectedIndex = 0;
+  
     document.getElementById('category').selectedIndex = 0;
     document.getElementById('home_district').selectedIndex = 0;
     document.getElementById('pin_code').value = '';
     document.getElementById('gender').selectedIndex = 0;
-    clearAll('branch'); clearAll('district'); clearAll('university');
+    clearAll('branch'); clearAll('district'); clearAll('university');clearAll('capround');
     document.getElementById('quota-preview-box').style.display = 'none';
     document.getElementById('results-section').innerHTML = `
       <div class="state-box"><div class="icon">🎓</div><h3>Ready to Predict!</h3>
@@ -1140,8 +1154,10 @@
       percentile,
       category: document.getElementById('category').value,
       cap_year: document.getElementById('cap_year').value,
-      cap_round: document.getElementById('cap_round').value,
-      branches: [...state.branch.selected],
+      cap_round: state.capround.selected.size > 0 
+    ? [...state.capround.selected]  : 'All Rounds',
+    
+       branches: [...state.branch.selected],
       districts: [...state.district.selected],
       universities: [...state.university.selected],
       gender:        document.getElementById('gender')?.value || '',
