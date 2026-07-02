@@ -579,11 +579,12 @@ def predict():
     category = CATEGORY_MAP.get(category, category.upper()) if category else ""
 
     CAP_ROUND_MAP = {
-        "CAP Round 1": "Round I", "CAP Round 2": "Round II",
-        "CAP Round 3": "Round III", "Round 1": "Round I",
-        "Round 2": "Round II", "Round 3": "Round III",
-        "1": "Round I", "2": "Round II", "3": "Round III",
-    }
+    "CAP Round 1": "Round I", "CAP Round 2": "Round II",
+    "CAP Round 3": "Round III", "CAP Round 4": "Round IV",
+    "Round 1": "Round I", "Round 2": "Round II",
+    "Round 3": "Round III", "Round 4": "Round IV",
+    "1": "Round I", "2": "Round II", "3": "Round III", "4": "Round IV",
+}
 
     # PATCH: cap_round can now be a single string OR a list (multi-select ready)
     if isinstance(cap_round, list):
