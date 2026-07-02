@@ -43,26 +43,23 @@ CHANCE_ORDER = {"Safe": 0, "Moderate": 1, "Dream": 2, "Unknown": 3}
 # We keep the old letter-based entries (in case some other source file uses
 # letters) AND add the full-word keys so both formats map correctly.
 GENDER_MAP = {
-    # ── original letter-based mapping (kept, unchanged) ──
-    'G': 'All',    # General (All genders)
-    'L': 'Female', # Ladies
-    'P': 'All',    # Persons with Disability
-    'D': 'All',    # Defence
-    'T': 'All',    # Tribal
-    'O': 'Other',  # Others
-    'E': 'All',    # Ex-serviceman
-    'M': 'Male',   # Male
+    'G': 'General',
+    'L': 'Ladies',
+    'P': 'PWD',
+    'D': 'Defense',
+    'T': 'TFWS',
+    'O': 'Orphan',
+    'E': 'EWS',
+    'M': 'Minority',
 
-    # ── PATCH: full-word mapping (matches actual Excel values) ──
-    'GENERAL':  'All',
-    'LADIES':   'Female',
-    'PWD':      'All',
-    'DEFENSE':  'All',
-    'DEFENCE':  'All',
-    'TFWS':     'All',
-    'EWS':      'All',
-    'MINORITY': 'All',
-    'ORPHAN':   'All',
+    'GENERAL':  'General',
+    'LADIES':   'Ladies',
+    'PWD':      'PWD',
+    'DEFENSE':  'Defense',
+    'TFWS':     'TFWS',
+    'EWS':      'EWS',
+    'MINORITY': 'Minority',
+    'ORPHAN':   'Orphan',
 }
 
 QUOTA_MAP = {
@@ -855,6 +852,13 @@ def download_pdf():
         styles = getSampleStyleSheet()
         elements = []
 
+
+
+        visible_columns_early = data.get("visible_columns", {}) or {}
+        TOGGLE_COLS_COUNT = sum(1 for k in ["cutoff","rank","fees","prob","univ","quota","distance"] if visible_columns_early.get(k, True))
+        PAGE_WIDTH_MM = 297 if TOGGLE_COLS_COUNT > 4 else 210
+        CONTENT_WIDTH_MM = PAGE_WIDTH_MM - 20
+
         # ── HEADER — Logo + Contact ──────────────────────────
         from reportlab.platypus import HRFlowable, Image as RLImage
         from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
@@ -881,9 +885,9 @@ def download_pdf():
         # PATCH: logo now centered alone on top, matching Vinay's reference —
         # contact info moved out of the logo row into its own blue bar below tagline.
         LOGO_PATH = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "   frontend", "images", "logo.jpeg"
-       )
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "frontend", "images", "logo.jpeg"
+        )
         if os.path.exists(LOGO_PATH):
             logo_element = RLImage(LOGO_PATH, width=60*mm, height=26*mm, kind="proportional")
         else:
@@ -891,7 +895,7 @@ def download_pdf():
                 "<b><font color='#1565c0' size=16>Career</font><font color='#16a34a' size=16>Myntra</font></b>",
                 ParagraphStyle("logo", parent=styles["Normal"], fontSize=16, leading=20, alignment=TA_CENTER)
             )
-        logo_tbl = Table([[logo_element]], colWidths=[180*mm])
+        logo_tbl = Table([[logo_element]], colWidths=[CONTENT_WIDTH_MM*mm])
         logo_tbl.setStyle(TableStyle([
             ("ALIGN", (0,0), (-1,-1), "CENTER"),
             ("BOTTOMPADDING", (0,0), (-1,-1), 8),
@@ -900,7 +904,7 @@ def download_pdf():
 
         # PATCH: green tagline bar (unchanged, already matched Vinay's format)
         tagline_tbl = Table([["Aptitude Test  |  Mock Exams  |  Admission Guidance  |  Skills Dev.  |  Jobs"]],
-                            colWidths=[180*mm])
+                            colWidths=[CONTENT_WIDTH_MM*mm])
         tagline_tbl.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,-1), colors.HexColor("#16a34a")),
             ("TEXTCOLOR", (0,0), (-1,-1), colors.white),
@@ -913,11 +917,16 @@ def download_pdf():
         elements.append(tagline_tbl)
 
         # PATCH: NEW blue contact bar below tagline — matches Vinay's PDF exactly
+
+        col_w = CONTENT_WIDTH_MM / 3
         contact_tbl = Table([[
+
             Paragraph("Phone: +91 98609 38338", ParagraphStyle("c1", parent=styles["Normal"], fontSize=9, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)),
             Paragraph("Email: info@careermyntra.com", ParagraphStyle("c2", parent=styles["Normal"], fontSize=9, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)),
-            Paragraph("Web: https://careermyntra.com", ParagraphStyle("c3", parent=styles["Normal"], fontSize=9, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)),
-        ]], colWidths=[60*mm, 60*mm, 60*mm])
+            Paragraph("Web: https://careermyntra.com", ParagraphStyle("c3", parent=styles["Normal"], fontSize=9, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER))
+
+        ]], colWidths=[col_w*mm, col_w*mm, col_w*mm])
+
         contact_tbl.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,-1), colors.HexColor("#1565c0")),
             ("ALIGN", (0,0), (-1,-1), "CENTER"),
@@ -1043,32 +1052,33 @@ def download_pdf():
             cp = r.get("cutoff_percentile")
             try:
                 cutoff_str = f"{float(cp):.2f} %ile" if cp is not None else "—"
-            except: cutoff_str = str(cp) if cp else "—"
+            except:
+                cutoff_str = str(cp) if cp else "—"
 
             fees = _fmt_number(r.get("fees"))
             fees_str = Paragraph(
-            f"₹{fees} / year" if fees != "-" else "—",
-        ParagraphStyle("fee", fontSize=7, leading=9, fontName=FEE_FONT, alignment=1)
-        )
-        rank_str = _fmt_number(r.get("cutoff_score"))
+                f"₹{fees} / year" if fees != "-" else "—",
+                ParagraphStyle("fee", fontSize=7, leading=9, fontName=FEE_FONT, alignment=1)
+            )
+            rank_str = _fmt_number(r.get("cutoff_score"))
 
-              # Status
-        status = "Un-Aided"
-        if r.get("is_autonomous"):
+            # Status
+            status = "Un-Aided"
+            if r.get("is_autonomous"):
                 status = "University Autonomous" if r.get("university") else "Autonomous"
-        elif r.get("nba_accredited") == "Yes":
+            elif r.get("nba_accredited") == "Yes":
                 status = "Un-Aided Autonomous"
 
-        prob_pct, prob_label = calc_probability(student_pct_float, cp)
-        prob_str = f"{prob_pct}% {prob_label}"
+            prob_pct, prob_label = calc_probability(student_pct_float, cp)
+            prob_str = f"{prob_pct}% {prob_label}"
 
-        univ_str = str(r.get("university") or "—")
+            univ_str = str(r.get("university") or "—")
 
-        quota_list = r.get("applicable_quota") or ["State"]
-        quota_str = ", ".join(quota_list)
+            quota_list = r.get("applicable_quota") or ["State"]
+            quota_str = ", ".join(quota_list)
 
             # Fixed columns row values
-        row = [
+            row = [
                 str(i),
                 Paragraph(str(r.get("college_name") or "—"), ParagraphStyle("cn", fontSize=8, leading=10)),
                 Paragraph(str(r.get("branch_name") or "—"), ParagraphStyle("bn", fontSize=8, leading=10)),
@@ -1077,7 +1087,7 @@ def download_pdf():
             ]
 
             # PATCH: append only the toggle columns that are ON
-        TOGGLE_VALUES = {
+            TOGGLE_VALUES = {
                 "cutoff":   cutoff_str,
                 "rank":     rank_str,
                 "fees":     fees_str,
@@ -1086,10 +1096,10 @@ def download_pdf():
                 "quota":    Paragraph(quota_str, ParagraphStyle("qt", fontSize=7, leading=9)),
                 "distance": "—",
             }
-        for key, _label, _w in active_toggle_cols:
+            for key, _label, _w in active_toggle_cols:
                 row.append(TOGGLE_VALUES[key])
 
-        table_data.append(row)
+            table_data.append(row)
 
         tbl = Table(table_data, repeatRows=1, colWidths=col_widths)
 
