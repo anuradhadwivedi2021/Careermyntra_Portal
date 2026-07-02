@@ -1540,5 +1540,402 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4 };
     loadStats();
   })();
 </script>
+
+
+
+
+<!--
+  DYNAMIC FILTERING PATCH — college_predictor.html ke liye
+  ============================================================
+  YE FILE ALAG SE HAI. Isko copy karke apni college_predictor.html
+  ke </script> tag (last wali, file ke end mein) SE THODA PEHLE paste kar dena.
+  Koi existing line delete/edit nahi karni.
+
+  Ye patch backend ke naye routes (college_predictor_dynamic_filters.py) use karta hai:
+    /college-predictor/districts-by-university
+    /college-predictor/categories-by-filters
+    /college-predictor/genders-by-filters
+
+  Dependency flow jo ye implement karta hai:
+    University        -> Districts
+    Districts          -> Branch   (already tha, wahi loadBranches() reuse)
+    Districts+Univ      -> Category
+    Category            -> Gender
+-->
+<script>
+  // ── PATCH: reload districts, filtered by selected Preferred Universities ──
+  async function onUniversityChangePatch() {
+    const universities = [...state.university.selected];
+    try {
+      const params = new URLSearchParams();
+      if (universities.length) params.set('universities', universities.join(','));
+      const url = `${API}/college-predictor/districts-by-university${params.toString() ? '?' + params.toString() : ''}`;
+      const res = await fetch(url);
+      const d = await res.json();
+      state.district.options = (d && d.length) ? d : state.district.options;
+    } catch (e) {
+      console.warn('University->District filter load failed', e);
+    }
+    // Drop any selected districts that are no longer valid for this university
+    [...state.district.selected].forEach(sel => {
+      if (!state.district.options.includes(sel)) state.district.selected.delete(sel);
+    });
+    renderChips('district');
+    if (state.district.open) renderOptions('district');
+
+    // Cascade further down: districts changed => category/gender may change too
+    await onCategoryFilterCascadePatch();
+  }
+
+  // ── PATCH: reload Category options, filtered by Districts + Universities ──
+  async function onCategoryFilterCascadePatch() {
+    const districts = [...state.district.selected];
+    const universities = [...state.university.selected];
+    const catSel = document.getElementById('category');
+    if (!catSel) return;
+    const prevValue = catSel.value;
+
+    try {
+      const params = new URLSearchParams();
+      if (districts.length) params.set('districts', districts.join(','));
+      if (universities.length) params.set('universities', universities.join(','));
+      const url = `${API}/college-predictor/categories-by-filters${params.toString() ? '?' + params.toString() : ''}`;
+      const res = await fetch(url);
+      const cats = await res.json();
+      if (cats && cats.length) {
+        catSel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+        // keep previous selection if still valid, else default to first
+        catSel.value = cats.includes(prevValue) ? prevValue : cats[0];
+      }
+    } catch (e) {
+      console.warn('Category filter load failed', e);
+    }
+
+    // Cascade further down: category changed => gender options may change too
+    await onGenderFilterCascadePatch();
+  }
+
+  // ── PATCH: reload Gender options, filtered by Category (+ Districts/University) ──
+  async function onGenderFilterCascadePatch() {
+    const category = document.getElementById('category')?.value || '';
+    const districts = [...state.district.selected];
+    const universities = [...state.university.selected];
+    const genderSel = document.getElementById('gender');
+    if (!genderSel) return;
+    const prevValue = genderSel.value;
+
+    const GENDER_LABELS = {
+      'G': 'G – General (All)', 'L': 'L – Ladies', 'T': 'T – Transgender',
+      'D': 'D – Divyang', 'P': 'P – Persons with Disability',
+      'O': 'O – Orphan', 'E': 'E – Ex-Servicemen',
+      'All': 'All Genders', 'Male': 'Male', 'Female': 'Female', 'Other': 'Other',
+    };
+
+    try {
+      const params = new URLSearchParams();
+      if (category) params.set('category', category);
+      if (districts.length) params.set('districts', districts.join(','));
+      if (universities.length) params.set('universities', universities.join(','));
+      const url = `${API}/college-predictor/genders-by-filters${params.toString() ? '?' + params.toString() : ''}`;
+      const res = await fetch(url);
+      const genders = await res.json();
+      if (genders && genders.length) {
+        genderSel.innerHTML = '<option value="">All Genders</option>' +
+          genders.map(g => `<option value="${g}">${GENDER_LABELS[g] || g}</option>`).join('');
+        genderSel.value = genders.includes(prevValue) ? prevValue : '';
+      }
+    } catch (e) {
+      console.warn('Gender filter load failed', e);
+    }
+  }
+
+  // ── Wire up: University multi-select "Done" button should trigger cascade ──
+  // Original Done button for university panel does NOT call any handler.
+  // We hook it here without touching the original onclick attribute.
+  (function wireUniversityDone() {
+    const btn = document.querySelector('#university-panel .ms-btn.done');
+    if (btn) {
+      btn.addEventListener('click', () => { onUniversityChangePatch(); });
+    }
+    const clearBtn = document.querySelector('#university-panel .ms-btn.clear');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => { onUniversityChangePatch(); });
+    }
+  })();
+
+  // ── Wire up: original onDistrictChange() already reloads branches.
+  // We additionally hook it to also cascade into category/gender. ──
+  const _originalOnDistrictChange = onDistrictChange;
+  onDistrictChange = async function () {
+    await _originalOnDistrictChange();
+    await onCategoryFilterCascadePatch();
+  };
+
+  // ── Wire up: Category dropdown change → reload Gender ──
+  (function wireCategoryChange() {
+    const catSel = document.getElementById('category');
+    if (catSel) {
+      catSel.addEventListener('change', () => { onGenderFilterCascadePatch(); });
+    }
+  })();
+</script>
+
+
+
+
+<!--
+  STUDENT SAVE & PREFILL PATCH — college_predictor.html ke liye
+  ============================================================
+  Isko copy karke apni college_predictor.html ke last </script> se
+  THODA PEHLE paste kar dena (jaisa pichle dynamic-filters patch mein
+  bataya tha — same jagah, uske baad ye wala bhi paste kar sakti ho).
+
+  Ye patch use karta hai naye backend routes (routes/student_data.py):
+    POST /college-predictor/students
+    GET  /college-predictor/students
+    GET  /college-predictor/students/search?q=..
+    GET  /college-predictor/students/<id>
+
+  Features:
+    - Student Name field ke upar ek search+dropdown UI inject karta hai
+    - Existing student select karne par poora form prefill hota hai
+    - Predict button click hote hi student data AUTO-SAVE hota hai
+    - Ek manual "💾 Save Student" button bhi add hota hai
+-->
+
+<!-- 1) HTML: Student selector UI — student_name field ke UPAR inject hoga via JS, isliye yahan sirf styles -->
+<style>
+  .student-picker { margin-bottom: 14px; position: relative; }
+  .student-picker input {
+    width: 100%; padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px;
+    font-size: 14px; font-family: inherit; color: #0d1b3e; background: #fafafa; outline: none;
+  }
+  .student-picker input:focus { border-color: #1565c0; box-shadow: 0 0 0 3px rgba(21,101,192,0.1); background: #fff; }
+  .student-picker-list {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 300;
+    background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    max-height: 220px; overflow-y: auto;
+  }
+  .student-picker-list.open { display: block; }
+  .student-picker-item { padding: 9px 14px; cursor: pointer; font-size: 13px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+  .student-picker-item:last-child { border-bottom: none; }
+  .student-picker-item:hover { background: #f0f4ff; }
+  .student-picker-item .spi-name { font-weight: 700; color: #0d1b3e; }
+  .student-picker-item .spi-meta { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+  .btn-save-student {
+    margin-top: 8px; padding: 8px 14px; background: #eff6ff; border: 1.5px solid #bfdbfe;
+    border-radius: 8px; font-size: 12px; font-weight: 700; color: #1565c0; cursor: pointer; font-family: inherit;
+  }
+  .btn-save-student:hover { background: #dbeafe; }
+</style>
+
+<script>
+  // ── Inject student picker UI above the Student Name field ──
+  (function injectStudentPicker() {
+    const nameField = document.getElementById('student_name');
+    if (!nameField) return;
+    const fieldWrap = nameField.closest('.field');
+    if (!fieldWrap) return;
+
+    const picker = document.createElement('div');
+    picker.className = 'student-picker';
+    picker.innerHTML = `
+      <input type="text" id="student-search-box" placeholder="🔍 Search saved students or type new name..." autocomplete="off"/>
+      <div class="student-picker-list" id="student-picker-list"></div>
+    `;
+    fieldWrap.parentNode.insertBefore(picker, fieldWrap);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'btn-save-student';
+    saveBtn.textContent = '💾 Save Student';
+    saveBtn.onclick = () => manualSaveStudent();
+    fieldWrap.appendChild(saveBtn);
+  })();
+
+  let studentSearchTimer = null;
+  let currentStudentId = null; // set when an existing student is selected (for update-on-save)
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const box = document.getElementById('student-search-box');
+    if (!box) return;
+    box.addEventListener('input', () => {
+      currentStudentId = null; // typing a new name = treat as new/unlinked until selected
+      clearTimeout(studentSearchTimer);
+      const q = box.value.trim();
+      studentSearchTimer = setTimeout(() => searchStudents(q), 250);
+    });
+    box.addEventListener('focus', () => searchStudents(box.value.trim()));
+    document.addEventListener('click', e => {
+      const list = document.getElementById('student-picker-list');
+      if (list && !e.target.closest('.student-picker')) list.classList.remove('open');
+    });
+  });
+
+  async function searchStudents(q) {
+    const list = document.getElementById('student-picker-list');
+    if (!list) return;
+    try {
+      const url = q
+        ? `${API}/college-predictor/students/search?q=${encodeURIComponent(q)}`
+        : `${API}/college-predictor/students`;
+      const res = await fetch(url);
+      const students = await res.json();
+      if (!students || !students.length) {
+        list.innerHTML = `<div class="student-picker-item" style="color:#9ca3af;">No saved students found</div>`;
+      } else {
+        list.innerHTML = students.map(s => `
+          <div class="student-picker-item" onclick="selectStudent(${s.id})">
+            <div class="spi-name">${s.student_name}</div>
+            <div class="spi-meta">${s.category || ''} ${s.percentile ? '• ' + s.percentile + '%ile' : ''}</div>
+          </div>
+        `).join('');
+      }
+      list.classList.add('open');
+    } catch (e) {
+      console.warn('Student search failed', e);
+    }
+  }
+
+  // ── Select a student from the list → prefill entire form ──
+  async function selectStudent(id) {
+    try {
+      const res = await fetch(`${API}/college-predictor/students/${id}`);
+      if (!res.ok) { showToast('❌ Could not load student'); return; }
+      const s = await res.json();
+      currentStudentId = s.id;
+
+      document.getElementById('student_search-box') // no-op guard
+      const searchBox = document.getElementById('student-search-box');
+      if (searchBox) searchBox.value = s.student_name;
+      document.getElementById('student_name').value = s.student_name;
+
+      if (s.exam_type) { document.getElementById('exam_type').value = s.exam_type; await onExamChange(); }
+      if (s.course_name) { document.getElementById('course').value = s.course_name; updateAuthority(); await loadBranches(s.districts || []); }
+      if (s.admission_authority) document.getElementById('authority').value = s.admission_authority;
+      if (s.percentile != null) document.getElementById('percentile').value = s.percentile;
+      if (s.rank) document.getElementById('merit_rank').value = s.rank;
+      if (s.home_district) { document.getElementById('home_district').value = s.home_district; onHomeDistrictChange(); }
+      if (s.pin_code) document.getElementById('pin_code').value = s.pin_code;
+      if (s.cap_year) document.getElementById('cap_year').value = s.cap_year;
+
+      // Multi-selects: districts, branches, universities, cap_round
+      state.district.selected = new Set(s.districts || []);
+      state.branch.selected = new Set(s.branches || []);
+      state.university.selected = new Set(s.universities || []);
+      state.capround.selected = new Set(s.cap_round || []);
+      renderChips('district'); renderChips('branch'); renderChips('university'); renderChips('capround');
+
+      if (s.category) document.getElementById('category').value = s.category;
+      if (s.gender) document.getElementById('gender').value = s.gender;
+      const quotaEl = document.getElementById('quota');
+      if (quotaEl && s.quota) quotaEl.value = s.quota;
+
+      document.getElementById('student-picker-list').classList.remove('open');
+      showToast(`✅ Loaded ${s.student_name}`);
+    } catch (e) {
+      console.warn('Prefill failed', e);
+      showToast('❌ Failed to load student data');
+    }
+  }
+
+  // ── Build the payload used for both predict() and save() ──
+  function buildStudentPayload() {
+    return {
+      id: currentStudentId,
+      student_name: (document.getElementById('student_name')?.value || '').trim(),
+      exam_type: document.getElementById('exam_type')?.value || '',
+      course_name: document.getElementById('course')?.value || '',
+      admission_authority: document.getElementById('authority')?.value || '',
+      percentile: document.getElementById('percentile')?.value || null,
+      rank: document.getElementById('merit_rank')?.value || '',
+      home_district: document.getElementById('home_district')?.value || '',
+      category: document.getElementById('category')?.value || '',
+      gender: document.getElementById('gender')?.value || '',
+      quota: document.getElementById('quota')?.value || '',
+      pin_code: document.getElementById('pin_code')?.value || '',
+      cap_year: document.getElementById('cap_year')?.value || '',
+      cap_round: [...state.capround.selected],
+      districts: [...state.district.selected],
+      branches: [...state.branch.selected],
+      universities: [...state.university.selected],
+    };
+  }
+
+  async function saveStudentToServer(silent) {
+    const payload = buildStudentPayload();
+    if (!payload.student_name) {
+      if (!silent) showToast('⚠️ Enter a student name first');
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/college-predictor/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        currentStudentId = d.id;
+        if (!silent) showToast('✅ Student saved');
+      } else if (!silent) {
+        showToast('❌ ' + (d.error || 'Save failed'));
+      }
+    } catch (e) {
+      if (!silent) showToast('❌ Network error while saving student');
+    }
+  }
+
+  function manualSaveStudent() { saveStudentToServer(false); }
+
+  // ── Auto-save on Predict: wrap the existing runPredict() ──
+  const _originalRunPredict = runPredict;
+  runPredict = async function () {
+    await saveStudentToServer(true); // silent auto-save, doesn't block/alert on failure
+    await _originalRunPredict();
+  };
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- PASTE college_predictor_dynamic_filters_frontend_patch.html KA <script>...</script> BLOCK YAHAN -->
+
 </body>
 </html>

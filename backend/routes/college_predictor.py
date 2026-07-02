@@ -540,10 +540,11 @@ def predict():
     """
     data = request.get_json(silent=True) or {}
 
-    exam_type    = data.get("exam_type", "MHT-CET")
+    # PATCH: no hardcoded defaults — Excel-style filtering: khaali field = no filter applied on that column
+    exam_type    = data.get("exam_type") or ""
     percentile   = data.get("percentile")
-    category     = data.get("category", "OPEN")
-    cap_year     = data.get("cap_year", "2024-25")
+    category     = data.get("category") or ""
+    cap_year     = data.get("cap_year") or ""
     cap_round    = data.get("cap_round", "All Rounds")
     branches     = data.get("branches", [])
     districts    = data.get("districts", [])
@@ -605,12 +606,19 @@ def predict():
     conn = get_connection()
     cur = get_cursor(conn)
 
-    where_clauses = [
-        "exam_type = %s",
-        "category = %s",
-        "cap_year = %s",
-    ]
-    params = [exam_type, category, cap_year]
+    # PATCH: only add these filters if actually selected — matches Excel-style
+    # "filter only on columns you've picked a value for"
+    where_clauses = []
+    params = []
+    if exam_type:
+        where_clauses.append("exam_type = %s")
+        params.append(exam_type)
+    if category:
+        where_clauses.append("category = %s")
+        params.append(category)
+    if cap_year:
+        where_clauses.append("cap_year = %s")
+        params.append(cap_year)
 
     if student_gender and student_gender != "Other":
         where_clauses.append("(gender = %s OR gender = 'All' OR gender IS NULL)")
@@ -651,6 +659,24 @@ def predict():
     if quota:
         where_clauses.append("quota_code = %s")
         params.append(quota)
+
+    # PATCH: ±5 percentile range — only show colleges whose cutoff falls
+    # within [percentile-5, percentile+5], as per prediction logic shown on frontend
+    where_clauses.append("cutoff_percentile BETWEEN %s AND %s")
+    params.append(percentile - 5)
+    params.append(percentile + 5)
+
+    # PATCH: Rank filter — ±10% range around student's rank (only if rank provided)
+    if rank:
+        try:
+            rank_val = float(rank)
+            rank_min = rank_val * 0.9
+            rank_max = rank_val * 1.1
+            where_clauses.append("(cutoff_score IS NULL OR cutoff_score BETWEEN %s AND %s)")
+            params.append(rank_min)
+            params.append(rank_max)
+        except (ValueError, TypeError):
+            pass  # ignore invalid rank input, don't break the query
 
     where_sql = " AND ".join(where_clauses)
 
@@ -714,8 +740,8 @@ def predict():
         )
         r["home_university"] = home_univ or ""
 
-    results.sort(key=lambda x: (CHANCE_ORDER.get(x["admission_chance"], 3),
-                                 -(x["cutoff_percentile"] or 0)))
+    # PATCH: sort purely by cutoff_percentile descending (higher first, lower last)
+    results.sort(key=lambda x: -(x["cutoff_percentile"] or 0))
 
     safe     = [r for r in results if r["admission_chance"] == "Safe"]
     moderate = [r for r in results if r["admission_chance"] == "Moderate"]
