@@ -664,15 +664,8 @@
           <div class="field">
             <label><span class="ficon">👤</span> Gender</label>
             <select id="gender">
-              <option value="">All Genders</option>
-              <option value="G">G – General (All)</option>
-              <option value="L">L – Ladies</option>
-              <option value="T">T – Transgender</option>
-              <option value="D">D – Divyang</option>
-              <option value="P">P – Persons with Disability</option>
-              <option value="O">O – Orphan</option>
-              <option value="E">E – Ex-Servicemen</option>
-            </select>
+          <option value="">Loading…</option>
+        </select>
             <span class="help">Used for gender-wise reservation rules</span>
           </div>
         </div>
@@ -761,9 +754,9 @@
 
   // ── Course change → reload branches (filtered by course + districts) ──
  async function onCourseChange() {
-    updateAuthority();
+    await updateAuthority();
     const districts = [...state.district.selected];
-    await loadBranches(districts);  // ✅ sahi hai
+    await loadBranches(districts);
 }
 
  async function onDistrictChange() {
@@ -943,6 +936,12 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
   }
 
   async function loadFilterOptions() {
+    // PATCH: show Loading state immediately on all DB-driven dropdowns
+    const catSelLoading = document.getElementById('category');
+    if (catSelLoading) catSelLoading.innerHTML = '<option value="">Loading…</option>';
+    const genderSelLoading = document.getElementById('gender');
+    if (genderSelLoading) genderSelLoading.innerHTML = '<option value="">Loading…</option>';
+
     try {
       const res = await fetch(`${API}/college-predictor/filter-options`);
       const d = await res.json();
@@ -962,6 +961,19 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
       const catSel = document.getElementById('category');
       if (d.categories && d.categories.length) {
         catSel.innerHTML = d.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      } else {
+        catSel.innerHTML = '<option value="">No categories found</option>';
+      }
+
+      // PATCH: Gender — dynamically fetched from DB (gender column values)
+      const genderSel = document.getElementById('gender');
+      if (genderSel) {
+        if (d.genders && d.genders.length) {
+          genderSel.innerHTML = '<option value="">All Genders</option>' +
+            d.genders.map(g => `<option value="${g}">${g}</option>`).join('');
+        } else {
+          genderSel.innerHTML = '<option value="">All Genders</option>';
+        }
       }
 
       // Entrance Exam (from filter-options exam_types)
@@ -1000,7 +1012,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
       sel.innerHTML = '<option value="">Select Course</option>' +
         courses.map(c => `<option value="${c}">${c}</option>`).join('');
       sel.value = courses[0] || '';
-      updateAuthority();
+      await updateAuthority();
       // Reload branches for the newly selected course
       await loadBranches("");
     } catch(e) {
@@ -1010,13 +1022,43 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
 
   }
 
-  // ── Admission Authority — auto-populated based on selected Course ──
-  function updateAuthority() {
-    const exam = document.getElementById('exam_type')?.value || '';
+  // ── Admission Authority — dynamically fetched from DB, filtered by exam ──
+  let allAdmissionAuthorities = []; // cached full list from DB
+
+  async function updateAuthority() {
     const a = document.getElementById('authority');
-    a.innerHTML = exam === 'JEE Main'
-      ? '<option>All India Quota (AI)</option><option>Maharashtra State CAP</option>'
-      : '<option>Maharashtra State CAP</option>';
+    const exam = document.getElementById('exam_type')?.value || '';
+
+    // Show loading state immediately
+    a.innerHTML = '<option value="">Loading…</option>';
+    a.disabled = true;
+
+    try {
+      // Fetch once and cache; reuse on subsequent calls
+      if (!allAdmissionAuthorities.length) {
+        const res = await fetch(`${API}/college-predictor/filter-options`);
+        const d = await res.json();
+        allAdmissionAuthorities = (d.admission_authorities && d.admission_authorities.length)
+          ? d.admission_authorities
+          : [];
+      }
+
+      let list = allAdmissionAuthorities;
+
+      // Optional: keep exam-based filtering behavior if no DB data at all
+      if (!list.length) {
+        list = exam === 'JEE Main'
+          ? ['All India Quota (AI)', 'Maharashtra State CAP']
+          : ['Maharashtra State CAP'];
+      }
+
+      a.innerHTML = list.map(v => `<option value="${v}">${v}</option>`).join('');
+    } catch (e) {
+      console.warn('Admission Authority load failed', e);
+      a.innerHTML = '<option value="Maharashtra State CAP">Maharashtra State CAP</option>';
+    } finally {
+      a.disabled = false;
+    }
   }
 
   // ── Preferred Universities — load from DB ──
