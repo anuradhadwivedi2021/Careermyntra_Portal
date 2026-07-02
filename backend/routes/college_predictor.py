@@ -956,8 +956,39 @@ def download_pdf():
         except:
             student_pct_float = 0
 
-        col_headers = ["Sr.", "College Name", "Branches", "Status", "District",
-                       "Cut-off", "Rank", "Fees (₹)", "Probability"]
+        # PATCH: column toggle support — only include columns that are ON.
+        # "Sr.", "College Name", "Branches", "Status", "District" are always
+        # shown (base/fixed columns, same as Vinay's original correct format).
+        # Toggleable columns come from the frontend's visible_columns object.
+        visible_columns = data.get("visible_columns", {}) or {}
+
+        def _is_on(key):
+            # default to True if key missing, so old frontend calls (without
+            # visible_columns) still get the full report like before
+            return visible_columns.get(key, True)
+
+        # Column definitions: (key, header_label, col_width)
+        # key=None means always-shown fixed column
+        FIXED_COLS = [
+            (None, "Sr.", 12),
+            (None, "College Name", 48),
+            (None, "Branches", 38),
+            (None, "Status", 28),
+            (None, "District", 20),
+        ]
+        TOGGLE_COLS = [
+            ("cutoff", "Cut-off", 22),
+            ("rank",   "Rank",    16),
+            ("fees",   "Fees (₹)", 26),
+            ("prob",   "Probability", 26),
+            ("univ",   "University", 34),
+            ("quota",  "Quota", 26),
+        ]
+
+        active_toggle_cols = [c for c in TOGGLE_COLS if _is_on(c[0])]
+
+        col_headers = [c[1] for c in FIXED_COLS] + [c[1] for c in active_toggle_cols]
+        col_widths  = [c[2] for c in FIXED_COLS] + [c[2] for c in active_toggle_cols]
         table_data = [col_headers]
 
         for i, r in enumerate(results, start=1):
@@ -981,20 +1012,35 @@ def download_pdf():
             prob_pct, prob_label = calc_probability(student_pct_float, cp)
             prob_str = f"{prob_pct}% {prob_label}"
 
-            table_data.append([
+            univ_str = str(r.get("university") or "—")
+
+            quota_list = r.get("applicable_quota") or ["State"]
+            quota_str = ", ".join(quota_list)
+
+            # Fixed columns row values
+            row = [
                 str(i),
                 Paragraph(str(r.get("college_name") or "—"), ParagraphStyle("cn", fontSize=8, leading=10)),
                 Paragraph(str(r.get("branch_name") or "—"), ParagraphStyle("bn", fontSize=8, leading=10)),
                 status,
                 str(r.get("district") or "—"),
-                cutoff_str,
-                rank_str,
-                fees_str,
-                prob_str,
-            ])
+            ]
 
-        tbl = Table(table_data, repeatRows=1,
-                    colWidths=[12, 48, 38, 28, 20, 22, 16, 26, 26])
+            # PATCH: append only the toggle columns that are ON
+            TOGGLE_VALUES = {
+                "cutoff": cutoff_str,
+                "rank":   rank_str,
+                "fees":   fees_str,
+                "prob":   prob_str,
+                "univ":   Paragraph(univ_str, ParagraphStyle("un", fontSize=7, leading=9)),
+                "quota":  Paragraph(quota_str, ParagraphStyle("qt", fontSize=7, leading=9)),
+            }
+            for key, _label, _w in active_toggle_cols:
+                row.append(TOGGLE_VALUES[key])
+
+            table_data.append(row)
+
+        tbl = Table(table_data, repeatRows=1, colWidths=col_widths)
 
         # Row colors
         row_styles = [

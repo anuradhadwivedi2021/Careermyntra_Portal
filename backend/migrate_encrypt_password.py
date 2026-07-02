@@ -10,7 +10,6 @@ Run karne se pehle:
 
 Ye script idempotent hai — agar password already encrypted hai to kuch nahi karega.
 """
-
 import sys
 import os
 
