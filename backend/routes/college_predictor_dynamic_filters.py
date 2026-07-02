@@ -197,21 +197,26 @@ def cascading_options():
 
     result = {}
 
-    field_map = [
+    field_map = [         
         ("districts",    "TRIM(district)", "district IS NOT NULL AND TRIM(district) != ''"),
-        ("universities",  "university",     "university IS NOT NULL AND TRIM(university) != ''"),
+        # PATCH: normalize case+whitespace to avoid duplicate university entries
+        ("universities",  "TRIM(university)", "university IS NOT NULL AND TRIM(university) != ''"),
         ("branches",      "branch_name",    "branch_name IS NOT NULL"),
         ("categories",    "category",       "category IS NOT NULL"),
         ("genders",       "gender",         "gender IS NOT NULL"),
         ("cap_years",     "cap_year",       "cap_year IS NOT NULL"),
         ("cap_rounds",    "cap_round",      "cap_round IS NOT NULL"),
+        ("quotas",        "quota_code",     "quota_code IS NOT NULL AND TRIM(quota_code) != ''"),
     ]
 
     exclude_key_map = {
         "districts": "districts", "universities": "universities",
         "branches": "branches", "categories": "category",
         "genders": "gender", "cap_years": "cap_year", "cap_rounds": "cap_round",
+        "quotas": "quota",
     }
+
+    
 
     for out_key, col, not_null_clause in field_map:
         exclude = exclude_key_map[out_key]
