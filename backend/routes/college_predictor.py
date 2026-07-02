@@ -860,37 +860,60 @@ def download_pdf():
         from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 
         # Header table: Logo left | Contact right
+        from reportlab.platypus import HRFlowable, Image as RLImage
         header_contact = Paragraph(
             "<b>+91 98609 38338</b><br/>info@careermyntra.com<br/>https://careermyntra.com",
             ParagraphStyle("contact", parent=styles["Normal"], fontSize=9,
                            textColor=colors.HexColor("#374151"), leading=14, alignment=TA_RIGHT)
         )
-        logo_para = Paragraph(
-            "<b><font color='#1565c0' size=14>Career</font><font color='#16a34a' size=14>Myntra</font></b>",
-            ParagraphStyle("logo", parent=styles["Normal"], fontSize=14, leading=18)
+        # PATCH: logo now centered alone on top, matching Vinay's reference —
+        # contact info moved out of the logo row into its own blue bar below tagline.
+        LOGO_PATH = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "frontend", "images", "logo.jpeg"
         )
-        header_tbl = Table([[logo_para, header_contact]],
-                           colWidths=[90*mm, 90*mm])
-        header_tbl.setStyle(TableStyle([
-            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-            ("ALIGN", (1,0), (1,0), "RIGHT"),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+        if os.path.exists(LOGO_PATH):
+            logo_element = RLImage(LOGO_PATH, width=60*mm, height=26*mm, kind="proportional")
+        else:
+            logo_element = Paragraph(
+                "<b><font color='#1565c0' size=16>Career</font><font color='#16a34a' size=16>Myntra</font></b>",
+                ParagraphStyle("logo", parent=styles["Normal"], fontSize=16, leading=20, alignment=TA_CENTER)
+            )
+        logo_tbl = Table([[logo_element]], colWidths=[180*mm])
+        logo_tbl.setStyle(TableStyle([
+            ("ALIGN", (0,0), (-1,-1), "CENTER"),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 8),
         ]))
-        elements.append(header_tbl)
+        elements.append(logo_tbl)
 
-        # Tagline bar
+        # PATCH: green tagline bar (unchanged, already matched Vinay's format)
         tagline_tbl = Table([["Aptitude Test  |  Mock Exams  |  Admission Guidance  |  Skills Dev.  |  Jobs"]],
                             colWidths=[180*mm])
         tagline_tbl.setStyle(TableStyle([
-            ("BACKGROUND", (0,0), (-1,-1), colors.HexColor("#1565c0")),
+            ("BACKGROUND", (0,0), (-1,-1), colors.HexColor("#16a34a")),
             ("TEXTCOLOR", (0,0), (-1,-1), colors.white),
             ("FONTSIZE", (0,0), (-1,-1), 9),
             ("FONTNAME", (0,0), (-1,-1), "Helvetica-Bold"),
             ("ALIGN", (0,0), (-1,-1), "CENTER"),
-            ("TOPPADDING", (0,0), (-1,-1), 5),
-            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+            ("TOPPADDING", (0,0), (-1,-1), 6),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 6),
         ]))
         elements.append(tagline_tbl)
+
+        # PATCH: NEW blue contact bar below tagline — matches Vinay's PDF exactly
+        contact_tbl = Table([[
+            Paragraph("Phone: +91 98609 38338", ParagraphStyle("c1", parent=styles["Normal"], fontSize=9, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)),
+            Paragraph("Email: info@careermyntra.com", ParagraphStyle("c2", parent=styles["Normal"], fontSize=9, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)),
+            Paragraph("Web: https://careermyntra.com", ParagraphStyle("c3", parent=styles["Normal"], fontSize=9, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)),
+        ]], colWidths=[60*mm, 60*mm, 60*mm])
+        contact_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0,0), (-1,-1), colors.HexColor("#1565c0")),
+            ("ALIGN", (0,0), (-1,-1), "CENTER"),
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+            ("TOPPADDING", (0,0), (-1,-1), 6),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 6),
+        ]))
+        elements.append(contact_tbl)
         elements.append(Spacer(1, 8))
 
         # ── STUDENT INFO ─────────────────────────────────────
@@ -993,7 +1016,15 @@ def download_pdf():
         )
 
         col_headers = [c[1] for c in FIXED_COLS] + [c[1] for c in active_toggle_cols]
-        col_widths  = [c[2] for c in FIXED_COLS] + [c[2] for c in active_toggle_cols]
+        raw_widths  = [c[2] for c in FIXED_COLS] + [c[2] for c in active_toggle_cols]
+
+        # PATCH: dynamically scale widths to always fit the page — no more overlap
+        # chahe kitne bhi columns ON ho. Design/colors/layout bilkul untouched.
+        available_width_mm = (297 if len(active_toggle_cols) > 4 else 210) - 20
+        total_raw = sum(raw_widths)
+        scale = available_width_mm / total_raw if total_raw > available_width_mm else 1.0
+        col_widths = [w * scale * mm for w in raw_widths]
+
         table_data = [col_headers]
 
         for i, r in enumerate(results, start=1):
@@ -1063,11 +1094,14 @@ def download_pdf():
             ("BOTTOMPADDING", (0,0), (-1,-1), 4),
             ("LINEBELOW",  (0,0), (-1,0), 1.5, colors.HexColor("#0d47a1")),
         ]
-        # Alternate row background
+        # PATCH: alternate row background changed to light green tint,
+        # matching Vinay's reference PDF (was light blue before)
         for row_idx in range(1, len(table_data)):
-            bg = colors.white if row_idx % 2 == 0 else colors.HexColor("#f8faff")
+            bg = colors.white if row_idx % 2 == 0 else colors.HexColor("#f0fdf4")
             row_styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg))
 
+        # PATCH: green outer border around the whole table, matches Vinay's PDF
+        row_styles.append(("BOX", (0,0), (-1,-1), 1.5, colors.HexColor("#16a34a")))
         tbl.setStyle(TableStyle(row_styles))
         elements.append(tbl)
         elements.append(Spacer(1, 12))
