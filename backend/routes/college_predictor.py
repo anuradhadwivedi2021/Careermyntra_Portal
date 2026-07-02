@@ -972,12 +972,13 @@ def download_pdf():
             (None, "District", 16),
         ]
         TOGGLE_COLS = [
-            ("cutoff", "Cut-off", 18),
-            ("rank",   "Rank",    14),
-            ("fees",   "Fees (₹)", 20),
-            ("prob",   "Probability", 22),
-            ("univ",   "University", 26),
-            ("quota",  "Quota", 20),
+            ("cutoff",   "Cut-off",     18),
+            ("rank",     "Rank",        14),
+            ("fees",     "Fees (₹)",    20),
+            ("prob",     "Probability", 22),
+            ("univ",     "University",  26),
+            ("quota",    "Quota",       20),
+            ("distance", "Distance",    16),
         ]
 
         active_toggle_cols = [c for c in TOGGLE_COLS if _is_on(c[0])]
@@ -1032,12 +1033,13 @@ def download_pdf():
 
             # PATCH: append only the toggle columns that are ON
             TOGGLE_VALUES = {
-                "cutoff": cutoff_str,
-                "rank":   rank_str,
-                "fees":   fees_str,
-                "prob":   prob_str,
-                "univ":   Paragraph(univ_str, ParagraphStyle("un", fontSize=7, leading=9)),
-                "quota":  Paragraph(quota_str, ParagraphStyle("qt", fontSize=7, leading=9)),
+                "cutoff":   cutoff_str,
+                "rank":     rank_str,
+                "fees":     fees_str,
+                "prob":     prob_str,
+                "univ":     Paragraph(univ_str, ParagraphStyle("un", fontSize=7, leading=9)),
+                "quota":    Paragraph(quota_str, ParagraphStyle("qt", fontSize=7, leading=9)),
+                "distance": "—",
             }
             for key, _label, _w in active_toggle_cols:
                 row.append(TOGGLE_VALUES[key])
