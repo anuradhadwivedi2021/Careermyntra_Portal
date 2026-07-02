@@ -916,18 +916,18 @@ def download_pdf():
         # contact info moved out of the logo row into its own blue bar below tagline.
         LOGO_PATH = "/home/anuradha/Careermyntra_Portal/frontend/images/logo.jpeg"
 
-        if    os.path.exists(LOGO_PATH):
-             logo_element = RLImage(LOGO_PATH, width=60*mm, height=26*mm, kind="proportional")
-
+        if os.path.exists(LOGO_PATH):
+            logo_element = RLImage(LOGO_PATH, width=60*mm, height=26*mm, kind="proportional")
         else:
-             logger.warning(f"[download_pdf] Logo not found at {LOGO_PATH}")
-             logo_element = Paragraph(
-            "<b><font color='#1565c0' size=16>Career</font><font color='#16a34a' size=16>Myntra</font></b>",
-            ParagraphStyle("logo", parent=styles["Normal"], fontSize=16, leading=20, alignment=TA_CENTER)
-    )
-             logo_tbl = Table([[logo_element]], colWidths=[CONTENT_WIDTH_MM*mm])
-             logo_tbl.setStyle(TableStyle([
-             ("ALIGN", (0,0), (-1,-1), "CENTER"),
+            logger.warning(f"[download_pdf] Logo not found at {LOGO_PATH}")
+            logo_element = Paragraph(
+                "<b><font color='#1565c0' size=16>Career</font><font color='#16a34a' size=16>Myntra</font></b>",
+                ParagraphStyle("logo", parent=styles["Normal"], fontSize=16, leading=20, alignment=TA_CENTER)
+            )
+
+        logo_tbl = Table([[logo_element]], colWidths=[CONTENT_WIDTH_MM*mm])
+        logo_tbl.setStyle(TableStyle([
+            ("ALIGN", (0,0), (-1,-1), "CENTER"),
             ("BOTTOMPADDING", (0,0), (-1,-1), 8),
         ]))
         elements.append(logo_tbl)
