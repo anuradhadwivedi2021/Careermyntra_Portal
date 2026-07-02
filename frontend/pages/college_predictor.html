@@ -748,16 +748,16 @@
  async function onCourseChange() {
     updateAuthority();
     const districts = [...state.district.selected];
-    await loadBranches(districts);
+    await loadBranches(districts);  // ✅ sahi hai
 }
 
-  // ── District Done → reload branches for selected districts ──
  async function onDistrictChange() {
     const districts = [...state.district.selected];
-    // Pass ALL selected districts — not just the first one
     await loadBranches(districts);
     state.branch.selected.clear();
     renderChips('branch');
+    const ph = document.getElementById('branch-ph');
+    if (ph) ph.textContent = `Select branches (${state.branch.options.length} available)`;
 }
 
   // ── Exam change → reload Course options for that exam ──
