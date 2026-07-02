@@ -1051,7 +1051,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     document.getElementById('merit_rank') && (document.getElementById('merit_rank').value = '');
     document.getElementById('percentile').value = '';
     document.getElementById('exam_type').selectedIndex = 0;
-    document.getElementById('cap_year').selectedIndex = 0;
+    
   
     document.getElementById('category').selectedIndex = 0;
     document.getElementById('home_district').selectedIndex = 0;
@@ -1172,7 +1172,9 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     const percentile = student_percentile || document.getElementById('percentile')?.value || '';
     const rank       = document.getElementById('merit_rank')?.value || '';
     const capYear    = document.getElementById('cap_year')?.value || '';
-    const capRound   = document.getElementById('cap_round')?.value || '';
+    const capRound = [...state.capround.selected].join(', ');
+
+
     const branches   = [...state.branch.selected];
     const districts  = [...state.district.selected];
 
@@ -1277,8 +1279,8 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
         <button class="col-toggle active" onclick="toggleCol('prob', this)"><span class="dot"></span> Probability</button>
         <button class="col-toggle active" onclick="toggleCol('univ', this)"><span class="dot"></span> University</button>
         <button class="col-toggle active" onclick="toggleCol('quota', this)"><span class="dot"></span> Quota</button>
+        <button class="col-toggle active" onclick="toggleCol('distance', this)"><span class="dot"></span> Distance</button>
       </div>`
-
     const counsellorHTML = `
       <div class="counsellor-note">
         <h4>📌 Counsellor's Note</h4>
@@ -1491,10 +1493,10 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     t.textContent = msg; t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3000);
   }
-const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4 };
+const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10 };
 
   // PATCH: track which columns are ON/OFF so downloadPDF() knows what to send
-  const columnVisibility = { cutoff:true, rank:true, fees:true, prob:true, univ:true, quota:true };
+  const columnVisibility = { cutoff:true, rank:true, fees:true, prob:true, univ:true, quota:true, distance:true };
 
   function toggleCol(colKey, btn) {
     btn.classList.toggle('active');
@@ -1652,14 +1654,77 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4 };
     await onCategoryFilterCascadePatch();
   };
 
-  // ── Wire up: Category dropdown change → reload Gender ──
+    // ── Wire up: Category dropdown change → reload Gender ──
   (function wireCategoryChange() {
     const catSel = document.getElementById('category');
     if (catSel) {
       catSel.addEventListener('change', () => { onGenderFilterCascadePatch(); });
     }
   })();
+
+  // ── PATCH: Full cascading — refresh CAP Year, CAP Round, Quota based on all selections ──
+  async function onFullCascadePatch() {
+    const districts    = [...state.district.selected];
+    const universities = [...state.university.selected];
+    const branches     = [...state.branch.selected];
+    const category     = document.getElementById('category')?.value || '';
+    const gender       = document.getElementById('gender')?.value || '';
+    const capYearEl    = document.getElementById('cap_year');
+    const quotaEl      = document.getElementById('quota');
+
+    const params = new URLSearchParams();
+    if (districts.length)    params.set('districts', districts.join(','));
+    if (universities.length) params.set('universities', universities.join(','));
+    if (branches.length)     params.set('branches', branches.join(','));
+    if (category)            params.set('category', category);
+    if (gender)              params.set('gender', gender);
+
+    try {
+      const res = await fetch(`${API}/college-predictor/cascading-options?${params.toString()}`);
+      const opts = await res.json();
+
+      // CAP Year refresh
+      if (capYearEl && opts.cap_years && opts.cap_years.length) {
+        const prevY = capYearEl.value;
+        capYearEl.innerHTML = opts.cap_years.map(y => `<option value="${y}">${y}</option>`).join('');
+        if (opts.cap_years.includes(prevY)) capYearEl.value = prevY;
+      }
+
+      // CAP Round multi-select refresh (only options, keep selected if still valid)
+      if (opts.cap_rounds && opts.cap_rounds.length) {
+        state.capround.options = opts.cap_rounds;
+        [...state.capround.selected].forEach(sel => {
+          if (!state.capround.options.includes(sel)) state.capround.selected.delete(sel);
+        });
+        renderChips('capround');
+        if (state.capround.open) renderOptions('capround');
+      }
+
+      // Quota refresh (optional — only if the endpoint returns quotas)
+      if (quotaEl && opts.quotas && opts.quotas.length) {
+        const prevQ = quotaEl.value;
+        quotaEl.innerHTML = '<option value="">All Quotas</option>' +
+          opts.quotas.map(q => `<option value="${q}">${q}</option>`).join('');
+        if (opts.quotas.includes(prevQ)) quotaEl.value = prevQ;
+      }
+    } catch (e) {
+      console.warn('Full cascade load failed', e);
+    }
+  }
+
+  // Chain the full cascade to fire whenever any upstream field changes
+  const _origCatCascade = onCategoryFilterCascadePatch;
+  onCategoryFilterCascadePatch = async function () {
+    await _origCatCascade();
+    await onFullCascadePatch();
+  };
+  const _origGenderCascade = onGenderFilterCascadePatch;
+  onGenderFilterCascadePatch = async function () {
+    await _origGenderCascade();
+    await onFullCascadePatch();
+  };
 </script>
+
 
 
 
@@ -1833,7 +1898,14 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4 };
       home_district: document.getElementById('home_district')?.value || '',
       category: document.getElementById('category')?.value || '',
       gender: document.getElementById('gender')?.value || '',
+
+
+
       quota: document.getElementById('quota')?.value || '',
+
+
+
+      
       pin_code: document.getElementById('pin_code')?.value || '',
       cap_year: document.getElementById('cap_year')?.value || '',
       cap_round: [...state.capround.selected],

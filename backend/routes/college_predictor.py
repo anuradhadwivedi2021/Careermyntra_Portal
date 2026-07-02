@@ -64,10 +64,16 @@ GENDER_MAP = {
 
 QUOTA_MAP = {
     'S': 'State',
-    'H': 'Home University',
-    'O': 'Outside Home University',
-    'N': 'NRI',
-    'I': 'Institute Level',
+    'H': 'Home',
+    'O': 'Outside',
+    'M': 'Minority',
+    'R': 'Orphan',
+    # Also accept full-word input (self-mapping)
+    'STATE':    'State',
+    'HOME':     'Home',
+    'OUTSIDE':  'Outside',
+    'MINORITY': 'Minority',
+    'ORPHAN':   'Orphan',
 }
 
 # University → Districts mapping (Maharashtra)
@@ -468,9 +474,11 @@ def get_universities():
     conn = get_connection()
     cur = get_cursor(conn)
     cur.execute("""
-        SELECT DISTINCT university FROM cap_cutoff_data
+        SELECT MIN(university) AS university
+        FROM cap_cutoff_data
         WHERE university IS NOT NULL AND TRIM(university) != ''
-        ORDER BY university
+        GROUP BY LOWER(TRIM(university))
+        ORDER BY MIN(university)
     """)
     rows = [r["university"] for r in cur.fetchall()]
     cur.close()
@@ -559,8 +567,11 @@ def predict():
         "NT1": "NT1", "NT2": "NT2", "NT3": "NT3",
         "VJ": "VJ", "EWS": "EWS", "SEBC": "SEBC",
         "PWD": "PWD", "TFWS": "TFWS", "ORPHAN": "ORPHAN",
+        # PATCH: DB stores "MI" for Minority category (14th distinct value in cap_cutoff_data).
+        # Without these lines, selecting "Minority" as category returned zero results.
+        "MI": "MI", "Minority": "MI", "MINORITY": "MI", "minority": "MI",
     }
-    category = CATEGORY_MAP.get(category, category.upper() if category else "OPEN")
+    category = CATEGORY_MAP.get(category, category.upper()) if category else ""
 
     CAP_ROUND_MAP = {
         "CAP Round 1": "Round I", "CAP Round 2": "Round II",
@@ -617,9 +628,19 @@ def predict():
         where_clauses.append("cap_year = %s")
         params.append(cap_year)
 
-    if student_gender and student_gender != "Other":
+    # PATCH: DB's `gender` column is actually a RESERVATION seat-type
+    # (General, Ladies, PWD, Defense, TFWS, Orphan, EWS, Minority) — NOT
+    # a biological gender. If user picks Male/Female/Other on the form,
+    # we treat that as "no gender filter" (show all seats they're eligible for).
+    # Only filter if the value matches a real DB seat-type.
+    VALID_DB_GENDERS = {"General", "Ladies", "PWD", "Defense", "TFWS", "Orphan", "EWS", "Minority"}
+    if student_gender and student_gender in VALID_DB_GENDERS:
         where_clauses.append("(gender = %s OR gender = 'All' OR gender IS NULL)")
         params.append(student_gender)
+    elif student_gender and student_gender.lower() == "female":
+        # A female student is eligible for both "General" (all-gender) seats
+        # AND "Ladies" reserved seats. Male students see only General.
+        where_clauses.append("(gender IN ('General', 'Ladies') OR gender = 'All' OR gender IS NULL)")
 
     # PATCH: multi-select CAP round support
     if cap_rounds_normalized:
@@ -652,10 +673,12 @@ def predict():
         where_clauses.append("admission_authority = %s")
         params.append(admission_authority)
 
-    # PATCH: Quota filter (was completely missing before)
+     # PATCH: Quota filter — normalize input via QUOTA_MAP so short codes ("S", "H")
+    # OR full labels ("State", "Home") from the frontend both match the DB values.
     if quota:
+        quota_normalized = _map_quota(quota)
         where_clauses.append("quota_code = %s")
-        params.append(quota)
+        params.append(quota_normalized)
 
     # PATCH: ±5 percentile range — only show colleges whose cutoff falls
     # within [percentile-5, percentile+5], as per prediction logic shown on frontend
@@ -1005,9 +1028,13 @@ def download_pdf():
 
         def _is_on(key):
             # default to True if key missing, so old frontend calls (without
-            # visible_columns) still get the full report like before
+            # visible_columns) still get the full report like before.
+            # EXCEPTION: 'distance' defaults to False because it's not a real
+            # computed value yet (always shows "—") — only include if the
+            # frontend explicitly turns it ON.
+            if key == "distance":
+                return visible_columns.get(key, False)
             return visible_columns.get(key, True)
-
         # Column definitions: (key, header_label, col_width)
         # key=None means always-shown fixed column
         FIXED_COLS = [
