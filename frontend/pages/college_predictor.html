@@ -563,57 +563,8 @@
         <span class="help">Filtered by selected Course and Interested Districts</span>
       </div>
 
-      <!-- Prediction Logic Info box -->
-      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:14px 16px;margin-bottom:2px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <span style="font-size:16px;">🎯</span>
-          <span style="font-size:13px;font-weight:800;color:#15803d;">College Prediction Logic (±5 Percentile Range)</span>
-        </div>
-        <p style="font-size:12px;color:#166534;line-height:1.6;margin-bottom:8px;">
-          The prediction engine uses a <strong>±5 percentile range</strong> to find probable college options.
-          If your percentile is <strong>90.00</strong>, the system searches cutoff data between <strong>85.00 – 95.00</strong>.
-          Duplicate college-branch combinations are removed automatically.
-        </p>
-        <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;">
-          <thead>
-            <tr style="background:#16a34a;color:#fff;">
-              <th style="padding:4px 8px;text-align:right;border-radius:4px 0 0 0;">Your Percentile</th>
-              <th style="padding:4px 8px;text-align:right;border-radius:0 4px 0 0;">Search Range</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="background:#fff;">
-              <td style="padding:3px 8px;text-align:right;color:#166534;font-weight:700;">95.00</td>
-              <td style="padding:3px 8px;text-align:right;color:#166534;">90.00 – 100.00</td>
-            </tr>
-            <tr style="background:#f0fdf4;">
-              <td style="padding:3px 8px;text-align:right;color:#166534;font-weight:700;">90.00</td>
-              <td style="padding:3px 8px;text-align:right;color:#166534;">85.00 – 95.00</td>
-            </tr>
-            <tr style="background:#fff;">
-              <td style="padding:3px 8px;text-align:right;color:#166534;font-weight:700;">85.00</td>
-              <td style="padding:3px 8px;text-align:right;color:#166534;">80.00 – 90.00</td>
-            </tr>
-            <tr style="background:#f0fdf4;">
-              <td style="padding:3px 8px;text-align:right;color:#166534;font-weight:700;">80.00</td>
-              <td style="padding:3px 8px;text-align:right;color:#166534;">75.00 – 85.00</td>
-            </tr>
-          </tbody>
-        </table>
-        <p style="font-size:11px;color:#166534;line-height:1.5;">
-          <strong>Formula:</strong> Min = Percentile − 5 &nbsp;|&nbsp; Max = Percentile + 5<br/>
-          Results show <strong>probable admission opportunities</strong> — not guaranteed admissions.
-        </p>
-      </div>
-
-      <!-- CAP Info box -->
-      <div class="info-box">
-        <span class="iicon">ℹ️</span>
-        <div>
-          <h4>CAP (Centralised Admission Process)</h4>
-          <p>Select the admission year and specific round for which you want predictions. Different rounds have different cutoffs based on seat availability and competition.</p>
-        </div>
-      </div>
+    
+      
 
       <!-- 11 & 12. CAP Year + Round (dynamic from DB) -->
       <div>
