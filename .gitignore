@@ -12,4 +12,7 @@ backend/uploads/
 backend/outputs/
 
 # VS Code
-.vscode/
+.vscode/backend/logs/*.log*
+*.bak
+*.save
+*backup*.py
