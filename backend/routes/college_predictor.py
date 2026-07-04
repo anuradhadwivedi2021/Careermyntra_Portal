@@ -354,8 +354,6 @@ def upload_cutoff():
                     is_autonomous       = EXCLUDED.is_autonomous,
                     course_name         = EXCLUDED.course_name,
                     admission_authority = EXCLUDED.admission_authority,
-                    branch_code         = EXCLUDED.branch_code,
-                    location            = EXCLUDED.location,
                     updated_at          = CURRENT_TIMESTAMP
             """, (
                 row.get("college_code"),
