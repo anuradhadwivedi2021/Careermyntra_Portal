@@ -318,6 +318,7 @@ def upload_cutoff():
                     nba_accredited, placement_highest, placement_average,
                     website, address,
                     gender, quota_code, is_autonomous, course_name,
+
                     admission_authority
                 ) VALUES (
                     %s,%s,%s,%s,%s,%s,%s,
@@ -350,6 +351,8 @@ def upload_cutoff():
                     is_autonomous       = EXCLUDED.is_autonomous,
                     course_name         = EXCLUDED.course_name,
                     admission_authority = EXCLUDED.admission_authority,
+                    branch_code         = EXCLUDED.branch_code,
+                    location            = EXCLUDED.location,
                     updated_at          = CURRENT_TIMESTAMP
             """, (
                 row.get("college_code"),
@@ -379,6 +382,8 @@ def upload_cutoff():
                 row.get("course_name"),
                 # PATCH: admission_authority now saved into its own column
                 row.get("admission_authority") or "CET CELL",
+                row.get("branch_code"),
+                row.get("location"),
             ))
             inserted += 1
         
@@ -601,6 +606,7 @@ def predict():
     else:
         single = CAP_ROUND_MAP.get(cap_round, cap_round)
         cap_rounds_normalized = [] if (not single or single == "All Rounds") else [single]
+    print(f"DEBUG cap_rounds_normalized={cap_rounds_normalized!r}")
 
     # cap_year: "2025 (2025-2026)" -> "2025-26"
     if cap_year and "(" in cap_year:
@@ -670,7 +676,8 @@ def predict():
 
     if districts:
         placeholders = ",".join(["%s"] * len(districts))
-        where_clauses.append(f"TRIM(district) IN ({placeholders})")
+        where_clauses.append(f"(TRIM(district) IN ({placeholders}) OR TRIM(location) IN ({placeholders}))")
+        params.extend(districts)
         params.extend(districts)
 
     if universities:
@@ -717,8 +724,13 @@ def predict():
 
     cur.execute(f"""
         SELECT
+
             id, college_code, college_name, branch_name, branch_code,
             district, location, university, cap_year, cap_round,
+
+            id, college_code, college_name, branch_name, branch_code, location,
+            district, university, cap_year, cap_round,
+
             category, seat_type, exam_type,
             cutoff_percentile, cutoff_score,
             fees, naac_grade, nba_accredited,
@@ -747,6 +759,10 @@ def predict():
             "branch_code":        r["branch_code"],
             "district":           r["district"],
             "location":           r["location"] or r["district"],
+            "college_name":       f'{r["college_code"]} - {r["college_name"]}' if r.get("college_code") else r["college_name"],
+            "branch_name":        f'{r["branch_code"]} - {r["branch_name"]}' if r.get("branch_code") else r["branch_name"],
+            "district":           r.get("location") or r["district"],
+            "location":           r.get("location") or r["district"],
             "university":         r["university"],
             "cap_year":           r["cap_year"],
             "cap_round":          r["cap_round"],
