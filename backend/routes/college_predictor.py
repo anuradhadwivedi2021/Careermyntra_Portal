@@ -381,9 +381,12 @@ def upload_cutoff():
                 row.get("admission_authority") or "CET CELL",
             ))
             inserted += 1
+        
         except Exception as e:
-
             conn.rollback()
+            if skipped == 0:
+                logger.exception("[Predictor Upload] FIRST ROW FAILURE - full traceback")
+                logger.warning(f"[Predictor Upload] First failing row data: {dict(row)}")
             logger.warning(f"[Predictor Upload] Row skipped: {e}")
             skipped += 1
 
@@ -631,13 +634,13 @@ def predict():
     where_clauses = []
     params = []
     if exam_type:
-        where_clauses.append("exam_type = %s")
+        where_clauses.append("UPPER(TRIM(exam_type)) = UPPER(TRIM(%s))")
         params.append(exam_type)
     if category:
-        where_clauses.append("category = %s")
+        where_clauses.append("UPPER(TRIM(category)) = UPPER(TRIM(%s))")
         params.append(category)
     if cap_year:
-        where_clauses.append("cap_year = %s")
+        where_clauses.append("TRIM(cap_year) = TRIM(%s)")
         params.append(cap_year)
 
     # PATCH: DB's `gender` column is actually a RESERVATION seat-type
