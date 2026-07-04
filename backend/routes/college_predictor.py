@@ -243,6 +243,8 @@ def upload_cutoff():
         "institute code": "college_code",
         "branch": "branch_name",
         "branch code": "branch_code",
+        "location": "location",
+        "location name": "location",
         "course": "course_name",
         "university": "university",
         "category_simple": "category",    # Simplified category (OPEN, SC, ST...)
@@ -310,7 +312,7 @@ def upload_cutoff():
         try:
             cur.execute("""
                 INSERT INTO cap_cutoff_data (
-                    college_code, college_name, branch_name, district, university,
+                    college_code, college_name, branch_name, branch_code, district, location, university,
                     cap_year, cap_round, category, seat_type, exam_type,
                     cutoff_percentile, cutoff_score, fees, naac_grade,
                     nba_accredited, placement_highest, placement_average,
@@ -318,7 +320,7 @@ def upload_cutoff():
                     gender, quota_code, is_autonomous, course_name,
                     admission_authority
                 ) VALUES (
-                    %s,%s,%s,%s,%s,
+                    %s,%s,%s,%s,%s,%s,%s,
                     %s,%s,%s,%s,%s,
                     %s,%s,%s,%s,
                     %s,%s,%s,
@@ -329,7 +331,9 @@ def upload_cutoff():
                 ON CONFLICT (college_name, branch_name, cap_year, cap_round, category, seat_type, gender, quota_code)
                 DO UPDATE SET
                     college_code        = EXCLUDED.college_code,
+                    branch_code         = EXCLUDED.branch_code,
                     district            = EXCLUDED.district,
+                    location            = EXCLUDED.location,
                     university          = EXCLUDED.university,
                     exam_type           = EXCLUDED.exam_type,
                     cutoff_percentile   = EXCLUDED.cutoff_percentile,
@@ -351,7 +355,9 @@ def upload_cutoff():
                 row.get("college_code"),
                 row.get("college_name"),
                 row.get("branch_name"),
+                row.get("branch_code"),
                 row.get("district"),
+                row.get("location"),
                 row.get("university"),
                 row.get("cap_year"),
                 row.get("cap_round"),
@@ -708,8 +714,8 @@ def predict():
 
     cur.execute(f"""
         SELECT
-            id, college_code, college_name, branch_name,
-            district, university, cap_year, cap_round,
+            id, college_code, college_name, branch_name, branch_code,
+            district, location, university, cap_year, cap_round,
             category, seat_type, exam_type,
             cutoff_percentile, cutoff_score,
             fees, naac_grade, nba_accredited,
@@ -735,7 +741,9 @@ def predict():
             "college_code":       r["college_code"],
             "college_name":       r["college_name"],
             "branch_name":        r["branch_name"],
+            "branch_code":        r["branch_code"],
             "district":           r["district"],
+            "location":           r["location"] or r["district"],
             "university":         r["university"],
             "cap_year":           r["cap_year"],
             "cap_round":          r["cap_round"],
@@ -1048,7 +1056,7 @@ def download_pdf():
             (None, "College Name", 42),
             (None, "Branches", 32),
             (None, "Status", 22),
-            (None, "District", 16),
+            (None, "Location", 16),
         ]
         TOGGLE_COLS = [
             ("cutoff",   "Cut-off",     18),
@@ -1113,12 +1121,17 @@ def download_pdf():
             quota_str = ", ".join(quota_list)
 
             # Fixed columns row values
+            college_code_str = r.get("college_code")
+            college_label = f"{college_code_str} - {r.get('college_name') or '—'}" if college_code_str else str(r.get("college_name") or "—")
+            branch_code_str = r.get("branch_code")
+            branch_label = f"{branch_code_str} - {r.get('branch_name') or '—'}" if branch_code_str else str(r.get("branch_name") or "—")
+
             row = [
                 str(i),
-                Paragraph(str(r.get("college_name") or "—"), ParagraphStyle("cn", fontSize=8, leading=10)),
-                Paragraph(str(r.get("branch_name") or "—"), ParagraphStyle("bn", fontSize=8, leading=10)),
+                Paragraph(college_label, ParagraphStyle("cn", fontSize=8, leading=10)),
+                Paragraph(branch_label, ParagraphStyle("bn", fontSize=8, leading=10)),
                 status,
-                str(r.get("district") or "—"),
+                str(r.get("location") or r.get("district") or "—"),
             ]
 
             # PATCH: append only the toggle columns that are ON

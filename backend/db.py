@@ -368,11 +368,22 @@ def init_db():
         "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS is_autonomous BOOLEAN DEFAULT FALSE",
         "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS course_name VARCHAR(100)",
         "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS admission_authority VARCHAR(200)",
+        "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS branch_code VARCHAR(30)",
+        "ALTER TABLE cap_cutoff_data ADD COLUMN IF NOT EXISTS location VARCHAR(150)",
     ]:
         try:
             cur.execute(col_sql)
         except Exception:
             pass
+
+    try:
+        cur.execute("ALTER TABLE cap_cutoff_data DROP CONSTRAINT IF EXISTS cap_cutoff_unique")
+        cur.execute("""
+            ALTER TABLE cap_cutoff_data ADD CONSTRAINT cap_cutoff_unique
+            UNIQUE (college_name, branch_name, cap_year, cap_round, category, seat_type, gender, quota_code)
+        """)
+    except Exception:
+        pass
 
     conn.commit()
     cur.close()

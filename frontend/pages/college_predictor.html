@@ -1263,7 +1263,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
           <table class="pred-table">
             <thead><tr>
               <th>Sr.</th><th>College Name</th><th>Branch / Gender</th><th>University</th>
-              <th>Applicable Quota</th><th>District</th><th>Cut-off %ile</th><th>Rank</th><th>Fees (₹)</th><th>Probability</th>
+              <th>Applicable Quota</th><th>Location</th><th>Cut-off %ile</th><th>Rank</th><th>Fees (₹)</th><th>Probability</th>
             </tr></thead>
             <tbody id="cards-list">${results.map((r,i) => renderCard(r,i+1)).join('')}</tbody>
           </table>
@@ -1407,7 +1407,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     const fees   = r.fees ? `₹${Number(r.fees).toLocaleString('en-IN')} / year` : '—';
     const cutoff = r.cutoff_percentile != null ? Number(r.cutoff_percentile).toFixed(2) + ' %ile' : '—';
     const rank   = r.cutoff_score ? Number(r.cutoff_score).toLocaleString('en-IN') : '—';
-    const dist   = r.district || 'Maharashtra';
+    const dist   = r.location || r.district || 'Maharashtra';
 
     // Accurate probability based on diff
     const studentPct = parseFloat(document.getElementById('percentile')?.value || 0);
@@ -1423,7 +1423,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     const university = r.university || '—';
 
     // ── Branch — from Excel Branch column (stored as branch_name) ──
-    const branch = r.branch_name || '—';
+    const branch = r.branch_code ? `${r.branch_code} - ${r.branch_name || '—'}` : (r.branch_name || '—');
 
     // ── Gender label ───────────────────────────────────────
     const GENDER_LABELS = { 'G':'General (All)', 'L':'Ladies', 'D':'Divyangjan', 'T':'Transgender', 'P':'Orphan', 'All':'All', 'E':'EWS', 'M':'Male', 'O':'Other' };
@@ -1448,7 +1448,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     return `<tr>
       <td>${sr}</td>
       <td class="td-college">
-        <div class="cn">${r.college_name}</div>
+        <div class="cn">${r.college_code ? r.college_code + ' - ' : ''}${r.college_name}</div>
         <div class="dist">📍 ${dist}${naac}</div>
       </td>
       <td class="td-branch">
