@@ -261,6 +261,8 @@ def upload_cutoff():
         "rank": "cutoff_score",
         "year": "cap_year",
         "cap round": "cap_round",
+        "sub category": "sub_category",
+        "sub_category": "sub_category",
         "district": "district",
         "address": "address",
         "pincode": "pincode",
@@ -313,7 +315,7 @@ def upload_cutoff():
             cur.execute("""
                 INSERT INTO cap_cutoff_data (
                     college_code, college_name, branch_name, branch_code, district, location, university,
-                    cap_year, cap_round, category, seat_type, exam_type,
+                    cap_year, cap_round, category, sub_category, seat_type, exam_type,
                     cutoff_percentile, cutoff_score, fees, naac_grade,
                     nba_accredited, placement_highest, placement_average,
                     website, address,
@@ -322,17 +324,18 @@ def upload_cutoff():
                     admission_authority
                 ) VALUES (
                     %s,%s,%s,%s,%s,%s,%s,
-                    %s,%s,%s,%s,%s,
+                    %s,%s,%s,%s,%s,%s,
                     %s,%s,%s,%s,
                     %s,%s,%s,
                     %s,%s,
                     %s,%s,%s,%s,
                     %s
                 )
-                ON CONFLICT (college_name, branch_name, cap_year, cap_round, category, seat_type, gender, quota_code)
+                ON CONFLICT (college_name, branch_name, cap_year, cap_round, category, sub_category, seat_type, gender, quota_code)
                 DO UPDATE SET
                     college_code        = EXCLUDED.college_code,
                     branch_code         = EXCLUDED.branch_code,
+                    sub_category        = EXCLUDED.sub_category,
                     district            = EXCLUDED.district,
                     location            = EXCLUDED.location,
                     university          = EXCLUDED.university,
@@ -365,6 +368,7 @@ def upload_cutoff():
                 row.get("cap_year"),
                 row.get("cap_round"),
                 row.get("category") or row.get("category_simple") or row.get("category_full"),
+                row.get("sub_category"),
                 row.get("seat_type", "AI"),
                 row.get("exam_type", "MHT-CET"),
                 row.get("cutoff_percentile"),
@@ -724,14 +728,11 @@ def predict():
 
     cur.execute(f"""
         SELECT
-
             id, college_code, college_name, branch_name, branch_code,
             district, location, university, cap_year, cap_round,
-
-            id, college_code, college_name, branch_name, branch_code, location,
-            district, university, cap_year, cap_round,
-
             category, seat_type, exam_type,
+                
+
             cutoff_percentile, cutoff_score,
             fees, naac_grade, nba_accredited,
             placement_highest, placement_average,
@@ -754,13 +755,9 @@ def predict():
         results.append({
             "id":                 r["id"],
             "college_code":       r["college_code"],
-            "college_name":       r["college_name"],
-            "branch_name":        r["branch_name"],
-            "branch_code":        r["branch_code"],
-            "district":           r["district"],
-            "location":           r["location"] or r["district"],
             "college_name":       f'{r["college_code"]} - {r["college_name"]}' if r.get("college_code") else r["college_name"],
             "branch_name":        f'{r["branch_code"]} - {r["branch_name"]}' if r.get("branch_code") else r["branch_name"],
+            "branch_code":        r["branch_code"],
             "district":           r.get("location") or r["district"],
             "location":           r.get("location") or r["district"],
             "university":         r["university"],

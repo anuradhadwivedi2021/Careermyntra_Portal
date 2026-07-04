@@ -16,3 +16,4 @@ backend/outputs/
 *.bak
 *.save
 *backup*.py
+backend/venv/
