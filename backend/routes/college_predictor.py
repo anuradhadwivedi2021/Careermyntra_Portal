@@ -386,8 +386,6 @@ def upload_cutoff():
                 row.get("course_name"),
                 # PATCH: admission_authority now saved into its own column
                 row.get("admission_authority") or "CET CELL",
-                row.get("branch_code"),
-                row.get("location"),
             ))
             inserted += 1
         
