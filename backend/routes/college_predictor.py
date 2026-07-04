@@ -751,8 +751,8 @@ def predict():
         results.append({
             "id":                 r["id"],
             "college_code":       r["college_code"],
-            "college_name":       f'{r["college_code"]} - {r["college_name"]}' if r.get("college_code") else r["college_name"],
-            "branch_name":        f'{r["branch_code"]} - {r["branch_name"]}' if r.get("branch_code") else r["branch_name"],
+            "college_name":       r["college_name"],
+            "branch_name":        r["branch_name"],
             "branch_code":        r["branch_code"],
             "district":           r.get("location") or r["district"],
             "location":           r.get("location") or r["district"],
