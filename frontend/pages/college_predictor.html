@@ -1423,8 +1423,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     const university = r.university || '—';
 
     // ── Branch — from Excel Branch column (stored as branch_name) ──
-    const branch = r.branch_code ? `${r.branch_code} - ${r.branch_name || '—'}` : (r.branch_name || '—');
-
+    const branch = r.branch_name || '—';
     // ── Gender label ───────────────────────────────────────
     const GENDER_LABELS = { 'G':'General (All)', 'L':'Ladies', 'D':'Divyangjan', 'T':'Transgender', 'P':'Orphan', 'All':'All', 'E':'EWS', 'M':'Male', 'O':'Other' };
     const genderLabel = r.gender_label ? (GENDER_LABELS[r.gender_label] || r.gender_label) : 'All';
@@ -1448,7 +1447,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     return `<tr>
       <td>${sr}</td>
       <td class="td-college">
-        <div class="cn">${r.college_code ? r.college_code + ' - ' : ''}${r.college_name}</div>
+        <div class="cn">${r.college_name}</div>
         <div class="dist">📍 ${dist}${naac}</div>
       </td>
       <td class="td-branch">
