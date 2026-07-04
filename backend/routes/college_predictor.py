@@ -322,10 +322,6 @@ def upload_cutoff():
                     admission_authority
                 ) VALUES (
                     %s,%s,%s,%s,%s,%s,%s,
-                    admission_authority, branch_code, location
-                    ) VALUES (
-                    %s,%s,%s,%s,%s,
-
                     %s,%s,%s,%s,%s,
                     %s,%s,%s,%s,
                     %s,%s,%s,
