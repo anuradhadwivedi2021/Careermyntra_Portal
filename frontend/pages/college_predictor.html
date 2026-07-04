@@ -1653,6 +1653,14 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
     await onCategoryFilterCascadePatch();
   };
 
+  // ── Wire up: District "Done" button should reliably fire onDistrictChange ──
+  (function wireDistrictDone() {
+    const btn = document.querySelector('#district-panel .ms-btn.done');
+    if (btn) {
+      btn.addEventListener('click', () => { onDistrictChange(); });
+    }
+  })();
+
     // ── Wire up: Category dropdown change → reload Gender ──
   (function wireCategoryChange() {
     const catSel = document.getElementById('category');
