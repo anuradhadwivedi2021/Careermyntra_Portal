@@ -203,7 +203,8 @@ def send_combined_email(all_updates, config):
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
         server.login(sender_email, app_password)
-        server.sendmail(sender_email, [r.strip() for r in recipients.split(",")], msg.as_string())
+        recipient_list = [r.strip() for r in recipients.split(",") if r.strip()]
+        server.sendmail(sender_email, recipient_list, msg.as_string())
         server.quit()
 
         print("\n[Monitor] Email Sent Successfully!")
