@@ -147,12 +147,13 @@
     }
     .btn-add:hover { background: #0d47a1; }
 
-    .url-list { display: flex; flex-direction: column; gap: 10px; }
-    .url-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 14px; background: #f9fafb;
-      border: 1.5px solid #e5e7eb; border-radius: 12px;
-    }
+     .url-list { display: flex; flex-direction: column; gap: 10px; }
+     .url-item {
+     display: flex; align-items: center; gap: 10px;
+     padding: 12px 14px; background: #f9fafb;
+     border: 1.5px solid #e5e7eb; border-radius: 12px;
+     position: relative; z-index: 1;
+}
     .url-item.active-url  { border-color: #bbf7d0; background: #f0fdf4; }
     .url-item.error-url   { border-color: #fecaca; background: #fef2f2; }
     .url-item.updated-url { border-color: #fed7aa; background: #fff7ed; }
@@ -168,10 +169,11 @@
     .badge-error   { background: #fee2e2; color: #dc2626; }
     .badge-pending { background: #f3f4f6; color: #6b7280; }
     .btn-remove {
-      padding: 5px 11px; background: #fef2f2;
-      border: 1px solid #fecaca; border-radius: 8px;
-      font-size: 12px; font-weight: 700; color: #dc2626;
-      cursor: pointer; font-family: inherit; flex-shrink: 0; transition: all 0.2s;
+     padding: 5px 11px; background: #fef2f2;
+     border: 1px solid #fecaca; border-radius: 8px;
+     font-size: 12px; font-weight: 700; color: #dc2626;
+     cursor: pointer; font-family: inherit; flex-shrink: 0; transition: all 0.2s;
+     position: relative; z-index: 2; pointer-events: auto;
     }
     .btn-remove:hover { background: #fee2e2; }
     .url-empty { text-align: center; padding: 28px; color: #9ca3af; font-size: 13px; font-weight: 600; }
