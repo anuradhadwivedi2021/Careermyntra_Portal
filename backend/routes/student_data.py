@@ -30,6 +30,7 @@ def _ensure_table():
         CREATE TABLE IF NOT EXISTS predictor_students (
             id                    SERIAL PRIMARY KEY,
             student_name          TEXT NOT NULL,
+            counsellor_name       TEXT,
             exam_type             TEXT,
             course_name           TEXT,
             admission_authority   TEXT,
@@ -71,6 +72,8 @@ def save_student():
     if not name:
         return jsonify({"error": "student_name is required"}), 400
 
+    counsellor_name = (data.get("counsellor_name") or "").strip()
+
     exam_type    = data.get("exam_type", "")
     course_name  = data.get("course_name", "")
     admission_authority = data.get("admission_authority", "")
@@ -97,7 +100,7 @@ def save_student():
         if student_id:
             cur.execute("""
                 UPDATE predictor_students SET
-                    student_name = %s, exam_type = %s, course_name = %s,
+                    student_name = %s, counsellor_name = %s, exam_type = %s, course_name = %s,
                     admission_authority = %s, percentile = %s, merit_rank = %s,
                     home_district = %s, category = %s, gender = %s, quota = %s,
                     pin_code = %s, cap_year = %s, cap_round = %s,
@@ -105,7 +108,7 @@ def save_student():
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
             """, (
-                name, exam_type, course_name, admission_authority, percentile,
+                name, counsellor_name, exam_type, course_name, admission_authority, percentile,
                 merit_rank, home_district, category, gender, quota, pin_code,
                 cap_year, json.dumps(cap_round), json.dumps(districts),
                 json.dumps(branches), json.dumps(universities), student_id
@@ -122,14 +125,14 @@ def save_student():
                 student_id = existing[0]
                 cur.execute("""
                     UPDATE predictor_students SET
-                        exam_type = %s, course_name = %s, admission_authority = %s,
+                        counsellor_name = %s, exam_type = %s, course_name = %s, admission_authority = %s,
                         percentile = %s, merit_rank = %s, home_district = %s,
                         category = %s, gender = %s, quota = %s, pin_code = %s,
                         cap_year = %s, cap_round = %s, districts = %s,
                         branches = %s, universities = %s, updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (
-                    exam_type, course_name, admission_authority, percentile,
+                    counsellor_name, exam_type, course_name, admission_authority, percentile,
                     merit_rank, home_district, category, gender, quota, pin_code,
                     cap_year, json.dumps(cap_round), json.dumps(districts),
                     json.dumps(branches), json.dumps(universities), student_id
@@ -137,13 +140,13 @@ def save_student():
             else:
                 cur.execute("""
                     INSERT INTO predictor_students (
-                        student_name, exam_type, course_name, admission_authority,
+                        student_name, counsellor_name, exam_type, course_name, admission_authority,
                         percentile, merit_rank, home_district, category, gender,
                         quota, pin_code, cap_year, cap_round, districts, branches, universities
-                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     RETURNING id
                 """, (
-                    name, exam_type, course_name, admission_authority, percentile,
+                    name, counsellor_name, exam_type, course_name, admission_authority, percentile,
                     merit_rank, home_district, category, gender, quota, pin_code,
                     cap_year, json.dumps(cap_round), json.dumps(districts),
                     json.dumps(branches), json.dumps(universities)
@@ -168,7 +171,7 @@ def list_students():
     conn = get_connection()
     cur = get_cursor(conn)
     cur.execute("""
-        SELECT id, student_name, percentile, category, updated_at
+        SELECT id, student_name, counsellor_name, percentile, category, updated_at
         FROM predictor_students
         ORDER BY updated_at DESC
         LIMIT 200
@@ -180,6 +183,7 @@ def list_students():
         {
             "id": r["id"],
             "student_name": r["student_name"],
+            "counsellor_name": r["counsellor_name"],
             "percentile": float(r["percentile"]) if r["percentile"] is not None else None,
             "category": r["category"],
             "updated_at": r["updated_at"].isoformat() if r["updated_at"] else None,
@@ -237,6 +241,7 @@ def get_student(student_id):
     return jsonify({
         "id":                   r["id"],
         "student_name":         r["student_name"],
+        "counsellor_name":      r["counsellor_name"] or "",
         "exam_type":            r["exam_type"] or "",
         "course_name":          r["course_name"] or "",
         "admission_authority":  r["admission_authority"] or "",

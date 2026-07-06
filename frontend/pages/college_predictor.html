@@ -1787,6 +1787,7 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
     picker.innerHTML = `
       <input type="text" id="student-search-box" placeholder="🔍 Search saved students or type new name..." autocomplete="off"/>
       <div class="student-picker-list" id="student-picker-list"></div>
+      <input type="text" id="counsellor-name-input" placeholder="🧑‍💼 Counsellor Name" autocomplete="off" style="margin-top:8px; width:100%; padding:10px 14px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:14px; font-family:inherit; color:#0d1b3e; background:#fafafa; outline:none;"/>
     `;
     fieldWrap.parentNode.insertBefore(picker, fieldWrap);
 
@@ -1873,6 +1874,8 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
 
       if (s.category) document.getElementById('category').value = s.category;
       if (s.gender) document.getElementById('gender').value = s.gender;
+      const counsellorEl = document.getElementById('counsellor-name-input');
+      if (counsellorEl) counsellorEl.value = s.counsellor_name || '';
       const quotaEl = document.getElementById('quota');
       if (quotaEl && s.quota) quotaEl.value = s.quota;
 
@@ -1889,6 +1892,7 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
     return {
       id: currentStudentId,
       student_name: (document.getElementById('student_name')?.value || '').trim(),
+      counsellor_name: (document.getElementById('counsellor-name-input')?.value || '').trim(),
       exam_type: document.getElementById('exam_type')?.value || '',
       course_name: document.getElementById('course')?.value || '',
       admission_authority: document.getElementById('authority')?.value || '',
@@ -2087,6 +2091,7 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
           <thead>
             <tr>
               <th>Name</th>
+              <th>Counsellor</th>
               <th>Category</th>
               <th>Percentile</th>
               <th>Updated</th>
@@ -2097,6 +2102,7 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
             ${students.map(s => `
               <tr id="student-row-${s.id}">
                 <td>${s.student_name}</td>
+                <td>${s.counsellor_name || '—'}</td>
                 <td>${s.category || '—'}</td>
                 <td>${s.percentile != null ? s.percentile + '%' : '—'}</td>
                 <td>${s.updated_at ? new Date(s.updated_at).toLocaleDateString() : '—'}</td>
