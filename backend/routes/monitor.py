@@ -97,8 +97,9 @@ def add_url():
 @login_required
 def delete_url(uid):
     conn = get_connection(); cur = conn.cursor()
-    cur.execute("DELETE FROM monitor_urls WHERE id = %s", (uid,))
+    cur.execute("DELETE FROM monitor_alerts WHERE url_id = %s", (uid,))
     cur.execute("DELETE FROM monitor_snapshots WHERE url_id = %s", (uid,))
+    cur.execute("DELETE FROM monitor_urls WHERE id = %s", (uid,))
     conn.commit(); cur.close(); conn.close()
     return jsonify({"success": True})
 

@@ -304,10 +304,8 @@
         </div>
         <div class="url-list" id="url-list">
           <div class="url-empty" id="url-empty">
-  No URLs added yet. Add one above ↑
-  <br/>
-  <button class="btn-add" style="margin-top:10px;" onclick="loadDefaultUrls()">📋 Load Default Sites (6)</button>
-</div>
+            No URLs added yet. Add one above ↑
+      </div>
         </div>
       </div>
     </div>
@@ -426,25 +424,6 @@
     document.getElementById("nav-name").textContent = user.first_name;
     document.getElementById("nav-avatar").textContent = user.first_name[0].toUpperCase();
   }
-const defaultUrls = [
-  "https://mahafyjcadmissions.in/landing"
-];
-
-async function loadDefaultUrls() {
-  addLog("Loading default monitored sites...", "info");
-  for (const url of defaultUrls) {
-    try {
-      await authFetch(`${BACKEND}/api/monitor/urls`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, label: url })
-      });
-      addLog(`Added: ${url}`, "ok");
-    } catch (e) {
-      addLog(`Failed to add: ${url}`, "error");
-    }
-  }
-  loadUrls();
-}
 
 
 
@@ -488,8 +467,6 @@ async function loadDefaultUrls() {
         list.innerHTML = `
           <div class="url-empty" id="url-empty">
             No URLs added yet. Add one above ↑
-            <br/>
-            <button class="btn-add" style="margin-top:10px;" onclick="loadDefaultUrls()">📋 Load Default Sites (6)</button>
           </div>`;
         return;
       }
