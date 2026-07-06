@@ -1133,8 +1133,11 @@ def download_pdf():
             quota_str = ", ".join(quota_list)
 
             # Fixed columns row values
-            college_label = str(r.get("college_name") or "—")
-            branch_label = str(r.get("branch_name") or "—")
+            # Fixed columns row values
+            college_code_val = r.get("college_code")
+            branch_code_val = r.get("branch_code")
+            college_label = f"{college_code_val} - {r.get('college_name')}" if college_code_val else str(r.get("college_name") or "—")
+            branch_label = f"{branch_code_val} - {r.get('branch_name')}" if branch_code_val else str(r.get("branch_name") or "—")
             row = [
                 str(i),
                 Paragraph(college_label, ParagraphStyle("cn", fontSize=8, leading=10)),
