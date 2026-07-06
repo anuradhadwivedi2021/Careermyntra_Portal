@@ -1947,6 +1947,264 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
     await _originalRunPredict();
   };
 </script>
+<!-- PASTE college_predictor_dynamic_filters_frontend_patch.html KA <script>...</script> BLOCK YAHAN -->
+
+<!--
+  ================================================================
+  Student Management: Table View + Delete (admin-password protected)
+  ================================================================
+  NEW BLOCK — does NOT modify any existing script/function above.
+  Adds:
+    - A "👥 Students" button (near the student picker)
+    - A modal showing all saved students in a table
+    - A "🗑️ Delete" button per row, which prompts for the admin
+      password and only deletes after the backend verifies it
+      (DELETE /college-predictor/students/<id>, routes/student_delete.py)
+-->
+<style>
+  .students-btn {
+    margin-top: 8px; margin-left: 8px; padding: 8px 14px; background: #f0fdf4;
+    border: 1.5px solid #bbf7d0; border-radius: 8px; font-size: 12px; font-weight: 700;
+    color: #15803d; cursor: pointer; font-family: inherit;
+  }
+  .students-btn:hover { background: #dcfce7; }
+
+  .students-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 1000; align-items: center; justify-content: center;
+  }
+  .students-modal-overlay.open { display: flex; }
+  .students-modal {
+    background: #fff; border-radius: 14px; width: 92%; max-width: 900px;
+    max-height: 82vh; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  }
+  .students-modal-header {
+    padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex;
+    align-items: center; justify-content: space-between;
+  }
+  .students-modal-header h3 { margin: 0; font-size: 16px; color: #0d1b3e; }
+  .students-modal-close {
+    border: none; background: transparent; font-size: 20px; cursor: pointer; color: #6b7280;
+  }
+  .students-modal-body { padding: 12px 20px 20px; overflow-y: auto; }
+  .students-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .students-table th, .students-table td {
+    text-align: left; padding: 8px 10px; border-bottom: 1px solid #f3f4f6; white-space: nowrap;
+  }
+  .students-table th { color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  .students-table td { color: #0d1b3e; }
+  .btn-delete-student {
+    padding: 6px 12px; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 7px;
+    font-size: 12px; font-weight: 700; color: #b91c1c; cursor: pointer; font-family: inherit;
+  }
+  .btn-delete-student:hover { background: #fee2e2; }
+  .students-table-empty { text-align: center; color: #9ca3af; padding: 24px; font-size: 13px; }
+
+  .admin-pwd-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 1100; align-items: center; justify-content: center;
+  }
+  .admin-pwd-overlay.open { display: flex; }
+  .admin-pwd-box {
+    background: #fff; border-radius: 12px; padding: 20px; width: 92%; max-width: 340px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  }
+  .admin-pwd-box h4 { margin: 0 0 10px; font-size: 14px; color: #0d1b3e; }
+  .admin-pwd-box input {
+    width: 100%; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+    font-size: 13px; font-family: inherit; outline: none; margin-bottom: 10px;
+  }
+  .admin-pwd-box input:focus { border-color: #1565c0; }
+  .admin-pwd-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .admin-pwd-actions button {
+    padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: inherit; border: 1.5px solid transparent;
+  }
+  .admin-pwd-cancel { background: #f3f4f6; color: #374151; }
+  .admin-pwd-confirm { background: #b91c1c; color: #fff; }
+  .admin-pwd-error { color: #b91c1c; font-size: 11px; margin: -4px 0 8px; min-height: 14px; }
+</style>
+
+<div class="students-modal-overlay" id="students-modal-overlay">
+  <div class="students-modal">
+    <div class="students-modal-header">
+      <h3>👥 Saved Students</h3>
+      <button class="students-modal-close" onclick="closeStudentsModal()">✕</button>
+    </div>
+    <div class="students-modal-body" id="students-modal-body">
+      <div class="students-table-empty">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<div class="admin-pwd-overlay" id="admin-pwd-overlay">
+  <div class="admin-pwd-box">
+    <h4>🔒 Enter admin password to delete this student</h4>
+    <input type="password" id="admin-pwd-input" placeholder="Admin password" autocomplete="off" />
+    <div class="admin-pwd-error" id="admin-pwd-error"></div>
+    <div class="admin-pwd-actions">
+      <button class="admin-pwd-cancel" onclick="closeAdminPwdModal()">Cancel</button>
+      <button class="admin-pwd-confirm" onclick="confirmDeleteStudent()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function injectStudentsButton() {
+    const nameField = document.getElementById('student_name');
+    if (!nameField) return;
+    const fieldWrap = nameField.closest('.field');
+    if (!fieldWrap) return;
+
+    const studentsBtn = document.createElement('button');
+    studentsBtn.type = 'button';
+    studentsBtn.className = 'students-btn';
+    studentsBtn.textContent = '👥 Students';
+    studentsBtn.onclick = () => openStudentsModal();
+    fieldWrap.appendChild(studentsBtn);
+  })();
+
+  let _pendingDeleteId = null;
+
+  async function openStudentsModal() {
+    const overlay = document.getElementById('students-modal-overlay');
+    const body = document.getElementById('students-modal-body');
+    overlay.classList.add('open');
+    body.innerHTML = '<div class="students-table-empty">Loading...</div>';
+
+    try {
+      const res = await fetch(`${API}/college-predictor/students`);
+      const students = await res.json();
+
+      if (!students || !students.length) {
+        body.innerHTML = '<div class="students-table-empty">No saved students yet.</div>';
+        return;
+      }
+
+      body.innerHTML = `
+        <table class="students-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Percentile</th>
+              <th>Updated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${students.map(s => `
+              <tr id="student-row-${s.id}">
+                <td>${s.student_name}</td>
+                <td>${s.category || '—'}</td>
+                <td>${s.percentile != null ? s.percentile + '%' : '—'}</td>
+                <td>${s.updated_at ? new Date(s.updated_at).toLocaleDateString() : '—'}</td>
+                <td><button class="btn-delete-student" onclick="promptDeleteStudent(${s.id})">🗑️ Delete</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch (e) {
+      body.innerHTML = '<div class="students-table-empty">❌ Failed to load students.</div>';
+    }
+  }
+
+  function closeStudentsModal() {
+    document.getElementById('students-modal-overlay').classList.remove('open');
+  }
+
+  function promptDeleteStudent(id) {
+    _pendingDeleteId = id;
+    document.getElementById('admin-pwd-input').value = '';
+    document.getElementById('admin-pwd-error').textContent = '';
+    document.getElementById('admin-pwd-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('admin-pwd-input').focus(), 50);
+  }
+
+  function closeAdminPwdModal() {
+    _pendingDeleteId = null;
+    document.getElementById('admin-pwd-overlay').classList.remove('open');
+  }
+
+  async function confirmDeleteStudent() {
+    const errEl = document.getElementById('admin-pwd-error');
+    const pwd = document.getElementById('admin-pwd-input').value;
+    if (!pwd) {
+      errEl.textContent = 'Password is required';
+      return;
+    }
+    if (!_pendingDeleteId) return;
+
+    try {
+      const res = await fetch(`${API}/college-predictor/students/${_pendingDeleteId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_password: pwd }),
+      });
+      const d = await res.json();
+
+      if (res.ok) {
+        const row = document.getElementById(`student-row-${_pendingDeleteId}`);
+        if (row) row.remove();
+        closeAdminPwdModal();
+        showToast('✅ Student deleted');
+
+        const tbody = document.querySelector('#students-modal-body tbody');
+        if (tbody && !tbody.children.length) {
+          document.getElementById('students-modal-body').innerHTML =
+            '<div class="students-table-empty">No saved students yet.</div>';
+        }
+      } else {
+        errEl.textContent = d.error || 'Delete failed';
+      }
+    } catch (e) {
+      errEl.textContent = 'Network error while deleting';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const pwdInput = document.getElementById('admin-pwd-input');
+    if (pwdInput) {
+      pwdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') confirmDeleteStudent();
+      });
+    }
+  });
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 </body>
 </html>
