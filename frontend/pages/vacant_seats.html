@@ -158,16 +158,6 @@
     <span class="section-label" id="section-label">Select a stream to upload vacant seat data</span>
   </div>
 
-  <!-- Coming soon notice -->
-  <div class="coming-soon-banner">
-    <div class="cs-icon">🚧</div>
-    <div class="cs-text">
-      <strong>Backend Processing — Coming Soon</strong>
-      <span>UI is ready! Upload & processing logic will be connected shortly. You can still browse courses below.</span>
-    </div>
-    <span class="cs-badge">In Progress</span>
-  </div>
-
   <!-- Stream cards grid -->
   <div class="streams-grid" id="streams-grid">
     <div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af;font-size:14px;font-weight:600;">⏳ Loading streams...</div>
@@ -199,9 +189,6 @@
         <p id="modal-sub">Select your vacant seat data file below</p>
       </div>
       <button class="close-btn" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-notice">
-      🚧 Backend processing coming soon — upload will be enabled shortly!
     </div>
     <div class="drop-zone" id="drop-zone"
          onclick="document.getElementById('file-input').click()"
@@ -339,6 +326,7 @@
     document.getElementById('btn-start').disabled = true;
     document.getElementById('file-input').value = '';
     document.getElementById('drop-zone').style.borderColor = '#6ee7b7';
+    document.getElementById('upload-error').style.display = 'none';
     document.getElementById('modal').classList.add('open');
   }
 
@@ -370,14 +358,45 @@
   }
 
   async function goToProgress() {
-    // TODO: Connect to backend when vacant seats API is ready
-    // For now show a friendly coming soon message
+    if (!selectedCourse) return;
+    const btn = document.getElementById('btn-start');
     const errDiv = document.getElementById('upload-error');
-    errDiv.style.display = 'block';
-    errDiv.style.color = '#047857';
-    errDiv.style.background = '#ecfdf5';
-    errDiv.style.border = '1px solid #6ee7b7';
-    errDiv.textContent = '🚧 Backend processing coming soon! File received — will be processed once API is ready.';
+    btn.disabled = true;
+    btn.textContent = '⏳ Uploading...';
+    errDiv.style.display = 'none';
+
+    const file = selectedFile || document.getElementById('file-input').files[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('course_name', selectedCourse.name);
+      formData.append('mode', 'vacant');  // ← vacant seats mode flag
+
+      const res = await authFetch(`${BACKEND}/api/upload`, { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (data.success) {
+        sessionStorage.setItem('task_id',     data.task_id);
+        sessionStorage.setItem('course',      selectedCourse.name);
+        sessionStorage.setItem('icon',        selectedCourse.icon);
+        sessionStorage.setItem('filename',    file.name);
+        sessionStorage.setItem('output_file', data.output_file);
+        sessionStorage.setItem('mode',        'vacant');
+        window.location.href = 'progress.html';
+      } else {
+        errDiv.textContent = '❌ ' + (data.error || 'Upload failed');
+        errDiv.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '🚀 Start Processing';
+      }
+    } catch(err) {
+      errDiv.textContent = '❌ Backend not reachable!';
+      errDiv.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = '🚀 Start Processing';
+    }
   }
 
   // User info
