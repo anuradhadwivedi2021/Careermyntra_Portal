@@ -839,7 +839,7 @@
       updateCount(type); return;
     }
     el.innerHTML = allCollegesRow + filtered.map(o => {
-  const sel = state[type].selected.has(o) || (type === 'college' && state.college.selected.size === 0);
+  const sel = state[type].selected.has(o);  
   const safe = o.replace(/'/g, "\\'");
   return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('${type}','${safe}')">
     <div class="ms-check"></div>
