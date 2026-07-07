@@ -737,6 +737,20 @@
     ? 'http://localhost:5000/api'
     : 'https://edtechmyntra.com/api';
 
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
   // ── State (dynamic from DB) ──
   const state = {
     branch:     { selected: new Set(), options: [], open: false },
@@ -1022,6 +1036,16 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
       }
     } catch(e) { console.warn('Filter options load failed', e); }
   }
+
+
+
+   
+
+
+  const FALLBACK_BRANCHES = [
+    "Computer Engineering", "Information Technology", "Mechanical Engineering",
+    "Civil Engineering", "Electronics & Telecommunication", "Electrical Engineering"
+  ];
 
   const FALLBACK_COURSES = [
     "B.E. / B.Tech", "M.E. / M.Tech", "MCA", "MBA", "B.Pharm", "Direct Second Year (DSE)"
