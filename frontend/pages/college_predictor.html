@@ -826,7 +826,7 @@
 
     // NEW: "All Colleges" as an explicit, clickable, checkable option at the top of the list
     let allCollegesRow = '';
-    if (type === 'college' && !q) {
+    if (type === 'college') {
       const allSelected = state.college.selected.size === 0;
       allCollegesRow = `<div class="ms-option ${allSelected?'selected':''}" onclick="clearAll('college');event.stopPropagation()">
         <div class="ms-check"></div>
