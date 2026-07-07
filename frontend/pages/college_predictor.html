@@ -840,7 +840,7 @@
     }
     el.innerHTML = allCollegesRow + filtered.map(o => {
   const sel = state[type].selected.has(o);  
-  const safe = o.replace(/'/g, "\\'");
+  const safe = o.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
   return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('${type}','${safe}')">
     <div class="ms-check"></div>
     <span>${o}</span>
