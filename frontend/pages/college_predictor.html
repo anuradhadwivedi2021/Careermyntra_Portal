@@ -859,13 +859,14 @@
     if (type === 'college') onCollegeChange();
   }
 
-  function clearAll(type) {
+ function clearAll(type) {
     state[type].selected.clear();
+    const searchEl = document.getElementById(`${type}-search`);
+    if (searchEl) searchEl.value = '';
     renderOptions(type);
     renderChips(type);
     if (type === 'college') onCollegeChange();
   }
-
   // ── Chips ──
   function renderChips(type) {
     const box = document.getElementById(`${type}-box`);
