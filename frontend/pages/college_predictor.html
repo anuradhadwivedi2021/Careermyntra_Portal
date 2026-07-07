@@ -526,6 +526,58 @@
         <span class="help">Select districts you're interested in (filters branches below)</span>
       </div>
 
+<!-- Select Colleges (multi-select) -->
+      <div class="field">
+        <label><span class="ficon">🏫</span> Select Colleges</label>
+        <div class="ms-wrap" id="college-wrap">
+          <div class="ms-box" id="college-box" onclick="togglePanel('college')">
+            <span class="ms-placeholder" id="college-ph">All Colleges</span>
+            <span class="ms-arrow">▼</span>
+          </div>
+          <div class="ms-panel" id="college-panel">
+            <div class="ms-search-wrap">
+              <span>🔍</span>
+              <input class="ms-search" id="college-search" placeholder="Search colleges..." oninput="filterOptions('college')" onclick="event.stopPropagation()"/>
+            </div>
+            <div class="ms-options" id="college-options"></div>
+            <div class="ms-footer">
+              <span class="ms-count" id="college-count">All Colleges</span>
+              <div class="ms-actions">
+                <button class="ms-btn clear" onclick="clearAll('college');event.stopPropagation()">Clear All</button>
+                <button class="ms-btn done" onclick="closePanel('college');event.stopPropagation()">Done ✓</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="help">Select colleges (default: All Colleges). Filters branches & results below.</span>
+      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <!-- 10. Preferred Branches — filtered by Course + Districts -->
       <div class="field">
         <label><span class="ficon">🎓</span> Preferred Branches</label>
@@ -689,6 +741,9 @@
   const state = {
     branch:     { selected: new Set(), options: [], open: false },
     district:   { selected: new Set(), options: [], open: false },
+
+
+    college:    { selected: new Set(), options: [], open: false },
     university: { selected: new Set(), options: [], open: false },
     capround:   { selected: new Set(), options: [], open: false },
 };
@@ -697,12 +752,16 @@
  async function onCourseChange() {
     await updateAuthority();
     const districts = [...state.district.selected];
-    await loadBranches(districts);
+    const colleges = [...state.college.selected];
+    await loadBranches(districts, colleges);
 }
 
  async function onDistrictChange() {
     const districts = [...state.district.selected];
-    await loadBranches(districts);
+    await loadColleges(districts);
+    state.college.selected.clear();
+    renderChips('college');
+    await loadBranches(districts, [...state.college.selected]);
     state.branch.selected.clear();
     renderChips('branch');
     const ph = document.getElementById('branch-ph');
@@ -731,7 +790,7 @@
   function togglePanel(type) {
     const isOpen = state[type].open;
     // close all
-    ['branch','district','university','capround'].forEach(t => { state[t].open = false; updateBoxState(t); });
+    ['branch','district','college','university','capround'].forEach(t => { state[t].open = false; updateBoxState(t); });
     if (!isOpen) { state[type].open = true; updateBoxState(type); renderOptions(type); }
   }
   function closePanel(type) { state[type].open = false; updateBoxState(type); }
@@ -772,9 +831,15 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     else state[type].selected.add(val);
     renderOptions(type);
     renderChips(type);
+    if (type === 'college') onCollegeChange();
   }
 
-  function clearAll(type) { state[type].selected.clear(); renderOptions(type); renderChips(type); }
+  function clearAll(type) {
+    state[type].selected.clear();
+    renderOptions(type);
+    renderChips(type);
+    if (type === 'college') onCollegeChange();
+  }
 
   // ── Chips ──
   function renderChips(type) {
@@ -785,7 +850,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     const sel = [...state[type].selected];
     if (sel.length === 0) {
       ph.style.display = 'inline';
-      const PH_TEXT = { branch: 'Select branches (optional)', district: 'All Districts', university: 'All Universities', capround: 'All Rounds (Recommended)' };
+      const PH_TEXT = { branch: 'Select branches (optional)', district: 'All Districts', college: 'All Colleges', university: 'All Universities', capround: 'All Rounds (Recommended)' };
       ph.textContent = PH_TEXT[type] || '';
     } else {
       ph.style.display = 'none';
@@ -804,20 +869,21 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     state[type].selected.delete(val);
     renderChips(type);
     if (state[type].open) renderOptions(type);
+    if (type === 'college') onCollegeChange();
   }
 
   function updateCount(type) {
     const n = state[type].selected.size;
     const total = state[type].options.length;
     const el = document.getElementById(`${type}-count`);
-    const ALL_LABEL = { district: 'All Districts', university: 'All Universities', branch: '0 selected' };
+    const ALL_LABEL = { district: 'All Districts', college: 'All Colleges', university: 'All Universities', branch: '0 selected' };
     if (type === 'branch') el.textContent = `${n} of ${total} selected`;
     else el.textContent = n === 0 ? ALL_LABEL[type] : `${n} of ${total} selected`;
   }
 
   // ── Close on outside click ──
   document.addEventListener('click', e => {
-    ['branch','district','university','capround'].forEach(type => {
+    ['branch','district','college','university','capround'].forEach(type => {
       if (state[type].open && !document.getElementById(`${type}-wrap`).contains(e.target)) {
         closePanel(type);
       }
@@ -836,15 +902,16 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
   }
 
   
-  async function loadBranches(districts) {
+  async function loadBranches(districts, colleges = []) {
     try {
-      // districts can be array or single string
       const districtList = Array.isArray(districts)
         ? districts.map(d => d.trim()).filter(Boolean)
         : (districts ? [districts.trim()] : []);
+      const collegeList = Array.isArray(colleges) ? colleges.map(c => c.trim()).filter(Boolean) : [];
 
       const params = new URLSearchParams();
       if (districtList.length) params.set('districts', districtList.join(','));
+      if (collegeList.length) params.set('colleges', collegeList.join(','));
       const url = `${API}/college-predictor/branches${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const d = await res.json();
@@ -856,6 +923,34 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
       const ph = document.getElementById('branch-ph');
       if (ph) ph.textContent = `Select branches (${FALLBACK_BRANCHES.length} available)`;
     }
+  }
+
+  // NEW: Load colleges filtered by Interested District(s)
+  async function loadColleges(districts) {
+    try {
+      const districtList = Array.isArray(districts)
+        ? districts.map(d => d.trim()).filter(Boolean)
+        : (districts ? [districts.trim()] : []);
+      const params = new URLSearchParams();
+      if (districtList.length) params.set('districts', districtList.join(','));
+      const url = `${API}/college-predictor/colleges${params.toString() ? '?' + params.toString() : ''}`;
+      const res = await fetch(url);
+      const d = await res.json();
+      state.college.options = (d && d.length) ? d.map(c => c.name).filter(Boolean) : [];
+    } catch(e) {
+      state.college.options = [];
+    }
+  }
+
+  // NEW: College selection change → reload branches scoped to selected college(s)
+  async function onCollegeChange() {
+    const districts = [...state.district.selected];
+    const colleges  = [...state.college.selected];
+    await loadBranches(districts, colleges);
+    state.branch.selected.clear();
+    renderChips('branch');
+    const ph = document.getElementById('branch-ph');
+    if (ph) ph.textContent = `Select branches (${state.branch.options.length} available)`;
   }
 
   async function loadFilterOptions() {
@@ -1046,7 +1141,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     document.getElementById('home_district').selectedIndex = 0;
     document.getElementById('pin_code').value = '';
     document.getElementById('gender').selectedIndex = 0;
-    clearAll('branch'); clearAll('district'); clearAll('university');clearAll('capround');
+    clearAll('branch'); clearAll('district'); clearAll('college'); clearAll('university');clearAll('capround');
     document.getElementById('quota-preview-box').style.display = 'none';
     document.getElementById('results-section').innerHTML = `
       <div class="state-box"><div class="icon">🎓</div><h3>Ready to Predict!</h3>
@@ -1066,9 +1161,10 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     const percentile = document.getElementById('percentile')?.value || '';
     const branches   = [...state.branch.selected];
     const districts  = [...state.district.selected];
+    const colleges   = [...state.college.selected];
 
     const payload = {
-      student: { name, category, percentile, branches, districts },
+      student: { name, category, percentile, branches, districts, colleges },
       results: allResults,
       visible_columns: columnVisibility,  // PATCH: tell backend which columns are ON/OFF
     };
@@ -1125,6 +1221,7 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     
        branches: [...state.branch.selected],
       districts: [...state.district.selected],
+      colleges: [...state.college.selected],
       universities: [...state.university.selected],
       gender:        document.getElementById('gender')?.value || '',
       home_district: document.getElementById('home_district')?.value || '',
@@ -1508,6 +1605,7 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
   // ── Init ──
   (async () => {
     await loadDistricts();
+    await loadColleges([]);
     await loadFilterOptions();
     await loadCourses();
     await loadUniversities();

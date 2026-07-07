@@ -461,25 +461,78 @@ def get_branches():
     conn = get_connection()
     cur = get_cursor(conn)
 
+    colleges_raw = request.args.get("colleges", "")
+    colleges = [c.strip() for c in colleges_raw.split(",") if c.strip()]
+
+    where = []
+    params = []
     if districts:
         placeholders = ",".join(["%s"] * len(districts))
-        cur.execute(f"""
-            SELECT DISTINCT branch_name FROM cap_cutoff_data
-            WHERE TRIM(district) IN ({placeholders})
-            AND branch_name IS NOT NULL
-            ORDER BY branch_name
-        """, districts)
-    else:
-        cur.execute("""
-            SELECT DISTINCT branch_name FROM cap_cutoff_data
-            WHERE branch_name IS NOT NULL
-            ORDER BY branch_name
-        """)
+        where.append(f"TRIM(district) IN ({placeholders})")
+        params.extend(districts)
+    if colleges:
+        placeholders = ",".join(["%s"] * len(colleges))
+        where.append(f"college_name IN ({placeholders})")
+        params.extend(colleges)
+
+    where_sql = (" AND ".join(where) + " AND ") if where else ""
+
+    cur.execute(f"""
+        SELECT DISTINCT branch_name FROM cap_cutoff_data
+        WHERE {where_sql} branch_name IS NOT NULL
+        ORDER BY branch_name
+    """, params)
 
     rows = [r["branch_name"] for r in cur.fetchall()]
     cur.close()
     conn.close()
     return jsonify(rows)
+
+
+# ─── NEW: GET /college-predictor/colleges?districts=Pune,Nashik ─────
+@college_predictor_bp.route("/college-predictor/colleges", methods=["GET"])
+def get_colleges():
+    districts_raw = request.args.get("districts", "")
+    districts = [d.strip() for d in districts_raw.split(",") if d.strip()]
+
+    conn = get_connection()
+    cur = get_cursor(conn)
+
+    if districts:
+        placeholders = ",".join(["%s"] * len(districts))
+        cur.execute(f"""
+            SELECT DISTINCT college_code, college_name
+            FROM cap_cutoff_data
+            WHERE (TRIM(district) IN ({placeholders}) OR TRIM(location) IN ({placeholders}))
+            AND college_name IS NOT NULL
+            ORDER BY college_name
+        """, districts + districts)
+    else:
+        cur.execute("""
+            SELECT DISTINCT college_code, college_name
+            FROM cap_cutoff_data
+            WHERE college_name IS NOT NULL
+            ORDER BY college_name
+        """)
+
+    rows = [{"code": r["college_code"], "name": r["college_name"]} for r in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify(rows)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # ─── PATCH: NEW — GET /college-predictor/universities ────────
@@ -573,6 +626,8 @@ def predict():
     branches     = data.get("branches", [])
     districts    = data.get("districts", [])
     universities = data.get("universities", [])
+    colleges     = data.get("colleges", [])  
+
     course_name  = data.get("course_name", "")
     admission_authority = data.get("admission_authority", "")
     home_district = data.get("home_district", "")
@@ -684,6 +739,14 @@ def predict():
         placeholders = ",".join(["%s"] * len(universities))
         where_clauses.append(f"university IN ({placeholders})")
         params.extend(universities)
+    if colleges:
+        placeholders = ",".join(["%s"] * len(colleges))
+        where_clauses.append(f"college_name IN ({placeholders})")
+        params.extend(colleges)
+
+
+
+
 
     # PATCH: Course filter (was completely missing before)
     if course_name:
