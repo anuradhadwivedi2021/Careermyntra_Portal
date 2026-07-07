@@ -816,15 +816,13 @@
     panel.classList.toggle('open', state[type].open);
   }
 
-  // ── Render options ──
-  function renderOptions(type) {
+function renderOptions(type) {
     const searchEl = document.getElementById(`${type}-search`);
     const q = searchEl ? searchEl.value.toLowerCase() : '';
     const el = document.getElementById(`${type}-options`);
     const options = state[type].options;
     const filtered = options.filter(o => o.toLowerCase().includes(q));
 
-    // NEW: "All Colleges" as an explicit, clickable, checkable option at the top of the list
     let allCollegesRow = '';
     if (type === 'college') {
       const allSelected = state.college.selected.size === 0;
@@ -838,19 +836,26 @@
       el.innerHTML = allCollegesRow || `<div style="padding:12px;color:#9ca3af;font-size:13px;text-align:center;">No options found</div>`;
       updateCount(type); return;
     }
+
     el.innerHTML = allCollegesRow + filtered.map(o => {
-  const sel = state[type].selected.has(o);  
-  const safe = o.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
-  return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('${type}','${safe}')">
-    <div class="ms-check"></div>
-    <span>${o}</span>
-  </div>`;
-  }).join('');
+      const sel = state[type].selected.has(o);
+      const safe = o.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+      return `<div class="ms-option ${sel?'selected':''}" data-type="${type}" data-value="${safe}">
+        <div class="ms-check"></div>
+        <span>${o}</span>
+      </div>`;
+    }).join('');
     updateCount(type);
+
+    // NEW: attach click listeners instead of inline onclick (fixes apostrophe names)
+    el.querySelectorAll('.ms-option[data-value]').forEach(opt => {
+      opt.addEventListener('click', () => {
+        toggleOption(opt.dataset.type, opt.dataset.value);
+      });
+    });
   }
 
   function filterOptions(type) { renderOptions(type); }
-
   function toggleOption(type, val) {
     if (state[type].selected.has(val)) state[type].selected.delete(val);
     else state[type].selected.add(val);
@@ -881,11 +886,19 @@
     } else {
       ph.style.display = 'none';
       sel.forEach(v => {
-        const chip = document.createElement('span');
-        chip.className = `chip ${type === 'district' ? 'district' : (type === 'university' ? 'university' : '')}`;
-        chip.innerHTML = `${v.length > 22 ? v.slice(0,20)+'…' : v} <span class="chip-x" onclick="removeChip(event,'${type}','${v}')">×</span>`;
-        box.insertBefore(chip, box.querySelector('.ms-arrow'));
-      });
+  const chip = document.createElement('span');
+  chip.className = `chip ${type === 'district' ? 'district' : (type === 'university' ? 'university' : '')}`;
+  const label = v.length > 22 ? v.slice(0,20)+'…' : v;
+  chip.innerHTML = `${label} <span class="chip-x" data-type="${type}" data-value="${v.replace(/"/g,'&quot;')}">×</span>`;
+  box.insertBefore(chip, box.querySelector('.ms-arrow'));
+});
+
+// attach listeners for remove buttons (fixes apostrophe names)
+box.querySelectorAll('.chip-x[data-value]').forEach(x => {
+  x.addEventListener('click', (e) => {
+    removeChip(e, x.dataset.type, x.dataset.value);
+  });
+});
     }
     updateCount(type);
   }
