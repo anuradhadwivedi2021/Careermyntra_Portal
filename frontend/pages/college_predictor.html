@@ -819,7 +819,7 @@
   // ── Render options ──
   function renderOptions(type) {
     const searchEl = document.getElementById(`${type}-search`);
-const q = searchEl ? searchEl.value.toLowerCase() : '';
+    const q = searchEl ? searchEl.value.toLowerCase() : '';
     const el = document.getElementById(`${type}-options`);
     const options = state[type].options;
     const filtered = options.filter(o => o.toLowerCase().includes(q));
@@ -839,13 +839,13 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
       updateCount(type); return;
     }
     el.innerHTML = allCollegesRow + filtered.map(o => {
-      const sel = state[type].selected.has(o);
-      const safe = o.replace(/'/g, "\\'");
-      return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('${type}','${safe}')">
-        <div class="ms-check"></div>
-        <span>${o}</span>
-      </div>`;
-    }).join('');
+  const sel = state[type].selected.has(o) || (type === 'college' && state.college.selected.size === 0);
+  const safe = o.replace(/'/g, "\\'");
+  return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('${type}','${safe}')">
+    <div class="ms-check"></div>
+    <span>${o}</span>
+  </div>`;
+  }).join('');
     updateCount(type);
   }
 
