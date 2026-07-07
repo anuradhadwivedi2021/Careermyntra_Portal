@@ -809,11 +809,22 @@ const q = searchEl ? searchEl.value.toLowerCase() : '';
     const el = document.getElementById(`${type}-options`);
     const options = state[type].options;
     const filtered = options.filter(o => o.toLowerCase().includes(q));
+
+    // NEW: "All Colleges" as an explicit, clickable, checkable option at the top of the list
+    let allCollegesRow = '';
+    if (type === 'college' && !q) {
+      const allSelected = state.college.selected.size === 0;
+      allCollegesRow = `<div class="ms-option ${allSelected?'selected':''}" onclick="clearAll('college');event.stopPropagation()">
+        <div class="ms-check"></div>
+        <span><strong>All Colleges</strong></span>
+      </div>`;
+    }
+
     if (!filtered.length) {
-      el.innerHTML = `<div style="padding:12px;color:#9ca3af;font-size:13px;text-align:center;">No options found</div>`;
+      el.innerHTML = allCollegesRow || `<div style="padding:12px;color:#9ca3af;font-size:13px;text-align:center;">No options found</div>`;
       updateCount(type); return;
     }
-    el.innerHTML = filtered.map(o => {
+    el.innerHTML = allCollegesRow + filtered.map(o => {
       const sel = state[type].selected.has(o);
       const safe = o.replace(/'/g, "\'");
       return `<div class="ms-option ${sel?'selected':''}" onclick="toggleOption('${type}','${safe}')">
