@@ -1211,20 +1211,43 @@ def download_pdf():
             gender_label = GENDER_LABELS.get(gender_raw, gender_raw) if gender_raw else 'All'
             cap_round_val = r.get("cap_round") or ""
 
-            branch_html = branch_label
-            if cap_round_val:
-                branch_html += f'<br/><font color="white" backColor="#1565c0"> {cap_round_val} </font>'
-            if gender_label and gender_label != 'All':
-                branch_html += f'<br/><font color="white" backColor="#7c3aed"> \U0001F464 {gender_label} </font>'
+            # PATCH: branch name alag Paragraph, badges alag colored mini-table
+            branch_para = Paragraph(branch_label, ParagraphStyle("bn", fontSize=8, leading=11, fontName=FEE_FONT))
 
-            # NEW: Location column now shows a pin icon before the place name
+            badge_style = ParagraphStyle("badge", fontSize=6.5, leading=8, textColor=colors.white,
+                                          alignment=1, fontName=FEE_FONT)
+            badge_cells, badge_bgcolors = [], []
+            if cap_round_val:
+                badge_cells.append(Paragraph(cap_round_val, badge_style))
+                badge_bgcolors.append(colors.HexColor("#1565c0"))
+            if gender_label and gender_label != 'All':
+                badge_cells.append(Paragraph(gender_label, badge_style))
+                badge_bgcolors.append(colors.HexColor("#7c3aed"))
+
+            branch_cell_content = [branch_para]
+            if badge_cells:
+                badge_tbl = Table([badge_cells])
+                style_cmds = [
+                    ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+                    ("TOPPADDING", (0,0), (-1,-1), 2),
+                    ("BOTTOMPADDING", (0,0), (-1,-1), 2),
+                    ("LEFTPADDING", (0,0), (-1,-1), 5),
+                    ("RIGHTPADDING", (0,0), (-1,-1), 5),
+                ]
+                for idx, c in enumerate(badge_bgcolors):
+                    style_cmds.append(("BACKGROUND", (idx,0), (idx,0), c))
+                badge_tbl.setStyle(TableStyle(style_cmds))
+                branch_cell_content.append(Spacer(1, 2))
+                branch_cell_content.append(badge_tbl)
+
+            # PATCH: emoji pin hataya (font mein render nahi hota), bullet use kiya
             location_val = str(r.get("location") or r.get("district") or "—")
-            location_html = f"\U0001F4CD {location_val}" if location_val != "—" else "—"
+            location_html = f'<font color="#dc2626">&#8226;</font> {location_val}' if location_val != "—" else "—"
 
             row = [
                 str(i),
                 Paragraph(college_label, ParagraphStyle("cn", fontSize=8, leading=10)),
-                Paragraph(branch_html, ParagraphStyle("bn", fontSize=8, leading=12, fontName=FEE_FONT)),
+                branch_cell_content,
                 status,
                 Paragraph(location_html, ParagraphStyle("loc", fontSize=8, leading=10, fontName=FEE_FONT, alignment=1)),
             ]
