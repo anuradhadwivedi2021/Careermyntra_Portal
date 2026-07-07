@@ -1196,17 +1196,37 @@ def download_pdf():
             quota_str = ", ".join(quota_list)
 
             # Fixed columns row values
-            # Fixed columns row values
             college_code_val = r.get("college_code")
             branch_code_val = r.get("branch_code")
             college_label = f"{college_code_val} - {r.get('college_name')}" if college_code_val else str(r.get("college_name") or "—")
             branch_label = f"{branch_code_val} - {r.get('branch_name')}" if branch_code_val else str(r.get("branch_name") or "—")
+
+            # NEW: CAP Round + Gender shown as badges/tags under the Branch name,
+            # matching the Result Page exactly (Round I / General / Ladies pills).
+            GENDER_LABELS = {
+                'G': 'General', 'L': 'Ladies', 'D': 'Divyangjan', 'T': 'Transgender',
+                'P': 'Orphan', 'All': 'All', 'E': 'EWS', 'M': 'Male', 'O': 'Other'
+            }
+            gender_raw = r.get("gender_label")
+            gender_label = GENDER_LABELS.get(gender_raw, gender_raw) if gender_raw else 'All'
+            cap_round_val = r.get("cap_round") or ""
+
+            branch_html = branch_label
+            if cap_round_val:
+                branch_html += f'<br/><font color="white" backColor="#1565c0"> {cap_round_val} </font>'
+            if gender_label and gender_label != 'All':
+                branch_html += f'<br/><font color="white" backColor="#7c3aed"> \U0001F464 {gender_label} </font>'
+
+            # NEW: Location column now shows a pin icon before the place name
+            location_val = str(r.get("location") or r.get("district") or "—")
+            location_html = f"\U0001F4CD {location_val}" if location_val != "—" else "—"
+
             row = [
                 str(i),
                 Paragraph(college_label, ParagraphStyle("cn", fontSize=8, leading=10)),
-                Paragraph(branch_label, ParagraphStyle("bn", fontSize=8, leading=10)),
+                Paragraph(branch_html, ParagraphStyle("bn", fontSize=8, leading=12, fontName=FEE_FONT)),
                 status,
-                str(r.get("location") or r.get("district") or "—"),
+                Paragraph(location_html, ParagraphStyle("loc", fontSize=8, leading=10, fontName=FEE_FONT, alignment=1)),
             ]
 
             # PATCH: append only the toggle columns that are ON
