@@ -1607,7 +1607,7 @@
   function toggleSave(id, btn) {
     const b = btn;
     if (savedIds.has(id)) { savedIds.delete(id); b.textContent='🔖 Save'; b.classList.remove('saved'); showToast(`Removed from wishlist`); }
-    else { savedIds.add(id); b.textContent='🔖 Saved'; b.classList.add('saved'); showToast(`✅ Saved ${name}`); }
+    else { savedIds.add(id); b.textContent='🔖 Saved'; b.classList.add('saved'); showToast(`✅ Saved`); }
     localStorage.setItem('cp_saved', JSON.stringify([...savedIds]));
   }
 
