@@ -427,12 +427,12 @@
 
           <div class="form-row">
             <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">Event Date <span class="req">*</span></label>
+              <label class="form-label">Deadline Date <span class="req">*</span></label>
               <input class="form-input" id="ev-date" type="date"/>
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">Event Time</label>
-              <input class="form-input" id="ev-time" type="time"/>
+              <label class="form-label">Registration Link (URL)</label>
+              <input class="form-input" id="ev-register-url" type="url" placeholder="https://example.com/register"/>
             </div>
           </div>
 
@@ -829,8 +829,8 @@ Admission Guidance Team</textarea>
   }
 
   // ── State ──────────────────────────────────────────────
-  let emails = ["careermyntrapune@gmail.com", "collegescutoff@gmail.com", "khamgaonkarpawan@gmail.com", "anudwivedi149@gmail.com"];
-  let phones = ["+91 9860938338", "+91 9422203476"];
+  let emails = [];
+  let phones = [];
   let attachedFiles = [];
   let selectedPriority = "high";
   let selectedStatus   = "upcoming";
@@ -1068,7 +1068,7 @@ Admission Guidance Team</textarea>
 
     // Build reminder schedules — convert chip labels to remind_at datetimes
     const reminderSchedules = [];
-    const eventDt = new Date(date + "T" + (document.getElementById("ev-time").value || "09:00") + ":00");
+    const eventDt = new Date(date + "T09:00:00");
     document.querySelectorAll(".reminder-chip.active[data-val], .reminder-chip.mandatory").forEach(c => {
       const val = c.getAttribute("data-val") || "6h";
       const num = parseInt(val);
@@ -1086,7 +1086,8 @@ Admission Guidance Team</textarea>
       category_id,
       subcategory_id,
       event_date:   date,
-      event_time:   document.getElementById("ev-time").value || null,
+      event_time:   null,
+      register_url: document.getElementById("ev-register-url").value.trim() || null,
       start_dt:     document.getElementById("ev-start").value || null,
       end_dt:       document.getElementById("ev-end").value || null,
       priority:     selectedPriority,
@@ -1179,7 +1180,7 @@ Admission Guidance Team</textarea>
   function clearForm() {
     document.getElementById("ev-title").value  = "";
     document.getElementById("ev-date").value   = "";
-    document.getElementById("ev-time").value   = "";
+    document.getElementById("ev-register-url").value = "";
     document.getElementById("ev-start").value  = "";
     document.getElementById("ev-end").value    = "";
     document.getElementById("ev-desc").value   = "";
@@ -1280,7 +1281,7 @@ Admission Guidance Team</textarea>
     editingOriginalRecipients = ev.recipients ? [...ev.recipients] : [];
     document.getElementById("ev-title").value = ev.title;
     document.getElementById("ev-date").value  = ev.event_date || ev.date || "";
-    document.getElementById("ev-time").value  = ev.event_time || ev.time || "";
+    document.getElementById("ev-register-url").value = ev.register_url || "";
     document.getElementById("ev-start").value = ev.start_dt ? ev.start_dt.slice(0,16) : "";
     document.getElementById("ev-end").value   = ev.end_dt   ? ev.end_dt.slice(0,16)   : "";
     document.getElementById("ev-desc").value  = ev.description || "";

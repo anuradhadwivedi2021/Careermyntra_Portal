@@ -106,11 +106,28 @@ def fill_template(template: str, event: dict, duration_label: str = "") -> str:
 
     logo_url = os.getenv("SITE_URL", "https://edtechmyntra.com").rstrip("/") + "/images/logo.jpeg"
 
+    def _format_friendly_date(date_val):
+        """Convert YYYY-MM-DD (or date object) to '12th July 2026'."""
+        if not date_val:
+            return ""
+        try:
+            if isinstance(date_val, str):
+                d = datetime.strptime(date_val[:10], "%Y-%m-%d")
+            else:
+                d = date_val
+            day = d.day
+            suffix = "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+            return f"{day}{suffix} {d.strftime('%B %Y')}"
+        except Exception:
+            return str(date_val)
+
+    friendly_date = _format_friendly_date(event.get("event_date"))
+
     replacements = {
         # legacy
         "{{EventTitle}}":       str(event.get("title", "")),
         "{{Category}}":         str(event.get("category_name", "")),
-        "{{EventDate}}":        str(event.get("event_date", "")),
+        "{{EventDate}}":        friendly_date,
         "{{EventTime}}":        str(event.get("event_time", "") or "N/A"),
         "{{EventDescription}}": str(event.get("description", "")),
         "{{ReminderDuration}}": str(duration_label or ""),
@@ -120,7 +137,7 @@ def fill_template(template: str, event: dict, duration_label: str = "") -> str:
         "{{EVENT_NAME}}":   str(event.get("title", "")),
         "{{CATEGORY}}":     str(event.get("category_name", "")),
         "{{SUBCATEGORY}}":  str(event.get("subcategory_name", "") or ""),
-        "{{END_DATE}}":     str(event.get("event_date", "")),
+        "{{END_DATE}}":     friendly_date,
         "{{DESCRIPTION}}":  str(event.get("description", "") or ""),
         "{{REGISTER_URL}}": str(event.get("register_url", "") or os.getenv("SITE_URL", "https://edtechmyntra.com")),
         "{{NAME}}":         str(event.get("recipient_name", "") or "Student"),
@@ -416,11 +433,12 @@ def fetch_due_schedules(batch_size: int = Config.BATCH_SIZE) -> List[Dict]:
         now = datetime.now()
         cur.execute("""
             SELECT rs.id AS schedule_id, rs.event_id, rs.label, rs.created_at,
-                   e.title, e.event_date, e.event_time, e.description,
-                   c.name AS category_name
+                   e.title, e.event_date, e.event_time, e.description, e.register_url,
+                   c.name AS category_name, sc.name AS subcategory_name
             FROM reminder_schedules rs
             JOIN reminder_events e ON e.id = rs.event_id
             LEFT JOIN reminder_categories c ON c.id = e.category_id
+            LEFT JOIN reminder_subcategories sc ON sc.id = e.subcategory_id
             WHERE rs.is_sent = FALSE
               AND rs.remind_at <= %s
             ORDER BY rs.remind_at ASC

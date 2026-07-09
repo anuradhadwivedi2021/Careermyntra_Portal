@@ -229,8 +229,7 @@ def create_event():
         valid, event_date = Validators.validate_date(data.get("event_date", ""))
         if not valid: return error_response("Validation error", event_date)
 
-        valid, event_time = Validators.validate_time(data.get("event_time", ""))
-        if not valid: return error_response("Validation error", event_time)
+        register_url = str(data.get("register_url", "") or "").strip()
 
         emails = data.get("emails", [])
         validated_emails = []
@@ -244,9 +243,9 @@ def create_event():
 
         conn = get_connection(); cur = conn.cursor()
         cur.execute("""
-            INSERT INTO reminder_events (title, category_id, subcategory_id, description, event_date, event_time, priority, status)
+            INSERT INTO reminder_events (title, category_id, subcategory_id, description, event_date, register_url, priority, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
-        """, (title, data.get("category_id"), data.get("subcategory_id"), data.get("description", ""), event_date, event_time, priority, status))
+        """, (title, data.get("category_id"), data.get("subcategory_id"), data.get("description", ""), event_date, register_url, priority, status))
         event_id = cur.fetchone()[0]
 
         for reminder in data.get("reminders", []):
@@ -300,8 +299,8 @@ def update_event(event_id):
         if "event_date" in data:
             updates.append("event_date = %s"); params.append(data["event_date"])
 
-        if "event_time" in data:
-            updates.append("event_time = %s"); params.append(data["event_time"])
+        if "register_url" in data:
+            updates.append("register_url = %s"); params.append(data["register_url"])
 
         if "priority" in data:
             updates.append("priority = %s"); params.append(data["priority"])
