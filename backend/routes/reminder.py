@@ -116,6 +116,58 @@ def delete_category(category_id):
         return error_response("Database error", str(e), 500)
 
 
+# ── CATEGORY RECIPIENTS ───────────────────────────────────────
+@reminders_bp.route("/reminders/categories/<int:category_id>/recipients", methods=["GET"])
+@login_required
+def get_category_recipients(category_id):
+    try:
+        conn = get_connection(); cur = get_cursor(conn)
+        cur.execute(
+            "SELECT id, value FROM reminder_category_recipients WHERE category_id = %s ORDER BY id ASC",
+            (category_id,)
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return success_response(rows)
+    except Exception as e:
+        logger.error(f"Error fetching category recipients: {e}")
+        return error_response("Database error", str(e), 500)
+
+
+@reminders_bp.route("/reminders/categories/<int:category_id>/recipients", methods=["POST"])
+@login_required
+def add_category_recipient(category_id):
+    try:
+        data = request.json or {}
+        valid, value = Validators.validate_email(data.get("value", ""))
+        if not valid: return error_response("Validation error", value)
+        conn = get_connection(); cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO reminder_category_recipients (category_id, value)
+            VALUES (%s, %s) RETURNING id
+        """, (category_id, value))
+        rid = cur.fetchone()[0]
+        conn.commit(); cur.close(); conn.close()
+        logger.info(f"Category recipient added: {value} (category {category_id})")
+        return success_response({"id": rid, "value": value}, "Recipient added", 201)
+    except Exception as e:
+        logger.error(f"Error adding category recipient: {e}")
+        return error_response("Database error", str(e), 500)
+
+
+@reminders_bp.route("/reminders/category-recipients/<int:recipient_id>", methods=["DELETE"])
+@login_required
+def delete_category_recipient(recipient_id):
+    try:
+        conn = get_connection(); cur = conn.cursor()
+        cur.execute("DELETE FROM reminder_category_recipients WHERE id = %s", (recipient_id,))
+        conn.commit(); cur.close(); conn.close()
+        return success_response(message="Recipient deleted")
+    except Exception as e:
+        logger.error(f"Error deleting category recipient: {e}")
+        return error_response("Database error", str(e), 500)
+
+
 # ── SUBCATEGORIES ─────────────────────────────────────────────
 @reminders_bp.route("/reminders/subcategories", methods=["GET"])
 @login_required
@@ -231,13 +283,10 @@ def create_event():
 
         register_url = str(data.get("register_url", "") or "").strip()
 
-        emails = data.get("emails", [])
-        validated_emails = []
-        for email in emails:
-            valid, val = Validators.validate_email(email)
-            if not valid: return error_response("Validation error", f"Invalid email: {val}")
-            validated_emails.append(val)
-
+        # NOTE: Email recipients are now managed category-wise (see
+        # reminder_category_recipients table + endpoints above), so we no
+        # longer accept a per-event "emails" list here. Only WhatsApp
+        # numbers remain per-event.
         phones = data.get("phones", [])
         validated_phones = [str(p).strip() for p in phones if str(p).strip()]
 
@@ -252,10 +301,6 @@ def create_event():
             if reminder.get("remind_at"):
                 cur.execute("INSERT INTO reminder_schedules (event_id, remind_at, label) VALUES (%s, %s, %s)",
                     (event_id, reminder["remind_at"], reminder.get("label", "")))
-
-        for email in validated_emails:
-            cur.execute("INSERT INTO reminder_recipients (event_id, type, value) VALUES (%s, %s, %s)",
-                (event_id, "email", email))
 
         for phone in validated_phones:
             cur.execute("INSERT INTO reminder_recipients (event_id, type, value) VALUES (%s, %s, %s)",

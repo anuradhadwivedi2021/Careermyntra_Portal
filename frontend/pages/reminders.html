@@ -339,6 +339,16 @@
     /* tab panels */
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
+
+    /* ── CATEGORY RECIPIENTS MODAL ── */
+    #cat-recipients-panel {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 999; align-items: center; justify-content: center;
+    }
+    #cat-recipients-panel .modal-box {
+      background: #fff; border-radius: 16px; padding: 24px;
+      max-width: 420px; width: 90%; max-height: 80vh; overflow-y: auto;
+    }
   </style>
 </head>
 <body>
@@ -406,10 +416,11 @@
             <div class="form-group" style="margin-bottom:0;">
               <label class="form-label">Category <span class="req">*</span></label>
               <div class="add-new-row">
-                <select class="form-select" id="ev-category">
+                <select class="form-select" id="ev-category" onchange="onCategoryChange()">
                   <option value="">Loading…</option>
                 </select>
                 <button class="btn-add-inline" onclick="promptAddCategory()" title="Add new category">+ New</button>
+                <button class="btn-add-inline" onclick="openCategoryRecipients()" title="Manage recipients for this category">📧 Recipients</button>
               </div>
             </div>
             <div class="form-group" style="margin-bottom:0;">
@@ -425,15 +436,9 @@
 
           <div class="section-divider"><span>Dates & Time</span></div>
 
-          <div class="form-row">
-            <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">Deadline Date <span class="req">*</span></label>
-              <input class="form-input" id="ev-date" type="date"/>
-            </div>
-            <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">Registration Link (URL)</label>
-              <input class="form-input" id="ev-register-url" type="url" placeholder="https://example.com/register"/>
-            </div>
+          <div class="form-group">
+            <label class="form-label">Registration Link (URL)</label>
+            <input class="form-input" id="ev-register-url" type="url" placeholder="https://example.com/register"/>
           </div>
 
           <div class="form-row" style="margin-top:14px;">
@@ -442,7 +447,7 @@
               <input class="form-input" id="ev-start" type="datetime-local"/>
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">End Date & Time</label>
+              <label class="form-label">End Date & Time <span class="req">*</span></label>
               <input class="form-input" id="ev-end" type="datetime-local"/>
             </div>
           </div>
@@ -595,24 +600,6 @@
   <!-- RIGHT COLUMN -->
   <div>
 
-    <!-- RECIPIENTS — Email -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-header-icon">📧</div>
-        <div>
-          <div class="card-header-title">Email Recipients</div>
-          <div class="card-header-sub">Who gets email alerts</div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="recipient-list" id="email-list"></div>
-        <div class="add-new-row">
-          <input class="form-input" id="email-input" type="email" placeholder="email@example.com" onkeydown="if(event.key==='Enter')addEmail()"/>
-          <button class="btn-add-inline" onclick="addEmail()">+ Add</button>
-        </div>
-      </div>
-    </div>
-
     <!-- RECIPIENTS — WhatsApp -->
     <div class="card">
       <div class="card-header">
@@ -735,24 +722,30 @@ This is a reminder for:
 
 Event: {{EventTitle}}
 Category: {{Category}}
-Date: {{EventDate}}
-Time: {{EventTime}}
+Deadline: {{EventDate}}
 
 Description:
 {{EventDescription}}
 
+{{CustomMessage}}
+
 Please complete the required action before the deadline.
 
+Register here: {{RegisterURL}}
+
 Regards,
-CareerMyntra Admission Guidance Team</textarea>
+CareerMyntra Admission Guidance Team
+{{ContactDetails}}</textarea>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
           <span style="font-size:11px;font-weight:600;color:#6b7280;">Variables:</span>
           <span onclick="insertVar('tpl-email-body','{{EventTitle}}')" style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;font-weight:700;color:#1565c0;cursor:pointer;">{{EventTitle}}</span>
           <span onclick="insertVar('tpl-email-body','{{EventDate}}')" style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;font-weight:700;color:#1565c0;cursor:pointer;">{{EventDate}}</span>
-          <span onclick="insertVar('tpl-email-body','{{EventTime}}')" style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;font-weight:700;color:#1565c0;cursor:pointer;">{{EventTime}}</span>
           <span onclick="insertVar('tpl-email-body','{{Category}}')" style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;font-weight:700;color:#1565c0;cursor:pointer;">{{Category}}</span>
           <span onclick="insertVar('tpl-email-body','{{EventDescription}}')" style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;font-weight:700;color:#1565c0;cursor:pointer;">{{EventDescription}}</span>
+          <span onclick="insertVar('tpl-email-body','{{RegisterURL}}')" style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;font-weight:700;color:#1565c0;cursor:pointer;">{{RegisterURL}}</span>
+          <span onclick="insertVar('tpl-email-body','{{CustomMessage}}')" style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;font-weight:700;color:#1565c0;cursor:pointer;">{{CustomMessage}}</span>
+          <span onclick="insertVar('tpl-email-body','{{ContactDetails}}')" style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:11px;font-weight:700;color:#1565c0;cursor:pointer;">{{ContactDetails}}</span>
         </div>
         <button class="btn-add-inline" style="width:100%;justify-content:center;display:flex;" onclick="saveTemplate('email')">💾 Save Email Template</button>
       </div>
@@ -773,8 +766,7 @@ CareerMyntra Admission Guidance Team</textarea>
           <textarea class="form-textarea" id="tpl-wa-body" style="min-height:140px;font-size:12px;line-height:1.6;">🔔 Reminder Alert
 
 Event: {{EventTitle}}
-📅 Date: {{EventDate}}
-⏰ Time: {{EventTime}}
+📅 Deadline: {{EventDate}}
 Category: {{Category}}
 
 {{EventDescription}}
@@ -788,7 +780,6 @@ Admission Guidance Team</textarea>
           <span style="font-size:11px;font-weight:600;color:#6b7280;">Variables:</span>
           <span onclick="insertVar('tpl-wa-body','{{EventTitle}}')" style="padding:2px 8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:11px;font-weight:700;color:#16a34a;cursor:pointer;">{{EventTitle}}</span>
           <span onclick="insertVar('tpl-wa-body','{{EventDate}}')" style="padding:2px 8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:11px;font-weight:700;color:#16a34a;cursor:pointer;">{{EventDate}}</span>
-          <span onclick="insertVar('tpl-wa-body','{{EventTime}}')" style="padding:2px 8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:11px;font-weight:700;color:#16a34a;cursor:pointer;">{{EventTime}}</span>
           <span onclick="insertVar('tpl-wa-body','{{ReminderDuration}}')" style="padding:2px 8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:11px;font-weight:700;color:#16a34a;cursor:pointer;">{{ReminderDuration}}</span>
           <span onclick="insertVar('tpl-wa-body','{{EventDescription}}')" style="padding:2px 8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:11px;font-weight:700;color:#16a34a;cursor:pointer;">{{EventDescription}}</span>
         </div>
@@ -798,6 +789,20 @@ Admission Guidance Team</textarea>
 
   </div><!-- end right col -->
 </div><!-- end page-wrap -->
+
+<!-- CATEGORY RECIPIENTS MODAL -->
+<div id="cat-recipients-panel">
+  <div class="modal-box">
+    <h3 style="margin-bottom:4px;" id="cat-recip-title">Recipients for Category</h3>
+    <p style="font-size:12px;color:#9ca3af;margin-bottom:16px;">These emails get reminders for all events in this category.</p>
+    <div class="recipient-list" id="cat-recip-list"></div>
+    <div class="add-new-row" style="margin-top:10px;">
+      <input class="form-input" id="cat-recip-input" type="email" placeholder="email@example.com" onkeydown="if(event.key==='Enter')addCategoryRecipient()"/>
+      <button class="btn-add-inline" onclick="addCategoryRecipient()">+ Add</button>
+    </div>
+    <button class="btn-secondary" style="width:100%;justify-content:center;margin-top:16px;" onclick="closeCategoryRecipients()">Close</button>
+  </div>
+</div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -829,7 +834,6 @@ Admission Guidance Team</textarea>
   }
 
   // ── State ──────────────────────────────────────────────
-  let emails = [];
   let phones = [];
   let attachedFiles = [];
   let selectedPriority = "high";
@@ -897,26 +901,7 @@ Admission Guidance Team</textarea>
     document.getElementById("custom-val").value = "";
   }
 
-  // ── Email recipients ───────────────────────────────────
-  function renderEmails() {
-    const list = document.getElementById("email-list");
-    list.innerHTML = emails.length ? emails.map((e, i) => `
-      <div class="recipient-tag">
-        <span>📧 ${e}</span>
-        <button class="tag-remove" onclick="removeEmail(${i})">✕</button>
-      </div>`).join("") : `<div class="empty-list">No email recipients added</div>`;
-  }
-  function addEmail() {
-    const val = document.getElementById("email-input").value.trim();
-    if (!val || !val.includes("@")) { showToast("Enter a valid email", "error"); return; }
-    if (emails.includes(val)) { showToast("Already in the list", "error"); return; }
-    emails.push(val); renderEmails();
-    document.getElementById("email-input").value = "";
-    showToast("Email added ✅", "success");
-  }
-  function removeEmail(i) { emails.splice(i, 1); renderEmails(); }
-
-  // ── WhatsApp recipients ────────────────────────────────
+  // ── WhatsApp recipients (per-event, unchanged) ─────────
   function renderPhones() {
     const list = document.getElementById("whatsapp-list");
     list.innerHTML = phones.length ? phones.map((p, i) => `
@@ -972,6 +957,7 @@ Admission Guidance Team</textarea>
     const sel = document.getElementById("ev-category");
     sel.innerHTML = `<option value="">Select Category</option>` +
       categories.map(c => `<option value="${c.name}"${c.name === selectedName ? " selected" : ""}>${c.name}</option>`).join("");
+    onCategoryChange();
   }
   function renderSubcategoryDropdown(selectedName) {
     const sel = document.getElementById("ev-subcategory");
@@ -995,6 +981,7 @@ Admission Guidance Team</textarea>
       categories.push({ id: data.id, name: trimmed });
       renderCategoryDropdown(trimmed);
       document.getElementById("ev-category").value = trimmed;
+      onCategoryChange();
       showToast(`✅ Category "${trimmed}" added`, "success");
     } catch(e) { showToast("❌ " + e.message, "error"); }
   }
@@ -1021,14 +1008,91 @@ Admission Guidance Team</textarea>
     } catch(e) { showToast("❌ " + e.message, "error"); }
   }
 
+  // ── Category-wise recipients ───────────────────────────
+  let categoryRecipients = {};
+  let currentCategoryId = null;
+
+  function onCategoryChange() {
+    const catVal = document.getElementById("ev-category").value;
+    const cat = categories.find(c => c.name === catVal);
+    currentCategoryId = cat ? cat.id : null;
+  }
+
+  async function openCategoryRecipients() {
+    const catVal = document.getElementById("ev-category").value;
+    if (!catVal) { showToast("Select a category first", "error"); return; }
+    const cat = categories.find(c => c.name === catVal);
+    if (!cat) { showToast("Please save the category first", "error"); return; }
+    currentCategoryId = cat.id;
+    document.getElementById("cat-recip-title").textContent = "Recipients for: " + catVal;
+    await loadCategoryRecipients(cat.id);
+    document.getElementById("cat-recipients-panel").style.display = "flex";
+  }
+  function closeCategoryRecipients() {
+    document.getElementById("cat-recipients-panel").style.display = "none";
+  }
+  async function loadCategoryRecipients(categoryId) {
+    try {
+      const res = await authFetch(`${BACKEND}/api/reminders/categories/${categoryId}/recipients`);
+      const data = await res.json();
+      categoryRecipients[categoryId] = (data.data || []).map(r => ({ id: r.id, value: r.value }));
+    } catch(e) { categoryRecipients[categoryId] = []; }
+    renderCategoryRecipients();
+  }
+  function renderCategoryRecipients() {
+    const list = categoryRecipients[currentCategoryId] || [];
+    const el = document.getElementById("cat-recip-list");
+    el.innerHTML = list.length ? list.map(r => `
+      <div class="recipient-tag">
+        <span>📧 ${r.value}</span>
+        <button class="tag-remove" onclick="removeCategoryRecipient(${r.id})">✕</button>
+      </div>`).join("") : `<div class="empty-list">No recipients added</div>`;
+  }
+  async function addCategoryRecipient() {
+    const input = document.getElementById("cat-recip-input");
+    const val = input.value.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!val || !emailRegex.test(val)) { showToast("Enter a valid email", "error"); return; }
+    if (!currentCategoryId) { showToast("Select a category first", "error"); return; }
+    try {
+      const res = await authFetch(`${BACKEND}/api/reminders/categories/${currentCategoryId}/recipients`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: val })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed");
+      input.value = "";
+      await loadCategoryRecipients(currentCategoryId);
+      showToast("Recipient added ✅", "success");
+    } catch(e) { showToast("❌ " + e.message, "error"); }
+  }
+  async function removeCategoryRecipient(id) {
+    try {
+      await authFetch(`${BACKEND}/api/reminders/category-recipients/${id}`, { method: "DELETE" });
+      await loadCategoryRecipients(currentCategoryId);
+      showToast("Removed", "");
+    } catch(e) { showToast("❌ " + e.message, "error"); }
+  }
+
+  // ── Friendly date formatter e.g. "12th July 2026" ──────
+  function friendlyDate(dateStr) {
+    if (!dateStr) return "";
+    const d = new Date(dateStr + "T00:00:00");
+    const day = d.getDate();
+    const suffix = (day % 10 === 1 && day !== 11) ? "st"
+                 : (day % 10 === 2 && day !== 12) ? "nd"
+                 : (day % 10 === 3 && day !== 13) ? "rd" : "th";
+    return `${day}${suffix} ${d.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}`;
+  }
+
   // ── Save Event ─────────────────────────────────────────
   async function saveEvent() {
     const title = document.getElementById("ev-title").value.trim();
     const catVal = document.getElementById("ev-category").value;
-    const date  = document.getElementById("ev-date").value;
     if (!title)  { showToast("Event title is required", "error"); return; }
     if (!catVal) { showToast("Please select a category", "error"); return; }
-    if (!date)   { showToast("Event date is required", "error"); return; }
+    const endDt = document.getElementById("ev-end").value;
+    if (!endDt)  { showToast("End Date & Time is required", "error"); return; }
 
     // Resolve category_id from loaded categories, else auto-create
     let category_id = null;
@@ -1067,8 +1131,9 @@ Admission Guidance Team</textarea>
     }
 
     // Build reminder schedules — convert chip labels to remind_at datetimes
+    // relative to the End Date & Time (the deadline).
     const reminderSchedules = [];
-    const eventDt = new Date(date + "T09:00:00");
+    const eventDt = new Date(endDt);
     document.querySelectorAll(".reminder-chip.active[data-val], .reminder-chip.mandatory").forEach(c => {
       const val = c.getAttribute("data-val") || "6h";
       const num = parseInt(val);
@@ -1085,16 +1150,15 @@ Admission Guidance Team</textarea>
       title,
       category_id,
       subcategory_id,
-      event_date:   date,
-      event_time:   null,
+      event_date:   endDt.split("T")[0],
+      event_time:   endDt.split("T")[1] || null,
       register_url: document.getElementById("ev-register-url").value.trim() || null,
       start_dt:     document.getElementById("ev-start").value || null,
-      end_dt:       document.getElementById("ev-end").value || null,
+      end_dt:       endDt,
       priority:     selectedPriority,
       status:       selectedStatus,
       description:  document.getElementById("ev-desc").value.trim(),
       reminders:    reminderSchedules,
-      emails:       [...emails],
       phones:       [...phones]
     };
 
@@ -1105,8 +1169,8 @@ Admission Guidance Team</textarea>
       let eventId;
       if (editingEventId) {
         // Editing an existing event: update its fields via PUT, then
-        // diff recipients against what was originally loaded so we only
-        // add/remove what actually changed (no delete-and-recreate).
+        // diff WhatsApp recipients against what was originally loaded so
+        // we only add/remove what actually changed.
         eventId = editingEventId;
         const res = await authFetch(`${BACKEND}/api/reminders/events/${eventId}`, {
           method: "PUT",
@@ -1116,28 +1180,14 @@ Admission Guidance Team</textarea>
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || "Update failed");
 
-        const origEmails = editingOriginalRecipients.filter(r => r.type === "email");
         const origPhones = editingOriginalRecipients.filter(r => r.type === "whatsapp");
 
-        for (const email of emails) {
-          if (!origEmails.some(r => r.value === email)) {
-            await authFetch(`${BACKEND}/api/reminders/events/${eventId}/recipients`, {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ type: "email", value: email })
-            });
-          }
-        }
         for (const phone of phones) {
           if (!origPhones.some(r => r.value === phone)) {
             await authFetch(`${BACKEND}/api/reminders/events/${eventId}/recipients`, {
               method: "POST", headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ type: "whatsapp", value: phone })
             });
-          }
-        }
-        for (const r of origEmails) {
-          if (!emails.includes(r.value)) {
-            await authFetch(`${BACKEND}/api/reminders/recipients/${r.id}`, { method: "DELETE" });
           }
         }
         for (const r of origPhones) {
@@ -1179,7 +1229,6 @@ Admission Guidance Team</textarea>
 
   function clearForm() {
     document.getElementById("ev-title").value  = "";
-    document.getElementById("ev-date").value   = "";
     document.getElementById("ev-register-url").value = "";
     document.getElementById("ev-start").value  = "";
     document.getElementById("ev-end").value    = "";
@@ -1190,6 +1239,7 @@ Admission Guidance Team</textarea>
     document.getElementById("custom-chips").innerHTML = "";
     document.getElementById("custom-val").value = "";
     attachedFiles = []; renderFileList();
+    phones = []; renderPhones();
     selectedPriority = "high"; selectedStatus = "upcoming";
     document.querySelectorAll("#priority-group .pill").forEach((p,i) => p.className = "pill" + (i===0?" selected-high":""));
     document.querySelectorAll("#status-group .pill").forEach((p,i) => p.className = "pill" + (i===0?" selected-upcoming":""));
@@ -1224,9 +1274,7 @@ Admission Guidance Team</textarea>
       const prio = ev.priority === "high" ? "badge-high" : ev.priority === "medium" ? "badge-medium" : "badge-low";
       const catName  = ev.category_name  || ev.category  || "";
       const subName  = ev.subcategory_name || ev.subcategory || "";
-      const timeStr  = ev.event_time || ev.time || "";
       const remCount = (ev.reminders  || []).length;
-      const emails_r = (ev.recipients || []).filter(r => r.type === "email");
       const phones_r = (ev.recipients || []).filter(r => r.type === "whatsapp");
       const chips    = (ev.reminders  || []).map(r => `<span class="ev-chip pending">⏰ ${r.label||r}</span>`).join("");
       return `
@@ -1241,9 +1289,9 @@ Admission Guidance Team</textarea>
             <div class="ev-meta">
               <span>📂 ${catName}</span>
               ${subName ? `<span>🏷️ ${subName}</span>` : ""}
-              ${timeStr ? `<span>🕐 ${timeStr}</span>` : ""}
+              <span>📆 ${friendlyDate(dateStr)}</span>
               <span>🔔 ${remCount} reminder(s)</span>
-              <span>📧 ${emails_r.length} • 💬 ${phones_r.length}</span>
+              <span>💬 ${phones_r.length}</span>
             </div>
             <div class="ev-reminder-chips">${chips}</div>
           </div>
@@ -1280,7 +1328,6 @@ Admission Guidance Team</textarea>
     editingEventId = id;
     editingOriginalRecipients = ev.recipients ? [...ev.recipients] : [];
     document.getElementById("ev-title").value = ev.title;
-    document.getElementById("ev-date").value  = ev.event_date || ev.date || "";
     document.getElementById("ev-register-url").value = ev.register_url || "";
     document.getElementById("ev-start").value = ev.start_dt ? ev.start_dt.slice(0,16) : "";
     document.getElementById("ev-end").value   = ev.end_dt   ? ev.end_dt.slice(0,16)   : "";
@@ -1296,9 +1343,8 @@ Admission Guidance Team</textarea>
     const sp = document.querySelector(`#status-group .pill:nth-child(${ev.status==="upcoming"?1:ev.status==="completed"?2:3})`);
     if (sp) sp.classList.add("selected-" + ev.status);
     if (ev.recipients) {
-      emails = ev.recipients.filter(r => r.type === "email").map(r => r.value);
       phones = ev.recipients.filter(r => r.type === "whatsapp").map(r => r.value);
-      renderEmails(); renderPhones();
+      renderPhones();
     }
     switchTab("create");
     const saveBtn = document.querySelector(".btn-primary");
@@ -1420,7 +1466,6 @@ Admission Guidance Team</textarea>
   let categories   = [];
   let subcategories = [];
 
-  renderEmails();
   renderPhones();
 
   async function loadFromBackend() {

@@ -25,14 +25,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] [ReminderScheduler] %(levelname)s: %(message)s',
     handlers=[
-       logging.basicConfig(
-    level=logging.INFO,
-    format='[%(asctime)s] [ReminderScheduler] %(levelname)s: %(message)s',
-    handlers=[
         logging.StreamHandler()  # Only console, no file
-    ]
-),
-        logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
@@ -50,19 +43,19 @@ class Config:
     RATE_LIMIT_PER_SECOND = 5  # Don't send more than 5 emails/second
     EMAIL_TIMEOUT = 10  # SMTP timeout in seconds
     VALID_EMAIL_REGEX = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    
+
     @staticmethod
     def get_smtp_config() -> Tuple[str, str, str, int]:
         """Get SMTP configuration from environment"""
         sender = os.getenv("MONITOR_EMAIL")
         password = os.getenv("MONITOR_EMAIL_PASSWORD")
-        
+
         if not sender or not password:
             raise ValueError(
                 "Missing SMTP credentials. Set MONITOR_EMAIL and "
                 "MONITOR_EMAIL_PASSWORD environment variables."
             )
-        
+
         host = os.getenv("SMTP_HOST", "smtp.gmail.com")
         port = int(os.getenv("SMTP_PORT", "465"))
         return sender, password, host, port
@@ -85,21 +78,26 @@ def fill_template(template: str, event: dict, duration_label: str = "") -> str:
     Legacy placeholders (still supported, kept for backward compatibility):
     - {{EventTitle}} → event title
     - {{Category}} → category name
-    - {{EventDate}} → event date
+    - {{EventDate}} → event date (friendly format, e.g. "12th July 2026")
     - {{EventTime}} → event time
     - {{EventDescription}} → event description
     - {{ReminderDuration}} → custom duration label
+    - {{RegisterURL}} → registration link (falls back to site homepage)
+    - {{CustomMessage}} → optional custom message for this event
+    - {{ContactDetails}} → contact details for the footer
 
     New CareerMyntra-branded placeholders (per Developer Instructions doc):
     - {{LOGO_URL}}      → CareerMyntra logo image URL
     - {{EVENT_NAME}}    → event title
     - {{CATEGORY}}      → category name
     - {{SUBCATEGORY}}   → subcategory name
-    - {{END_DATE}}      → event/deadline date
+    - {{END_DATE}}      → event/deadline date (friendly format)
     - {{DESCRIPTION}}   → event description
     - {{REGISTER_URL}}  → registration link (falls back to site homepage)
     - {{NAME}}          → recipient name (falls back to "Student")
     - {{CURRENT_YEAR}}  → current year, for footer copyright
+    - {{CUSTOM_MESSAGE}} → optional custom message for this event
+    - {{CONTACT_DETAILS}} → contact details for the footer
     """
     if not template:
         return ""
@@ -122,6 +120,9 @@ def fill_template(template: str, event: dict, duration_label: str = "") -> str:
             return str(date_val)
 
     friendly_date = _format_friendly_date(event.get("event_date"))
+    register_url = str(event.get("register_url", "") or os.getenv("SITE_URL", "https://edtechmyntra.com"))
+    custom_message = str(event.get("custom_message", "") or "")
+    contact_details = os.getenv("CONTACT_DETAILS", "Phone: +91 98609 38338")
 
     replacements = {
         # legacy
@@ -131,6 +132,9 @@ def fill_template(template: str, event: dict, duration_label: str = "") -> str:
         "{{EventTime}}":        str(event.get("event_time", "") or "N/A"),
         "{{EventDescription}}": str(event.get("description", "")),
         "{{ReminderDuration}}": str(duration_label or ""),
+        "{{RegisterURL}}":      register_url,
+        "{{CustomMessage}}":    custom_message,
+        "{{ContactDetails}}":   contact_details,
 
         # new branded template
         "{{LOGO_URL}}":     logo_url,
@@ -139,9 +143,11 @@ def fill_template(template: str, event: dict, duration_label: str = "") -> str:
         "{{SUBCATEGORY}}":  str(event.get("subcategory_name", "") or ""),
         "{{END_DATE}}":     friendly_date,
         "{{DESCRIPTION}}":  str(event.get("description", "") or ""),
-        "{{REGISTER_URL}}": str(event.get("register_url", "") or os.getenv("SITE_URL", "https://edtechmyntra.com")),
+        "{{REGISTER_URL}}": register_url,
         "{{NAME}}":         str(event.get("recipient_name", "") or "Student"),
         "{{CURRENT_YEAR}}": str(datetime.now().year),
+        "{{CUSTOM_MESSAGE}}":   custom_message,
+        "{{CONTACT_DETAILS}}":  contact_details,
     }
 
     result = template
@@ -173,6 +179,7 @@ body{margin:0;padding:0;background:#f5f7fa;font-family:Arial, Helvetica, sans-se
 .event-card{border-left:5px solid #F7941D;background:#f9fafc;padding:20px;margin:20px 0;}
 .event-title{color:#0A4D8C;font-size:24px;font-weight:bold;margin-bottom:15px;}
 .label{font-weight:bold;color:#0A4D8C;}
+.custom-message{background:#fffbeb;border-left:4px solid #f59e0b;padding:14px 18px;margin:16px 0;border-radius:4px;}
 .button{display:inline-block;background:#F7941D;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:5px;margin-top:20px;font-weight:bold;}
 .footer{background:#0A4D8C;color:#ffffff;text-align:center;padding:20px;font-size:13px;line-height:1.7;}
 @media only screen and (max-width:600px){.content{padding:20px;}.event-title{font-size:20px;}}
@@ -195,6 +202,7 @@ body{margin:0;padding:0;background:#f5f7fa;font-family:Arial, Helvetica, sans-se
             <p><span class="label">Description:</span></p>
             <p>{{DESCRIPTION}}</p>
         </div>
+        {{CUSTOM_MESSAGE}}
         <center>
             <a href="{{REGISTER_URL}}" class="button">Register Now</a>
         </center>
@@ -207,7 +215,7 @@ body{margin:0;padding:0;background:#f5f7fa;font-family:Arial, Helvetica, sans-se
         1st Floor, Sunny Pride, Above Hairline Salon,<br>
         JM Road, Near Z Bridge,<br>
         Deccan Gymkhana, Pune &ndash; 411004<br>
-        Phone: +91 98609 38338<br>
+        {{CONTACT_DETAILS}}<br>
         &copy; {{CURRENT_YEAR}} CareerMyntra. All Rights Reserved.
     </div>
 </div>
@@ -260,11 +268,11 @@ def calculate_next_retry_time(retry_count: int) -> datetime:
 
 class EmailSender:
     """Handles email sending with proper error handling"""
-    
+
     def __init__(self):
         self.sender, self.password, self.host, self.port = Config.get_smtp_config()
         self.last_send_time = datetime.now()
-    
+
     def _rate_limit(self):
         """Enforce rate limiting (max 5 emails/second)"""
         elapsed = (datetime.now() - self.last_send_time).total_seconds()
@@ -273,7 +281,7 @@ class EmailSender:
             import time
             time.sleep(min_delay - elapsed)
         self.last_send_time = datetime.now()
-    
+
     def send(self, to_email: str, subject: str, body: str, html_body: str = None) -> Tuple[bool, str]:
         """
         Send email with comprehensive error handling
@@ -292,26 +300,26 @@ class EmailSender:
         # Validate recipient
         if not validate_email(to_email):
             return False, f"Invalid email format: {to_email}"
-        
+
         # Validate content
         if not subject or not subject.strip():
             return False, "Subject cannot be empty"
         if not body or not body.strip():
             return False, "Body cannot be empty"
-        
+
         try:
             self._rate_limit()
-            
+
             # Build message
             msg = MIMEMultipart("alternative")
             msg["From"] = self.sender
             msg["To"] = to_email
             msg["Subject"] = subject
-            
+
             # Add plain text version
             text_part = MIMEText(body, "plain", "utf-8")
             msg.attach(text_part)
-            
+
             # FIX: use the real branded HTML template when provided,
             # instead of always wrapping plain text in a bare <pre> tag.
             final_html = html_body if html_body else (
@@ -319,39 +327,39 @@ class EmailSender:
             )
             html_part = MIMEText(final_html, "html", "utf-8")
             msg.attach(html_part)
-            
+
             # Send via SMTP
             with smtplib.SMTP_SSL(
-                self.host, 
-                self.port, 
+                self.host,
+                self.port,
                 timeout=Config.EMAIL_TIMEOUT
             ) as server:
                 server.login(self.sender, self.password)
                 server.sendmail(self.sender, to_email, msg.as_string())
-            
+
             logger.info(f"✓ Email sent to {to_email} | Subject: {subject[:50]}")
             return True, "sent"
-            
+
         except smtplib.SMTPAuthenticationError:
             msg = "SMTP authentication failed - check credentials"
             logger.error(msg)
             return False, msg
-        
+
         except smtplib.SMTPServerDisconnected:
             msg = "SMTP server disconnected - network issue"
             logger.error(msg)
             return False, msg
-        
+
         except smtplib.SMTPException as e:
             msg = f"SMTP error: {str(e)}"
             logger.error(msg)
             return False, msg
-        
+
         except TimeoutError:
             msg = "SMTP connection timeout"
             logger.error(msg)
             return False, msg
-        
+
         except Exception as e:
             msg = f"Unexpected error: {str(e)}"
             logger.error(msg)
@@ -392,26 +400,26 @@ def update_for_retry(schedule_id: int, retry_count: int):
         next_retry = calculate_next_retry_time(retry_count)
         conn = get_connection()
         cur = conn.cursor()
-        
+
         # Create new schedule for retry with incremented remind_at
         cur.execute("""
             SELECT event_id, label FROM reminder_schedules WHERE id = %s
         """, (schedule_id,))
         row = cur.fetchone()
-        
+
         if row:
             event_id = row[0]
             label = row[1]
-            
+
             cur.execute("""
-                INSERT INTO reminder_schedules 
+                INSERT INTO reminder_schedules
                     (event_id, remind_at, label, is_sent)
                 VALUES (%s, %s, %s, FALSE)
             """, (event_id, next_retry, f"{label} (Retry {retry_count + 1})"))
-            
+
             conn.commit()
             logger.info(f"✓ Retry scheduled for schedule {schedule_id} at {next_retry}")
-        
+
         cur.close()
         conn.close()
     except Exception as e:
@@ -429,7 +437,7 @@ def fetch_due_schedules(batch_size: int = Config.BATCH_SIZE) -> List[Dict]:
     try:
         conn = get_connection()
         cur = get_cursor(conn)
-        
+
         now = datetime.now()
         cur.execute("""
             SELECT rs.id AS schedule_id, rs.event_id, rs.label, rs.created_at,
@@ -444,14 +452,14 @@ def fetch_due_schedules(batch_size: int = Config.BATCH_SIZE) -> List[Dict]:
             ORDER BY rs.remind_at ASC
             LIMIT %s
         """, (now, batch_size))
-        
+
         schedules = [dict(r) for r in cur.fetchall()]
         cur.close()
         conn.close()
-        
+
         logger.info(f"Found {len(schedules)} due schedules")
         return schedules
-    
+
     except Exception as e:
         logger.error(f"Error fetching schedules: {e}")
         return []
@@ -462,54 +470,63 @@ def fetch_email_template() -> Optional[Dict]:
     try:
         conn = get_connection()
         cur = get_cursor(conn)
-        
+
         cur.execute("""
             SELECT id, subject, body, updated_at
             FROM reminder_templates
             WHERE channel = 'email'
             LIMIT 1
         """)
-        
+
         row = cur.fetchone()
         cur.close()
         conn.close()
-        
+
         if row:
             template = dict(row)
             # Decode URL-encoded content if present
             for key in ['subject', 'body']:
                 if template.get(key) and '%0A' in template[key]:
                     template[key] = urllib.parse.unquote(template[key])
-            
+
             logger.info(f"✓ Loaded email template (updated: {template['updated_at']})")
             return template
-        
+
         logger.warning("No email template found")
         return None
-    
+
     except Exception as e:
         logger.error(f"Error fetching template: {e}")
         return None
 
 
 def fetch_recipients(event_id: int) -> List[Dict]:
-    """Fetch email recipients for an event"""
+    """
+    Fetch email recipients for an event.
+
+    FIX: Recipients are now managed category-wise (see
+    reminder_category_recipients, added by the reminders.py category
+    recipient endpoints), not per-event. This resolves the recipients
+    for an event via its category_id, so every event in that category
+    automatically shares the same recipient list.
+    """
     try:
         conn = get_connection()
         cur = get_cursor(conn)
-        
+
         cur.execute("""
-            SELECT id, type, value
-            FROM reminder_recipients
-            WHERE event_id = %s AND type = 'email'
+            SELECT crr.id, 'email' AS type, crr.value
+            FROM reminder_events e
+            JOIN reminder_category_recipients crr ON crr.category_id = e.category_id
+            WHERE e.id = %s
         """, (event_id,))
-        
+
         recipients = [dict(r) for r in cur.fetchall()]
         cur.close()
         conn.close()
-        
+
         return recipients
-    
+
     except Exception as e:
         logger.error(f"Error fetching recipients: {e}")
         return []
@@ -528,16 +545,16 @@ def log_send_attempt(
     try:
         conn = get_connection()
         cur = conn.cursor()
-        
+
         now = datetime.now() if status == "sent" else None
-        
+
         # Log to notification_logs (summary)
         cur.execute("""
             INSERT INTO reminder_notification_logs
                 (event_id, channel, recipient, status, error_msg, sent_at)
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (event_id, "email", to_email, status, error_msg, now))
-        
+
         # Log to email_logs (detailed)
         if status == "sent":
             cur.execute("""
@@ -551,11 +568,11 @@ def log_send_attempt(
                     (to_email, subject, body, smtp_response, status)
                 VALUES (%s, %s, %s, %s, %s)
             """, (to_email, subject, body, error_msg or "Unknown error", status))
-        
+
         conn.commit()
         cur.close()
         conn.close()
-    
+
     except Exception as e:
         logger.error(f"Error logging send attempt: {e}")
 
@@ -565,20 +582,20 @@ def mark_schedule_sent(schedule_id: int):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        
+
         now = datetime.now()
         cur.execute("""
             UPDATE reminder_schedules
             SET is_sent = TRUE, sent_at = %s
             WHERE id = %s
         """, (now, schedule_id))
-        
+
         conn.commit()
         cur.close()
         conn.close()
-        
+
         logger.info(f"✓ Marked schedule {schedule_id} as sent")
-    
+
     except Exception as e:
         logger.error(f"Error marking schedule sent: {e}")
 
@@ -594,48 +611,48 @@ def fire_due_reminders():
     try:
         logger.info("━" * 60)
         logger.info("🔔 Starting reminder batch process...")
-        
+
         # Step 1: Initialize email sender
         try:
             sender = EmailSender()
         except ValueError as e:
             logger.error(f"Cannot initialize email sender: {e}")
             return
-        
+
         # Step 2: Fetch due schedules
         schedules = fetch_due_schedules()
         if not schedules:
             logger.info("No due reminders at this moment")
             return
-        
+
         # Step 3: Load email template
         email_template = fetch_email_template()
         if not email_template:
             logger.warning("Skipping - no email template found")
             return
-        
+
         # Step 4: Process each schedule
         sent_count = 0
         failed_count = 0
         retry_count = 0
-        
+
         for schedule in schedules:
             schedule_id = schedule["schedule_id"]
             event_id = schedule["event_id"]
-            
+
             try:
-                # Fetch recipients for this event
+                # Fetch recipients for this event (resolved via category)
                 recipients = fetch_recipients(event_id)
-                
+
                 if not recipients:
-                    logger.warning(f"No email recipients for event {event_id}")
+                    logger.warning(f"No email recipients for event {event_id} (check category recipients)")
                     mark_schedule_sent(schedule_id)
                     continue
-                
+
                 # Send to each recipient
                 for recipient in recipients:
                     to_email = recipient["value"].strip()
-                    
+
                     # Validate email
                     if not validate_email(to_email):
                         logger.warning(f"Skipping invalid email: {to_email}")
@@ -646,7 +663,7 @@ def fire_due_reminders():
                         )
                         failed_count += 1
                         continue
-                    
+
                     # Fill template
                     subject = fill_template(email_template["subject"], schedule, schedule["label"])
                     body = fill_template(email_template["body"], schedule, schedule["label"])
@@ -660,7 +677,7 @@ def fire_due_reminders():
 
                     # Send email
                     success, message = sender.send(to_email, subject, body, html_body=html_body)
-                    
+
                     if success:
                         log_send_attempt(
                             schedule_id, event_id, to_email,
@@ -670,7 +687,7 @@ def fire_due_reminders():
                     else:
                         # Handle failure with retry logic
                         retry_count_current = get_retry_count(schedule_id)
-                        
+
                         if should_retry(schedule_id):
                             log_send_attempt(
                                 schedule_id, event_id, to_email,
@@ -685,14 +702,14 @@ def fire_due_reminders():
                                 f"{message} (Max retries exceeded)"
                             )
                             failed_count += 1
-                
+
                 # Mark schedule as sent (even if some recipients failed)
                 mark_schedule_sent(schedule_id)
-            
+
             except Exception as e:
                 logger.error(f"Error processing schedule {schedule_id}: {e}")
                 failed_count += 1
-        
+
         # Step 5: Log summary
         logger.info("━" * 60)
         logger.info(f"📊 Batch Summary:")
@@ -701,7 +718,7 @@ def fire_due_reminders():
         logger.info(f"  ✗ Failed: {failed_count}")
         logger.info(f"  Total: {sent_count + retry_count + failed_count}")
         logger.info("━" * 60)
-    
+
     except Exception as e:
         logger.error(f"Critical error in fire_due_reminders: {e}")
 
@@ -715,12 +732,12 @@ _lock = threading.Lock()
 def start_reminder_scheduler():
     """Start the background reminder scheduler"""
     global _scheduler
-    
+
     with _lock:
         if _scheduler and _scheduler.running:
             logger.info("Scheduler already running")
             return
-        
+
         try:
             _scheduler = BackgroundScheduler(daemon=True)
             _scheduler.add_job(
@@ -739,7 +756,7 @@ def start_reminder_scheduler():
 def stop_reminder_scheduler():
     """Stop the background reminder scheduler"""
     global _scheduler
-    
+
     with _lock:
         if _scheduler and _scheduler.running:
             _scheduler.shutdown(wait=False)
