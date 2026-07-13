@@ -765,11 +765,11 @@ def predict():
         where_clauses.append("quota_code = %s")
         params.append(quota_normalized)
 
-    # PATCH: ±5 percentile range — only show colleges whose cutoff falls
-    # within [percentile-5, percentile+5], as per prediction logic shown on frontend
+    # PATCH: +2/-5 percentile range — only show colleges whose cutoff falls
+    # within [percentile-5, percentile+2], as per prediction logic shown on frontend
     where_clauses.append("cutoff_percentile BETWEEN %s AND %s")
     params.append(percentile - 5)
-    params.append(percentile + 5)
+    params.append(percentile + 2)
 
     # PATCH: Rank filter — ±10% range around student's rank (only if rank provided)
     if rank:
