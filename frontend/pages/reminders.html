@@ -884,6 +884,40 @@ Admission Guidance Team</textarea>
   function toggleChip(el) {
     el.classList.toggle("active");
   }
+
+  // Given a saved reminder's remind_at timestamp and the event's own
+  // date/time, work out how far "before" it was set and map that back
+  // to a chip key ("7d","3d","1d","6h","1h") or a custom {val, unit}.
+  function reminderOffsetToChipVal(remindAt, eventDt) {
+    if (!remindAt || !eventDt) return null;
+    const remindMs = new Date(remindAt).getTime();
+    const eventMs  = new Date(eventDt).getTime();
+    if (isNaN(remindMs) || isNaN(eventMs)) return null;
+    const diffMs = eventMs - remindMs;
+    if (diffMs <= 0) return null;
+
+    const diffMinutes = Math.round(diffMs / 60000);
+    const diffHours   = Math.round(diffMs / 3600000);
+    const diffDays    = Math.round(diffMs / 86400000);
+
+    if (Math.abs(diffDays * 86400000 - diffMs) < 5 * 60000) {
+      if (diffDays === 7) return { key: "7d", label: "7 Days Before" };
+      if (diffDays === 3) return { key: "3d", label: "3 Days Before" };
+      if (diffDays === 1) return { key: "1d", label: "1 Day Before" };
+    }
+    if (Math.abs(diffHours * 3600000 - diffMs) < 5 * 60000) {
+      if (diffHours === 6) return { key: "6h", label: "6 Hours Before" };
+      if (diffHours === 1) return { key: "1h", label: "1 Hour Before" };
+    }
+
+    if (diffDays >= 1 && diffDays * 86400000 === diffMs) {
+      return { key: diffDays + "days", label: `${diffDays} Days Before` };
+    }
+    if (diffHours >= 1 && diffHours * 3600000 === diffMs) {
+      return { key: diffHours + "hours", label: `${diffHours} Hours Before` };
+    }
+    return { key: diffMinutes + "minutes", label: `${diffMinutes} Minutes Before` };
+  }
   function addCustomReminder() {
     const val  = document.getElementById("custom-val").value.trim();
     const unit = document.getElementById("custom-unit").value;
@@ -1346,6 +1380,29 @@ Admission Guidance Team</textarea>
       phones = ev.recipients.filter(r => r.type === "whatsapp").map(r => r.value);
       renderPhones();
     }
+
+    // Restore selected reminder chips (default chips + custom ones) from
+    // the saved reminder_schedules, so editing shows what was actually set.
+    document.querySelectorAll(".reminder-chip[data-val]").forEach(c => c.classList.remove("active"));
+    document.getElementById("custom-chips").innerHTML = "";
+    (ev.reminders || []).forEach(r => {
+      const val = reminderOffsetToChipVal(r.remind_at, ev.end_dt || ev.event_date);
+      if (!val) return;
+      const defaultChip = document.querySelector(`.reminder-chip[data-val="${val.key}"]`);
+      if (defaultChip) {
+        defaultChip.classList.add("active");
+      } else {
+        const container = document.getElementById("custom-chips");
+        if (document.getElementById("cc-" + val.key)) return;
+        const chip = document.createElement("span");
+        chip.className = "reminder-chip active";
+        chip.id = "cc-" + val.key;
+        chip.setAttribute("data-val", val.key);
+        chip.innerHTML = `⏰ ${val.label} <span class="chip-x" onclick="this.parentElement.remove()">✕</span>`;
+        container.appendChild(chip);
+      }
+    });
+
     switchTab("create");
     const saveBtn = document.querySelector(".btn-primary");
     if (saveBtn) saveBtn.textContent = "💾 Update Event";

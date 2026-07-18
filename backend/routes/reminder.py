@@ -214,6 +214,71 @@ def create_subcategory():
 
 
 # ── EVENTS ────────────────────────────────────────────────────
+@reminders_bp.route("/reminders/board", methods=["GET"])
+def get_reminder_board():
+    """Public endpoint (no login) for the Arrival/Departure-style reminder
+    display board. Returns two lists:
+      - upcoming: reminders whose deadline hasn't passed yet, nearest first
+      - archived: reminders whose deadline has already passed, most
+        recently expired first
+    Only the fields the board actually needs are returned (title,
+    description, deadline, category) — no internal admin data.
+    """
+    try:
+        conn = get_connection(); cur = get_cursor(conn)
+        cur.execute("""
+            SELECT e.id, e.title, e.description, e.event_date, e.event_time,
+                   e.start_dt, e.end_dt, e.priority, e.status,
+                   c.name AS category_name, sc.name AS subcategory_name
+            FROM reminder_events e
+            LEFT JOIN reminder_categories c ON c.id = e.category_id
+            LEFT JOIN reminder_subcategories sc ON sc.id = e.subcategory_id
+        """)
+
+        now = datetime.now()
+        upcoming = []
+        archived = []
+
+        for r in cur.fetchall():
+            ev = dict(r)
+
+            # Deadline = end_dt if set, else event_date (+ event_time if present)
+            if ev.get("end_dt") is not None:
+                deadline = ev["end_dt"]
+            elif ev.get("event_date") is not None:
+                if ev.get("event_time") is not None:
+                    deadline = datetime.combine(ev["event_date"], ev["event_time"])
+                else:
+                    deadline = datetime.combine(ev["event_date"], datetime.min.time())
+            else:
+                continue  # no usable date, skip
+
+            entry = {
+                "id": ev["id"],
+                "title": ev["title"],
+                "description": ev.get("description") or "",
+                "deadline": deadline.isoformat(),
+                "category": ev.get("category_name"),
+                "subcategory": ev.get("subcategory_name"),
+                "priority": ev.get("priority"),
+                "is_today": deadline.date() == now.date(),
+            }
+
+            if deadline >= now:
+                upcoming.append(entry)
+            else:
+                archived.append(entry)
+
+        upcoming.sort(key=lambda x: x["deadline"])          # nearest deadline first
+        archived.sort(key=lambda x: x["deadline"], reverse=True)  # most recently expired first
+
+        cur.close(); conn.close()
+        return success_response({"upcoming": upcoming, "archived": archived})
+    except Exception as e:
+        logger.error(f"Error building reminder board: {e}")
+        return error_response("Database error", str(e), 500)
+
+
 @reminders_bp.route("/reminders/events", methods=["GET"])
 @login_required
 def get_events():
