@@ -355,11 +355,20 @@ def create_event():
         phones = data.get("phones", [])
         validated_phones = [str(p).strip() for p in phones if str(p).strip()]
 
+        # event_time comes from the frontend as "HH:MM" (split off the
+        # end_dt datetime-local value) — validate it if present, but
+        # don't hard-fail the whole save if it's missing/malformed.
+        event_time = None
+        if data.get("event_time"):
+            valid_t, parsed_t = Validators.validate_time(data.get("event_time"))
+            if valid_t:
+                event_time = parsed_t
+
         conn = get_connection(); cur = conn.cursor()
         cur.execute("""
-            INSERT INTO reminder_events (title, category_id, subcategory_id, description, event_date, register_url, priority, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
-        """, (title, data.get("category_id"), data.get("subcategory_id"), data.get("description", ""), event_date, register_url, priority, status))
+            INSERT INTO reminder_events (title, category_id, subcategory_id, description, event_date, event_time, register_url, priority, status, start_dt, end_dt)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+        """, (title, data.get("category_id"), data.get("subcategory_id"), data.get("description", ""), event_date, event_time, register_url, priority, status, data.get("start_dt") or None, data.get("end_dt") or None))
         event_id = cur.fetchone()[0]
 
         for reminder in data.get("reminders", []):
@@ -409,8 +418,19 @@ def update_event(event_id):
         if "event_date" in data:
             updates.append("event_date = %s"); params.append(data["event_date"])
 
+        if "event_time" in data and data.get("event_time"):
+            valid_t, parsed_t = Validators.validate_time(data.get("event_time"))
+            if valid_t:
+                updates.append("event_time = %s"); params.append(parsed_t)
+
         if "register_url" in data:
             updates.append("register_url = %s"); params.append(data["register_url"])
+
+        if "start_dt" in data:
+            updates.append("start_dt = %s"); params.append(data["start_dt"] or None)
+
+        if "end_dt" in data:
+            updates.append("end_dt = %s"); params.append(data["end_dt"] or None)
 
         if "priority" in data:
             updates.append("priority = %s"); params.append(data["priority"])
