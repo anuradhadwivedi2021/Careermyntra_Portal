@@ -331,7 +331,7 @@ def upload_cutoff():
                     %s,%s,%s,%s,
                     %s
                 )
-                ON CONFLICT (college_name, branch_name, cap_year, cap_round, category, seat_type, gender, quota_code)
+                ON CONFLICT (college_name, branch_name, cap_year, cap_round, category, sub_category, seat_type, gender, quota_code)
                 DO UPDATE SET
                     college_code        = EXCLUDED.college_code,
                     branch_code         = EXCLUDED.branch_code,
