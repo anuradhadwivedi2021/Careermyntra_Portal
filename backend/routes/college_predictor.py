@@ -335,11 +335,9 @@ def upload_cutoff():
                 DO UPDATE SET
                     college_code        = EXCLUDED.college_code,
                     branch_code         = EXCLUDED.branch_code,
-                    sub_category        = EXCLUDED.sub_category,
                     district            = EXCLUDED.district,
                     location            = EXCLUDED.location,
                     university          = EXCLUDED.university,
-                    exam_type           = EXCLUDED.exam_type,
                     cutoff_percentile   = EXCLUDED.cutoff_percentile,
                     cutoff_score        = EXCLUDED.cutoff_score,
                     fees                = EXCLUDED.fees,
@@ -349,10 +347,7 @@ def upload_cutoff():
                     placement_average   = EXCLUDED.placement_average,
                     website             = EXCLUDED.website,
                     address             = EXCLUDED.address,
-                    gender              = EXCLUDED.gender,
-                    quota_code          = EXCLUDED.quota_code,
                     is_autonomous       = EXCLUDED.is_autonomous,
-                    course_name         = EXCLUDED.course_name,
                     admission_authority = EXCLUDED.admission_authority,
                     updated_at          = CURRENT_TIMESTAMP
             """, (
