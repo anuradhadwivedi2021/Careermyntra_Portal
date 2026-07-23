@@ -192,8 +192,8 @@ def _format_cap_round(r):
 
 
 # ─── 1. Admin: Upload CAP Cutoff CSV / Excel ────────────────
-@college_predictor_bp.route("/college-predictor/upload-cutoff", methods=["POST"])
-def upload_cutoff():
+@college_predictor_bp.route("/college-predictor/upload-cutoff/<course_slug>", methods=["POST"])
+def upload_cutoff(course_slug):
     """
     Admin uploads a CSV or Excel file with CAP cutoff data.
     Expected columns (case-insensitive):
@@ -201,7 +201,26 @@ def upload_cutoff():
       cap_year, cap_round, category, seat_type, exam_type,
       cutoff_percentile, cutoff_score, fees, naac_grade, nba_accredited,
       placement_highest, placement_average, website, address
+
+    NEW: course_slug (URL param) decides which course's table this upload
+    goes into. table_name is looked up from predictor_courses (whitelist),
+    never taken directly from user input, to keep the dynamic table name
+    safe from SQL injection.
     """
+    # PATCH: resolve target table for this course from predictor_courses
+    lookup_conn = get_connection()
+    lookup_cur = get_cursor(lookup_conn)
+    lookup_cur.execute(
+        "SELECT table_name FROM predictor_courses WHERE slug = %s AND is_active = true",
+        (course_slug,)
+    )
+    course_row = lookup_cur.fetchone()
+    lookup_cur.close()
+    lookup_conn.close()
+    if not course_row:
+        return jsonify({"error": f"Unknown or inactive course: {course_slug}"}), 400
+    table_name = course_row["table_name"]
+
     file = request.files.get("file")
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
@@ -312,8 +331,8 @@ def upload_cutoff():
 
     for _, row in df.iterrows():
         try:
-            cur.execute("""
-                INSERT INTO cap_cutoff_data (
+            cur.execute(f"""
+                INSERT INTO {table_name} (
                     college_code, college_name, branch_name, branch_code, district, location, university,
                     cap_year, cap_round, category, sub_category, seat_type, exam_type,
                     cutoff_percentile, cutoff_score, fees, naac_grade,
