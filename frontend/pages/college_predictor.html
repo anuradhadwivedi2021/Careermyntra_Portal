@@ -950,7 +950,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
   // ── Load all dynamic dropdowns from DB ──
   async function loadDistricts() {
     try {
-      const res = await fetch(`${API}/college-predictor/districts`);
+      const res = await fetch(`${API}/college-predictor/districts?course_slug=${SELECTED_COURSE_SLUG || 'be_btech'}`);
       const d = await res.json();
       state.district.options = d.length > 0 ? d : ['Pune','Mumbai','Nashik','Nagpur','Aurangabad','Thane'];
     } catch(e) {
@@ -969,6 +969,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
       const params = new URLSearchParams();
       if (districtList.length) params.set('districts', districtList.join(','));
       if (collegeList.length) params.set('colleges', collegeList.join(','));
+      params.set('course_slug', SELECTED_COURSE_SLUG || 'be_btech');
       const url = `${API}/college-predictor/branches${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const d = await res.json();
@@ -990,6 +991,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
         : (districts ? [districts.trim()] : []);
       const params = new URLSearchParams();
       if (districtList.length) params.set('districts', districtList.join(','));
+      params.set('course_slug', SELECTED_COURSE_SLUG || 'be_btech');
       const url = `${API}/college-predictor/colleges${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const d = await res.json();
@@ -1018,7 +1020,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
     if (genderSelLoading) genderSelLoading.innerHTML = '<option value="">Loading…</option>';
 
     try {
-      const res = await fetch(`${API}/college-predictor/filter-options`);
+      const res = await fetch(`${API}/college-predictor/filter-options?course_slug=${SELECTED_COURSE_SLUG || 'be_btech'}`);
       const d = await res.json();
 
       // CAP Year
@@ -1087,9 +1089,10 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
   async function loadCourses() {
     try {
       const exam = document.getElementById('exam_type')?.value || '';
+      const cs = SELECTED_COURSE_SLUG || 'be_btech';
       const url = exam
-        ? `${API}/college-predictor/courses?exam_type=${encodeURIComponent(exam)}`
-        : `${API}/college-predictor/courses`;
+        ? `${API}/college-predictor/courses?exam_type=${encodeURIComponent(exam)}&course_slug=${cs}`
+        : `${API}/college-predictor/courses?course_slug=${cs}`;
       const res = await fetch(url);
       const d = await res.json();
       const sel = document.getElementById('course');
@@ -1121,7 +1124,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
     try {
       // Fetch once and cache; reuse on subsequent calls
       if (!allAdmissionAuthorities.length) {
-        const res = await fetch(`${API}/college-predictor/filter-options`);
+        const res = await fetch(`${API}/college-predictor/filter-options?course_slug=${SELECTED_COURSE_SLUG || 'be_btech'}`);
         const d = await res.json();
         allAdmissionAuthorities = (d.admission_authorities && d.admission_authorities.length)
           ? d.admission_authorities
@@ -1149,7 +1152,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
   // ── Preferred Universities — load from DB ──
   async function loadUniversities() {
     try {
-      const res = await fetch(`${API}/college-predictor/universities`);
+      const res = await fetch(`${API}/college-predictor/universities?course_slug=${SELECTED_COURSE_SLUG || 'be_btech'}`);
       const d = await res.json();
       state.university.options = (d && d.length) ? d : [];
     } catch(e) {
@@ -1160,7 +1163,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
   // ── Load admin stats ──
   async function loadStats() {
     try {
-      const r = await fetch(`${API}/college-predictor/stats`);
+      const r = await fetch(`${API}/college-predictor/stats?course_slug=${SELECTED_COURSE_SLUG || 'be_btech'}`);
       const d = await r.json();
       document.getElementById('stat-total').textContent = d.total_records.toLocaleString();
       document.getElementById('stat-years').textContent = d.years.join(', ') || '—';
@@ -1279,6 +1282,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
     btn.disabled = true;
 
    const payload = {
+      course_slug: SELECTED_COURSE_SLUG || 'be_btech',
       exam_type: document.getElementById('exam_type').value,
       percentile,
       category: document.getElementById('category').value,
@@ -1728,6 +1732,7 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
     try {
       const params = new URLSearchParams();
       if (universities.length) params.set('universities', universities.join(','));
+      params.set('course_slug', SELECTED_COURSE_SLUG || 'be_btech');
       const url = `${API}/college-predictor/districts-by-university${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const d = await res.json();
@@ -1758,6 +1763,7 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
       const params = new URLSearchParams();
       if (districts.length) params.set('districts', districts.join(','));
       if (universities.length) params.set('universities', universities.join(','));
+      params.set('course_slug', SELECTED_COURSE_SLUG || 'be_btech');
       const url = `${API}/college-predictor/categories-by-filters${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const cats = await res.json();
@@ -1795,6 +1801,7 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
       if (category) params.set('category', category);
       if (districts.length) params.set('districts', districts.join(','));
       if (universities.length) params.set('universities', universities.join(','));
+      params.set('course_slug', SELECTED_COURSE_SLUG || 'be_btech');
       const url = `${API}/college-predictor/genders-by-filters${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url);
       const genders = await res.json();
@@ -1864,6 +1871,7 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
     if (gender)              params.set('gender', gender);
 
     try {
+      params.set('course_slug', SELECTED_COURSE_SLUG || 'be_btech');
       const res = await fetch(`${API}/college-predictor/cascading-options?${params.toString()}`);
       const opts = await res.json();
 

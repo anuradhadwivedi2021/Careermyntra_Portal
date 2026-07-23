@@ -1,13 +1,19 @@
 # routes/college_predictor.py — College Predictor Blueprint
 # Handles: CAP cutoff CSV/Excel upload (admin), prediction API, district list
 #
-# PATCHED VERSION — fixes:
+# PATCHED VERSION (course-aware) — fixes:
 #   1. Gender mapping (Excel has full words like "General","Ladies" not single letters)
 #   2. Admission Authority was wrongly mapped into seat_type — now goes to its own column
 #   3. Added missing /college-predictor/universities route
 #   4. Added missing "universities" filter support inside /predict
 #   5. Added missing /college-predictor/download-pdf route
 #   6. Made download_pdf crash-proof: safe number formatting + traceback in response
+#   7. NEW: ALL read routes (stats, predict, districts, branches, colleges,
+#      universities, filter-options) now resolve the correct per-course table
+#      via `course_slug` -> predictor_courses.table_name, instead of being
+#      hardcoded to `cap_cutoff_data`. This matches upload_cutoff(), which
+#      already worked this way. Default course_slug = "be_btech" so existing
+#      frontend calls that don't pass course_slug yet keep working.
 #
 # NOTE: all original logic is preserved as-is. New/changed lines are marked with "# PATCH:"
 
@@ -20,6 +26,28 @@ from logger_setup import get_logger
 
 logger = get_logger(__name__)
 college_predictor_bp = Blueprint("college_predictor", __name__)
+
+
+# ─── PATCH: NEW — resolve table_name from course_slug ────────
+# Every course has its own dedicated table (predictor_data_be_btech, etc.)
+# registered in predictor_courses(slug, table_name, is_active).
+# This helper is the single source of truth for "which table do I query"
+# used by every route below, so a new course only ever needs a new row
+# in predictor_courses — no code changes required elsewhere.
+def _get_table_name(course_slug):
+    if not course_slug:
+        course_slug = "be_btech"
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute(
+        "SELECT table_name FROM predictor_courses WHERE slug = %s AND is_active = true",
+        (course_slug,)
+    )
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    return row["table_name"] if row else None
+
 
 # ─── Helper: chance label based on percentile vs cutoff ─────
 def _chance_label(student_percentile, cutoff_percentile):
@@ -202,24 +230,15 @@ def upload_cutoff(course_slug):
       cutoff_percentile, cutoff_score, fees, naac_grade, nba_accredited,
       placement_highest, placement_average, website, address
 
-    NEW: course_slug (URL param) decides which course's table this upload
+    course_slug (URL param) decides which course's table this upload
     goes into. table_name is looked up from predictor_courses (whitelist),
     never taken directly from user input, to keep the dynamic table name
     safe from SQL injection.
     """
     # PATCH: resolve target table for this course from predictor_courses
-    lookup_conn = get_connection()
-    lookup_cur = get_cursor(lookup_conn)
-    lookup_cur.execute(
-        "SELECT table_name FROM predictor_courses WHERE slug = %s AND is_active = true",
-        (course_slug,)
-    )
-    course_row = lookup_cur.fetchone()
-    lookup_cur.close()
-    lookup_conn.close()
-    if not course_row:
+    table_name = _get_table_name(course_slug)
+    if not table_name:
         return jsonify({"error": f"Unknown or inactive course: {course_slug}"}), 400
-    table_name = course_row["table_name"]
 
     file = request.files.get("file")
     if not file:
@@ -400,7 +419,7 @@ def upload_cutoff(course_slug):
                 row.get("admission_authority") or "CET CELL",
             ))
             inserted += 1
-        
+
         except Exception as e:
             conn.rollback()
             if skipped == 0:
@@ -409,14 +428,11 @@ def upload_cutoff(course_slug):
             logger.warning(f"[Predictor Upload] Row skipped: {e}")
             skipped += 1
 
-
-            
-
     conn.commit()
     cur.close()
     conn.close()
 
-    logger.info(f"[Predictor Upload] inserted={inserted} skipped={skipped}")
+    logger.info(f"[Predictor Upload] course={course_slug} table={table_name} inserted={inserted} skipped={skipped}")
     return jsonify({
         "message": f"Upload complete. {inserted} rows saved, {skipped} skipped.",
         "inserted": inserted,
@@ -425,12 +441,18 @@ def upload_cutoff(course_slug):
 
 
 # ─── 2. GET /college-predictor/districts — for dropdown ─────
+# PATCH: now course-aware via ?course_slug=... (defaults to be_btech)
 @college_predictor_bp.route("/college-predictor/districts", methods=["GET"])
 def get_districts():
+    course_slug = request.args.get("course_slug", "be_btech")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify([])
+
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute("""
-        SELECT DISTINCT TRIM(district) AS district FROM cap_cutoff_data
+    cur.execute(f"""
+        SELECT DISTINCT TRIM(district) AS district FROM {table_name}
         WHERE district IS NOT NULL AND TRIM(district) != ''
         ORDER BY TRIM(district)
     """)
@@ -440,14 +462,20 @@ def get_districts():
     return jsonify(rows)
 
 
-# ─── NEW: GET /college-predictor/courses — unique course/branch types ──
+# ─── GET /college-predictor/courses — unique course/branch types ──
+# PATCH: now course-aware via ?course_slug=... (defaults to be_btech)
 @college_predictor_bp.route("/college-predictor/courses", methods=["GET"])
 def get_courses():
     """Returns distinct course_name values from Excel Course column (B.Tech, M.Tech etc)"""
+    course_slug = request.args.get("course_slug", "be_btech")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify(["B.Tech"])
+
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute("""
-        SELECT DISTINCT course_name FROM cap_cutoff_data
+    cur.execute(f"""
+        SELECT DISTINCT course_name FROM {table_name}
         WHERE course_name IS NOT NULL AND course_name != ''
         ORDER BY course_name
     """)
@@ -457,9 +485,15 @@ def get_courses():
     return jsonify(courses if courses else ["B.Tech"])
 
 
-# ─── NEW: GET /college-predictor/branches?district=Pune ─────
+# ─── GET /college-predictor/branches?district=Pune ─────
+# PATCH: now course-aware via ?course_slug=... (defaults to be_btech)
 @college_predictor_bp.route("/college-predictor/branches", methods=["GET"])
 def get_branches():
+    course_slug = request.args.get("course_slug", "be_btech")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify([])
+
     # Multi-district support: ?districts=Pune,Nashik,Mumbai
     districts_raw = request.args.get("districts", "")
     district_single = request.args.get("district", "")
@@ -492,7 +526,7 @@ def get_branches():
     where_sql = (" AND ".join(where) + " AND ") if where else ""
 
     cur.execute(f"""
-        SELECT DISTINCT branch_name FROM cap_cutoff_data
+        SELECT DISTINCT branch_name FROM {table_name}
         WHERE {where_sql} branch_name IS NOT NULL
         ORDER BY branch_name
     """, params)
@@ -503,9 +537,15 @@ def get_branches():
     return jsonify(rows)
 
 
-# ─── NEW: GET /college-predictor/colleges?districts=Pune,Nashik ─────
+# ─── GET /college-predictor/colleges?districts=Pune,Nashik ─────
+# PATCH: now course-aware via ?course_slug=... (defaults to be_btech)
 @college_predictor_bp.route("/college-predictor/colleges", methods=["GET"])
 def get_colleges():
+    course_slug = request.args.get("course_slug", "be_btech")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify([])
+
     districts_raw = request.args.get("districts", "")
     districts = [d.strip() for d in districts_raw.split(",") if d.strip()]
 
@@ -516,15 +556,15 @@ def get_colleges():
         placeholders = ",".join(["%s"] * len(districts))
         cur.execute(f"""
             SELECT DISTINCT college_code, college_name
-            FROM cap_cutoff_data
+            FROM {table_name}
             WHERE (TRIM(district) IN ({placeholders}) OR TRIM(location) IN ({placeholders}))
             AND college_name IS NOT NULL
             ORDER BY college_name
         """, districts + districts)
     else:
-        cur.execute("""
+        cur.execute(f"""
             SELECT DISTINCT college_code, college_name
-            FROM cap_cutoff_data
+            FROM {table_name}
             WHERE college_name IS NOT NULL
             ORDER BY college_name
         """)
@@ -535,33 +575,21 @@ def get_colleges():
     return jsonify(rows)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ─── PATCH: NEW — GET /college-predictor/universities ────────
-# This route was being called by the frontend (loadUniversities())
-# but never existed in the backend, so "Preferred Universities" dropdown
-# always came back empty. Adding it now, following the same pattern as
-# get_districts()/get_courses().
+# ─── GET /college-predictor/universities ────────
+# PATCH: now course-aware via ?course_slug=... (defaults to be_btech)
 @college_predictor_bp.route("/college-predictor/universities", methods=["GET"])
 def get_universities():
     """Returns distinct university values for the Preferred Universities dropdown"""
+    course_slug = request.args.get("course_slug", "be_btech")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify([])
+
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute("""
+    cur.execute(f"""
         SELECT MIN(university) AS university
-        FROM cap_cutoff_data
+        FROM {table_name}
         WHERE university IS NOT NULL AND TRIM(university) != ''
         GROUP BY LOWER(TRIM(university))
         ORDER BY MIN(university)
@@ -572,28 +600,38 @@ def get_universities():
     return jsonify(rows)
 
 
-# ─── NEW: GET /college-predictor/filter-options ─────────────
+# ─── GET /college-predictor/filter-options ─────────────
+# PATCH: now course-aware via ?course_slug=... (defaults to be_btech)
 @college_predictor_bp.route("/college-predictor/filter-options", methods=["GET"])
 def get_filter_options():
     """Returns all dynamic dropdown values from DB"""
+    course_slug = request.args.get("course_slug", "be_btech")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify({
+            "years": [], "rounds": [], "categories": [], "exam_types": [],
+            "genders": [], "seat_types": [], "course_names": [],
+            "admission_authorities": [],
+        })
+
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute("SELECT DISTINCT cap_year FROM cap_cutoff_data WHERE cap_year IS NOT NULL ORDER BY cap_year DESC")
+    cur.execute(f"SELECT DISTINCT cap_year FROM {table_name} WHERE cap_year IS NOT NULL ORDER BY cap_year DESC")
     years = [r["cap_year"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT cap_round FROM cap_cutoff_data WHERE cap_round IS NOT NULL ORDER BY cap_round")
+    cur.execute(f"SELECT DISTINCT cap_round FROM {table_name} WHERE cap_round IS NOT NULL ORDER BY cap_round")
     rounds = [r["cap_round"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT category FROM cap_cutoff_data WHERE category IS NOT NULL ORDER BY category")
+    cur.execute(f"SELECT DISTINCT category FROM {table_name} WHERE category IS NOT NULL ORDER BY category")
     categories = [r["category"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT exam_type FROM cap_cutoff_data WHERE exam_type IS NOT NULL ORDER BY exam_type")
+    cur.execute(f"SELECT DISTINCT exam_type FROM {table_name} WHERE exam_type IS NOT NULL ORDER BY exam_type")
     exam_types = [r["exam_type"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT gender FROM cap_cutoff_data WHERE gender IS NOT NULL ORDER BY gender")
+    cur.execute(f"SELECT DISTINCT gender FROM {table_name} WHERE gender IS NOT NULL ORDER BY gender")
     genders = [r["gender"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT seat_type FROM cap_cutoff_data WHERE seat_type IS NOT NULL ORDER BY seat_type")
+    cur.execute(f"SELECT DISTINCT seat_type FROM {table_name} WHERE seat_type IS NOT NULL ORDER BY seat_type")
     seat_types = [r["seat_type"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT course_name FROM cap_cutoff_data WHERE course_name IS NOT NULL ORDER BY course_name")
+    cur.execute(f"SELECT DISTINCT course_name FROM {table_name} WHERE course_name IS NOT NULL ORDER BY course_name")
     course_names = [r["course_name"] for r in cur.fetchall()]
     # PATCH: also expose admission_authority values for the Admission Authority dropdown
-    cur.execute("SELECT DISTINCT admission_authority FROM cap_cutoff_data WHERE admission_authority IS NOT NULL ORDER BY admission_authority")
+    cur.execute(f"SELECT DISTINCT admission_authority FROM {table_name} WHERE admission_authority IS NOT NULL ORDER BY admission_authority")
     admission_authorities = [r["admission_authority"] for r in cur.fetchall()]
     cur.close()
     conn.close()
@@ -609,11 +647,13 @@ def get_filter_options():
     })
 
 # ─── 3. POST /college-predictor/predict — main prediction ───
+# PATCH: now course-aware via body.course_slug (defaults to be_btech)
 @college_predictor_bp.route("/college-predictor/predict", methods=["POST"])
 def predict():
     """
     Body (JSON):
     {
+      course_slug: "be_btech",
       exam_type: "MHT-CET" | "JEE Main",
       percentile: 88.5,
       category: "OPEN",
@@ -631,6 +671,12 @@ def predict():
     """
     data = request.get_json(silent=True) or {}
 
+    # PATCH: resolve which course's table to query
+    course_slug = data.get("course_slug") or "be_btech"
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify({"error": f"Unknown or inactive course: {course_slug}"}), 400
+
     # PATCH: no hardcoded defaults — Excel-style filtering: khaali field = no filter applied on that column
     exam_type    = data.get("exam_type") or ""
     percentile   = data.get("percentile")
@@ -640,7 +686,7 @@ def predict():
     branches     = data.get("branches", [])
     districts    = data.get("districts", [])
     universities = data.get("universities", [])
-    colleges     = data.get("colleges", [])  
+    colleges     = data.get("colleges", [])
 
     course_name  = data.get("course_name", "")
     admission_authority = data.get("admission_authority", "")
@@ -758,10 +804,6 @@ def predict():
         where_clauses.append(f"college_name IN ({placeholders})")
         params.extend(colleges)
 
-
-
-
-
     # PATCH: Course filter (was completely missing before)
     if course_name:
         where_clauses.append("course_name = %s")
@@ -799,12 +841,13 @@ def predict():
 
     where_sql = " AND ".join(where_clauses)
 
+    # PATCH: query the course-specific table instead of hardcoded cap_cutoff_data
     cur.execute(f"""
         SELECT
             id, college_code, college_name, branch_name, branch_code,
             district, location, university, cap_year, cap_round,
             category, seat_type, exam_type,
-                
+
 
             cutoff_percentile, cutoff_score,
             fees, naac_grade, nba_accredited,
@@ -812,7 +855,7 @@ def predict():
             website, address,
             gender, quota_code, is_autonomous, course_name,
             admission_authority
-        FROM cap_cutoff_data
+        FROM {table_name}
         WHERE {where_sql}
         ORDER BY cutoff_percentile DESC
         LIMIT 2000
@@ -882,11 +925,17 @@ def predict():
     })
 
 # ─── DEBUG: See exact values stored in DB ───────────────────
+# PATCH: now course-aware via ?course_slug=... (defaults to be_btech)
 @college_predictor_bp.route("/college-predictor/debug-values", methods=["GET"])
 def debug_values():
+    course_slug = request.args.get("course_slug", "be_btech")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify([])
+
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute("SELECT DISTINCT cap_year, cap_round, category, exam_type FROM cap_cutoff_data ORDER BY cap_year, cap_round LIMIT 50")
+    cur.execute(f"SELECT DISTINCT cap_year, cap_round, category, exam_type FROM {table_name} ORDER BY cap_year, cap_round LIMIT 50")
     rows = [dict(r) for r in cur.fetchall()]
     cur.close()
     conn.close()
@@ -894,15 +943,24 @@ def debug_values():
 
 
 # ─── 4. GET /college-predictor/stats ── admin stats ─────────
+# PATCH: now course-aware via ?course_slug=... (defaults to be_btech).
+# This is the exact route that was showing 0/—/0 in the Admin panel
+# because it was reading the empty cap_cutoff_data table instead of
+# the course's actual data table.
 @college_predictor_bp.route("/college-predictor/stats", methods=["GET"])
 def stats():
+    course_slug = request.args.get("course_slug", "be_btech")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify({"total_records": 0, "years": [], "categories": []})
+
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute("SELECT COUNT(*) AS total FROM cap_cutoff_data")
+    cur.execute(f"SELECT COUNT(*) AS total FROM {table_name}")
     total = cur.fetchone()["total"]
-    cur.execute("SELECT DISTINCT cap_year FROM cap_cutoff_data ORDER BY cap_year DESC")
+    cur.execute(f"SELECT DISTINCT cap_year FROM {table_name} ORDER BY cap_year DESC")
     years = [r["cap_year"] for r in cur.fetchall()]
-    cur.execute("SELECT DISTINCT category FROM cap_cutoff_data ORDER BY category")
+    cur.execute(f"SELECT DISTINCT category FROM {table_name} ORDER BY category")
     categories = [r["category"] for r in cur.fetchall()]
     cur.close()
     conn.close()
@@ -910,16 +968,22 @@ def stats():
 
 
 # ─── 5. DELETE /college-predictor/clear ── admin clear data ─
+# PATCH: now course-aware via ?course_slug=... (defaults to be_btech)
 @college_predictor_bp.route("/college-predictor/clear", methods=["DELETE"])
 def clear_data():
+    course_slug = request.args.get("course_slug", "be_btech")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify({"error": f"Unknown or inactive course: {course_slug}"}), 400
+
     cap_year = request.args.get("cap_year")
     conn = get_connection()
     cur = conn.cursor()
     if cap_year:
-        cur.execute("DELETE FROM cap_cutoff_data WHERE cap_year = %s", (cap_year,))
+        cur.execute(f"DELETE FROM {table_name} WHERE cap_year = %s", (cap_year,))
         msg = f"Deleted records for year {cap_year}"
     else:
-        cur.execute("DELETE FROM cap_cutoff_data")
+        cur.execute(f"DELETE FROM {table_name}")
         msg = "All cutoff data cleared"
     conn.commit()
     cur.close()
@@ -928,20 +992,11 @@ def clear_data():
 
 
 # ─── PATCHED: POST /college-predictor/download-pdf ──────────
-# The frontend's downloadPDF() JS function was already calling this endpoint,
-# but it never existed on the backend — that's why "PDF generation failed"
-# always showed after predicting. Adding a working implementation using
-# reportlab (pure-python, no external binary dependency needed).
-#
-# Install once if not already present:  pip install reportlab
-#
-# PATCH (this round): made this route crash-proof —
-#   1. Safe number formatting for fees/rank (won't crash if value is a
-#      string, Decimal, None, or has extra characters like "Rs." or ",").
-#   2. Wrapped entire body in try/except so any unexpected error returns
-#      a JSON error WITH the real message instead of a blank 500 — makes
-#      debugging from the browser Network tab possible.
-#   3. Logs the full traceback to the server log via logger.exception().
+# The frontend's downloadPDF() JS function was already calling this endpoint.
+# NOTE: this route does NOT query the DB — it receives `results` (already
+# fetched from /predict) directly in the request body, so it needs no
+# course_slug/table_name resolution. No change needed here for the
+# multi-course architecture.
 @college_predictor_bp.route("/college-predictor/download-pdf", methods=["POST"])
 def download_pdf():
     data = request.get_json(silent=True) or {}
@@ -978,8 +1033,6 @@ def download_pdf():
         styles = getSampleStyleSheet()
         elements = []
 
-
-
         visible_columns_early = data.get("visible_columns", {}) or {}
         TOGGLE_COLS_COUNT = sum(1 for k in ["cutoff","rank","fees","prob","univ","quota","distance"] if visible_columns_early.get(k, True))
         PAGE_WIDTH_MM = 297 if TOGGLE_COLS_COUNT > 4 else 210
@@ -993,15 +1046,13 @@ def download_pdf():
         from reportlab.pdfbase.ttfonts import TTFont
 
         DEJAVU_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    
+
         if os.path.exists(DEJAVU_PATH):
            pdfmetrics.registerFont(TTFont("DejaVuSans", DEJAVU_PATH))
            FEE_FONT = "DejaVuSans"
 
         else:
              FEE_FONT = "Helvetica"
-
-
 
         # Header table: Logo left | Contact right
         from reportlab.platypus import HRFlowable, Image as RLImage
@@ -1366,8 +1417,10 @@ def download_pdf():
         }), 500
 
 
-
-        # ─── NEW: GET /college-predictor/available-courses — for card view ─────
+# ─── GET /college-predictor/available-courses — for card view ─────
+# Unchanged — already course-list-aware (reads predictor_courses directly,
+# not per-course data tables). This is what powers the Card View in
+# college_predictor.html (loadCourseCards()).
 @college_predictor_bp.route("/college-predictor/available-courses", methods=["GET"])
 def get_available_courses():
     try:
