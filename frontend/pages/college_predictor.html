@@ -53,6 +53,16 @@
     .form-card-header .icon { font-size: 24px; position: relative; z-index:1; }
     .form-card-header h2 { font-size: 18px; font-weight: 800; color: #fff; position: relative; z-index:1; }
     .form-card-header p { font-size: 12.5px; color: rgba(255,255,255,0.72); margin-top: 3px; position: relative; z-index:1; }
+    .course-cards-wrap { max-width: 900px; margin: 0 auto 40px; padding: 0 40px; }
+    .course-cards-title { text-align: center; font-size: 22px; font-weight: 800; color: #0d1b3e; margin-bottom: 6px; }
+    .course-cards-sub { text-align: center; color: #6b7280; font-size: 14px; margin-bottom: 28px; }
+    .course-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+    .course-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; padding: 28px 16px; text-align: center; cursor: pointer; transition: all 0.22s; }
+    .course-card:hover { border-color: #1565c0; box-shadow: 0 6px 20px rgba(21,101,192,0.15); transform: translateY(-3px); }
+    .course-card .cc-icon { font-size: 34px; margin-bottom: 10px; }
+    .course-card .cc-name { font-weight: 700; font-size: 14px; color: #0d1b3e; }
+
+
     .form-body { padding: 30px; display: flex; flex-direction: column; gap: 24px; }
 
     .section-title { font-size: 11px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.8px; padding-bottom: 10px; border-bottom: 1px solid #f3f4f6; margin-bottom: 4px; }
@@ -391,9 +401,17 @@
   <div class="hero-badge">🎯 Maharashtra CAP — AI Powered</div>
   <h1>Engineering College Predictor</h1>
   <p>Enter your exam details to find colleges with Safe, Moderate & Dream admission chances based on previous CAP cutoffs.</p>
-</div>
+  </div>
 
-<div class="page">
+  <div class="course-cards-wrap" id="course-cards-wrap">
+    <div class="course-cards-title">Choose Your Course</div>
+    <div class="course-cards-sub">Select a course to start predicting colleges</div>
+    <div class="course-cards-grid" id="course-cards-grid">
+      <div style="grid-column:1/-1;text-align:center;color:#9ca3af;padding:20px;">⏳ Loading courses...</div>
+    </div>
+  </div>
+
+  <div class="page" id="predictor-page-content" style="display:none;">
   <div class="main-layout">
   <div class="form-sticky">
   <!-- ── Form Card ── -->
@@ -1166,7 +1184,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
     btn.disabled = true; btn.textContent = 'Uploading…'; msg.style.display = 'none';
     const fd = new FormData(); fd.append('file', selectedFile);
     try {
-      const res = await fetch(`${API}/college-predictor/upload-cutoff/be_btech`, { method:'POST', body:fd });
+      const res = await fetch(`${API}/college-predictor/upload-cutoff/${SELECTED_COURSE_SLUG || 'be_btech'}`, { method:'POST', body:fd });
       const d = await res.json();
       msg.style.display = 'block';
       msg.className = res.ok ? 'upload-msg success' : 'upload-msg error';
@@ -1661,6 +1679,26 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
     loadStats();
   })();
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2325,6 +2363,41 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
       });
     }
   });
+
+
+let SELECTED_COURSE_SLUG = null;
+
+async function loadCourseCards() {
+  try {
+    const res = await fetch(`${API}/college-predictor/available-courses`);
+    const data = await res.json();
+    const grid = document.getElementById('course-cards-grid');
+    if (!data.success || !data.courses.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#9ca3af;padding:20px;">😕 No courses available yet.</div>`;
+      return;
+    }
+    grid.innerHTML = data.courses.map(c => `
+      <div class="course-card" onclick="selectCourse('${c.slug}')">
+        <div class="cc-icon">${c.icon || '📁'}</div>
+        <div class="cc-name">${c.display_name}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('course-cards-grid').innerHTML =
+      `<div style="grid-column:1/-1;text-align:center;color:#ef4444;padding:20px;">⚠️ Could not load courses.</div>`;
+  }
+}
+
+function selectCourse(slug) {
+  SELECTED_COURSE_SLUG = slug;
+  document.getElementById('course-cards-wrap').style.display = 'none';
+  document.getElementById('predictor-page-content').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.addEventListener('DOMContentLoaded', loadCourseCards);
+
+
 </script>
 
 </body>
@@ -2359,5 +2432,3 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
 
 
 
-</body>
-</html>
