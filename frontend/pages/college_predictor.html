@@ -751,24 +751,11 @@
 <div id="toast"></div>
 
 <script>
+  let SELECTED_COURSE_SLUG = null;
+
   const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
     ? 'http://localhost:5000/api'
     : 'https://edtechmyntra.com/api';
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
   // ── State (dynamic from DB) ──
   const state = {
     branch:     { selected: new Set(), options: [], open: false },
@@ -2373,7 +2360,7 @@ const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10
   });
 
 
-let SELECTED_COURSE_SLUG = null;
+
 
 async function loadCourseCards() {
   try {
