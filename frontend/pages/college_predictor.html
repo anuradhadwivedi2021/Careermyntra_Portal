@@ -1166,7 +1166,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
     btn.disabled = true; btn.textContent = 'Uploading…'; msg.style.display = 'none';
     const fd = new FormData(); fd.append('file', selectedFile);
     try {
-      const res = await fetch(`${API}/college-predictor/upload-cutoff`, { method:'POST', body:fd });
+      const res = await fetch(`${API}/college-predictor/upload-cutoff/be_btech`, { method:'POST', body:fd });
       const d = await res.json();
       msg.style.display = 'block';
       msg.className = res.ok ? 'upload-msg success' : 'upload-msg error';
