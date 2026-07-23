@@ -1364,3 +1364,24 @@ def download_pdf():
         return jsonify({
             "error": f"PDF generation failed: {str(e)}"
         }), 500
+
+
+
+        # ─── NEW: GET /college-predictor/available-courses — for card view ─────
+@college_predictor_bp.route("/college-predictor/available-courses", methods=["GET"])
+def get_available_courses():
+    try:
+        conn = get_connection()
+        cur = get_cursor(conn)
+        cur.execute("""
+            SELECT id, slug, display_name, icon, table_name, display_order
+            FROM predictor_courses
+            WHERE is_active = true
+            ORDER BY display_order, id
+        """)
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify({"success": True, "courses": [dict(r) for r in rows]})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
