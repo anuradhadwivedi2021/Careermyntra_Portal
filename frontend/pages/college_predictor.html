@@ -2508,6 +2508,8 @@ document.addEventListener('DOMContentLoaded', loadCourseCards);
     grid.appendChild(addCard);
   };
 
+
+  document.addEventListener('DOMContentLoaded', () => { loadCourseCards(); });
   function openAddCourseModal() {
     document.getElementById('ac-display-name').value = '';
     document.getElementById('ac-slug').value = '';
