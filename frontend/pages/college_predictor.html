@@ -2391,9 +2391,211 @@ function selectCourse(slug) {
 }
 
 document.addEventListener('DOMContentLoaded', loadCourseCards);
-
-
 </script>
+
+
+<!--
+  ================================================================
+  ADD NEW COURSE (Admin) — college_predictor.html ke liye
+  ================================================================
+  Isko copy karke apni college_predictor.html ke sabse LAST </script>
+  tag SE THODA PEHLE paste kar dena (jahan pichle saare patches — dynamic
+  filters, student save/prefill, student management — paste kiye the,
+  usi ke baad ye wala bhi paste kar sakti ho). Koi existing line
+  delete/edit nahi karni.
+
+  Ye patch backend ke naye route (routes/course_admin.py) use karta hai:
+    POST   /college-predictor/courses/new
+    DELETE /college-predictor/courses/<id>
+
+  Kya karta hai:
+    - Course cards grid ke end mein "➕ Add New Course" card dikhata hai
+    - Click karne pe modal khulta hai: Slug, Display Name, Icon, Admin Password
+    - Submit karne pe backend naya dedicated table banata hai aur
+      predictor_courses mein row insert karta hai
+    - Page turant naya course card dikhane lagta hai (koi restart/deploy
+      zaroorat nahi)
+-->
+<style>
+  .add-course-card {
+    background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 16px;
+    padding: 28px 16px; text-align: center; cursor: pointer; transition: all 0.22s;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .add-course-card:hover { border-color: #1565c0; background: #eff6ff; transform: translateY(-3px); }
+  .add-course-card .cc-icon { font-size: 34px; margin-bottom: 10px; color: #94a3b8; }
+  .add-course-card .cc-name { font-weight: 700; font-size: 13px; color: #64748b; }
+
+  .ac-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 1100; align-items: center; justify-content: center;
+  }
+  .ac-modal-overlay.open { display: flex; }
+  .ac-modal {
+    background: #fff; border-radius: 14px; width: 92%; max-width: 420px;
+    padding: 22px; box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+  }
+  .ac-modal h3 { font-size: 16px; color: #0d1b3e; margin-bottom: 14px; }
+  .ac-field { margin-bottom: 12px; }
+  .ac-field label { display: block; font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 4px; }
+  .ac-field input {
+    width: 100%; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+    font-size: 13px; font-family: inherit; outline: none;
+  }
+  .ac-field input:focus { border-color: #1565c0; }
+  .ac-field .ac-help { font-size: 11px; color: #9ca3af; margin-top: 3px; }
+  .ac-error { color: #b91c1c; font-size: 12px; margin: 4px 0 8px; min-height: 14px; }
+  .ac-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+  .ac-actions button {
+    padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: inherit; border: 1.5px solid transparent;
+  }
+  .ac-cancel { background: #f3f4f6; color: #374151; }
+  .ac-confirm { background: #1565c0; color: #fff; }
+  .ac-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+</style>
+
+<div class="ac-modal-overlay" id="ac-modal-overlay">
+  <div class="ac-modal">
+    <h3>➕ Add New Course</h3>
+
+    <div class="ac-field">
+      <label>Display Name *</label>
+      <input type="text" id="ac-display-name" placeholder="e.g. B.Pharm" oninput="acAutoSlug()"/>
+      <div class="ac-help">Shown on the course card</div>
+    </div>
+
+    <div class="ac-field">
+      <label>Slug (URL-safe id)</label>
+      <input type="text" id="ac-slug" placeholder="e.g. pharmacy"/>
+      <div class="ac-help">Lowercase, no spaces — auto-filled from name, editable</div>
+    </div>
+
+    <div class="ac-field">
+      <label>Icon (emoji)</label>
+      <input type="text" id="ac-icon" placeholder="💊" maxlength="4"/>
+    </div>
+
+    <div class="ac-field">
+      <label>Admin Password *</label>
+      <input type="password" id="ac-admin-pwd" placeholder="Admin password" autocomplete="off"/>
+    </div>
+
+    <div class="ac-error" id="ac-error"></div>
+
+    <div class="ac-actions">
+      <button class="ac-cancel" onclick="closeAddCourseModal()">Cancel</button>
+      <button class="ac-confirm" id="ac-submit-btn" onclick="submitNewCourse()">Create Course</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Append "Add New Course" card after courses load ──
+  // Wraps the existing loadCourseCards() without touching its original code.
+  const _originalLoadCourseCards = loadCourseCards;
+  loadCourseCards = async function () {
+    await _originalLoadCourseCards();
+    const grid = document.getElementById('course-cards-grid');
+    if (!grid) return;
+    const addCard = document.createElement('div');
+    addCard.className = 'add-course-card';
+    addCard.onclick = openAddCourseModal;
+    addCard.innerHTML = `
+      <div class="cc-icon">➕</div>
+      <div class="cc-name">Add New Course</div>
+    `;
+    grid.appendChild(addCard);
+  };
+
+  function openAddCourseModal() {
+    document.getElementById('ac-display-name').value = '';
+    document.getElementById('ac-slug').value = '';
+    document.getElementById('ac-icon').value = '';
+    document.getElementById('ac-admin-pwd').value = '';
+    document.getElementById('ac-error').textContent = '';
+    document.getElementById('ac-modal-overlay').classList.add('open');
+  }
+
+  function closeAddCourseModal() {
+    document.getElementById('ac-modal-overlay').classList.remove('open');
+  }
+
+  function acAutoSlug() {
+    const slugEl = document.getElementById('ac-slug');
+    if (slugEl.dataset.userEdited === 'true') return; // don't override manual edits
+    const name = document.getElementById('ac-display-name').value || '';
+    slugEl.value = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const slugEl = document.getElementById('ac-slug');
+    if (slugEl) {
+      slugEl.addEventListener('input', () => { slugEl.dataset.userEdited = 'true'; });
+    }
+  });
+
+  async function submitNewCourse() {
+    const errEl = document.getElementById('ac-error');
+    const btn = document.getElementById('ac-submit-btn');
+    const display_name = document.getElementById('ac-display-name').value.trim();
+    const slug = document.getElementById('ac-slug').value.trim().toLowerCase();
+    const icon = document.getElementById('ac-icon').value.trim() || '📁';
+    const admin_password = document.getElementById('ac-admin-pwd').value;
+
+    if (!display_name) { errEl.textContent = 'Display name is required'; return; }
+    if (!admin_password) { errEl.textContent = 'Admin password is required'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+    errEl.textContent = '';
+
+    try {
+      const res = await fetch(`${API}/college-predictor/courses/new`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_name, slug, icon, admin_password }),
+      });
+      const d = await res.json();
+
+      if (res.ok) {
+        closeAddCourseModal();
+        showToast(`✅ Course '${display_name}' created`);
+        await loadCourseCards(); // refresh grid to show the new card
+      } else {
+        errEl.textContent = d.error || 'Failed to create course';
+      }
+    } catch (e) {
+      errEl.textContent = 'Network error while creating course';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Create Course';
+    }
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 </body>
 </html>
