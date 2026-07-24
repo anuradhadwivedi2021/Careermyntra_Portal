@@ -2574,6 +2574,9 @@ document.addEventListener('DOMContentLoaded', loadCourseCards);
       btn.textContent = 'Create Course';
     }
   }
+
+
+  
 </script>
 
 
@@ -2594,7 +2597,116 @@ document.addEventListener('DOMContentLoaded', loadCourseCards);
 
 
 
+    <style>
+  .course-card { position: relative; }
+  .cc-delete-btn {
+    position: absolute; top: 8px; right: 8px; width: 22px; height: 22px;
+    border-radius: 50%; background: #fef2f2; border: 1.5px solid #fecaca;
+    color: #b91c1c; font-size: 12px; font-weight: 800; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .course-card:hover .cc-delete-btn { opacity: 1; }
+  .cc-delete-btn:hover { background: #fee2e2; }
+</style>
 
+<script>
+  // ── PATCH: add a delete "✕" button on top of every course card ──
+  const _prevLoadCourseCards2 = loadCourseCards;
+  loadCourseCards = async function () {
+    await _prevLoadCourseCards2();
+    // Add delete buttons to real course cards (not the "Add New Course" card)
+    document.querySelectorAll('#course-cards-grid .course-card').forEach(card => {
+      // Extract slug from the onclick="selectCourse('slug')" already set
+      const onclickAttr = card.getAttribute('onclick') || '';
+      const match = onclickAttr.match(/selectCourse\('([^']+)'\)/);
+      if (!match) return;
+      const slug = match[1];
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'cc-delete-btn';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Delete this course';
+      delBtn.onclick = (e) => {
+        e.stopPropagation(); // don't trigger selectCourse()
+        promptDeleteCourseBySlug(slug, card);
+      };
+      card.appendChild(delBtn);
+    });
+  };
+
+  let _pendingDeleteCourseSlug = null;
+  let _pendingDeleteCourseCardEl = null;
+
+  function promptDeleteCourseBySlug(slug, cardEl) {
+    _pendingDeleteCourseSlug = slug;
+    _pendingDeleteCourseCardEl = cardEl;
+    document.getElementById('cc-del-pwd-input').value = '';
+    document.getElementById('cc-del-error').textContent = '';
+    document.getElementById('cc-del-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('cc-del-pwd-input').focus(), 50);
+  }
+
+  function closeCourseDeleteModal() {
+    document.getElementById('cc-del-overlay').classList.remove('open');
+    _pendingDeleteCourseSlug = null;
+    _pendingDeleteCourseCardEl = null;
+  }
+
+  async function confirmDeleteCourse() {
+    const errEl = document.getElementById('cc-del-error');
+    const pwd = document.getElementById('cc-del-pwd-input').value;
+    if (!pwd) { errEl.textContent = 'Password is required'; return; }
+    if (!_pendingDeleteCourseSlug) return;
+
+    try {
+      // Need the numeric id — fetch fresh list and find it by slug
+      const res = await fetch(`${API}/college-predictor/available-courses`);
+      const data = await res.json();
+      const course = (data.courses || []).find(c => c.slug === _pendingDeleteCourseSlug);
+      if (!course) { errEl.textContent = 'Course not found'; return; }
+
+      const delRes = await fetch(`${API}/college-predictor/courses/${course.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_password: pwd }),
+      });
+      const d = await delRes.json();
+
+      if (delRes.ok) {
+        closeCourseDeleteModal();
+        showToast('✅ Course deleted');
+        await loadCourseCards(); // refresh grid
+      } else {
+        errEl.textContent = d.error || 'Delete failed';
+      }
+    } catch (e) {
+      errEl.textContent = 'Network error while deleting';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const pwdInput = document.getElementById('cc-del-pwd-input');
+    if (pwdInput) {
+      pwdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') confirmDeleteCourse();
+      });
+    }
+  });
+</script>
+
+<div class="admin-pwd-overlay" id="cc-del-overlay">
+  <div class="admin-pwd-box">
+    <h4>🔒 Enter admin password to delete this course</h4>
+    <input type="password" id="cc-del-pwd-input" placeholder="Admin password" autocomplete="off" />
+    <div class="admin-pwd-error" id="cc-del-error"></div>
+    <div class="admin-pwd-actions">
+      <button class="admin-pwd-cancel" onclick="closeCourseDeleteModal()">Cancel</button>
+      <button class="admin-pwd-confirm" onclick="confirmDeleteCourse()">Delete</button>
+    </div>
+  </div>
+</div>
 
 
 
