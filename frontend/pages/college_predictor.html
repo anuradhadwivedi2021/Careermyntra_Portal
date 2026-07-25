@@ -399,7 +399,7 @@
 
 <div class="hero">
   <div class="hero-badge">🎯 Maharashtra CAP — AI Powered</div>
-  <h1>Engineering College Predictor</h1>
+  <h1 id="hero-title">Engineering College Predictor</h1>
   <p>Enter your exam details to find colleges with Safe, Moderate & Dream admission chances based on previous CAP cutoffs.</p>
   </div>
 
@@ -419,7 +419,7 @@
     <div class="form-card-header">
       <div class="icon">📋</div>
       <div>
-        <h2>Engineering Prediction Form</h2>
+        <h2 id="form-title">Engineering Prediction Form</h2>
         <p>Fill all details for accurate college predictions</p>
       </div>
     </div>
@@ -2372,7 +2372,7 @@ async function loadCourseCards() {
       return;
     }
     grid.innerHTML = data.courses.map(c => `
-      <div class="course-card" onclick="selectCourse('${c.slug}')">
+      <div class="course-card" onclick="selectCourse('${c.slug}', '${(c.display_name||'').replace(/'/g,"\\'")}')">
         <div class="cc-icon">${c.icon || '📁'}</div>
         <div class="cc-name">${c.display_name}</div>
       </div>
@@ -2383,11 +2383,34 @@ async function loadCourseCards() {
   }
 }
 
-function selectCourse(slug) {
+async function selectCourse(slug, displayName) {
   SELECTED_COURSE_SLUG = slug;
   document.getElementById('course-cards-wrap').style.display = 'none';
   document.getElementById('predictor-page-content').style.display = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  const name = displayName || 'Engineering';
+  const heroTitle = document.getElementById('hero-title');
+  const formTitle = document.getElementById('form-title');
+  if (heroTitle) heroTitle.textContent = `${name} College Predictor`;
+  if (formTitle) formTitle.textContent = `${name} Prediction Form`;
+
+  allAdmissionAuthorities = [];
+  state.district.selected.clear();
+  state.branch.selected.clear();
+  state.college.selected.clear();
+  state.university.selected.clear();
+  state.capround.selected.clear();
+
+  await loadDistricts();
+  await loadColleges([]);
+  await loadFilterOptions();
+  await loadCourses();
+  await loadUniversities();
+  loadStats();
+
+  renderChips('district'); renderChips('branch'); renderChips('college');
+  renderChips('university'); renderChips('capround');
 }
 
 document.addEventListener('DOMContentLoaded', loadCourseCards);
@@ -2579,24 +2602,6 @@ document.addEventListener('DOMContentLoaded', loadCourseCards);
   
 </script>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     <style>
   .course-card { position: relative; }
   .cc-delete-btn {
@@ -2619,7 +2624,7 @@ document.addEventListener('DOMContentLoaded', loadCourseCards);
     document.querySelectorAll('#course-cards-grid .course-card').forEach(card => {
       // Extract slug from the onclick="selectCourse('slug')" already set
       const onclickAttr = card.getAttribute('onclick') || '';
-      const match = onclickAttr.match(/selectCourse\('([^']+)'\)/);
+      const match = onclickAttr.match(/selectCourse\('([^']+)'/);
       if (!match) return;
       const slug = match[1];
 
@@ -2707,9 +2712,6 @@ document.addEventListener('DOMContentLoaded', loadCourseCards);
     </div>
   </div>
 </div>
-
-
-
 
 </body>
 </html>
