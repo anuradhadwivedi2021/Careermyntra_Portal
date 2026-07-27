@@ -2495,6 +2495,10 @@ async function selectCourse(slug, displayName) {
   document.getElementById('predictor-page-content').style.display = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  // PATCH: push a history state so browser Back returns to course cards,
+  // instead of leaving the page entirely (e.g. going to Dashboard)
+  history.pushState({ view: 'course-selected', slug }, '', location.pathname);
+
   const name = displayName || 'Engineering';
   const heroTitle = document.getElementById('hero-title');
   const formTitle = document.getElementById('form-title');
@@ -2636,6 +2640,21 @@ document.addEventListener('DOMContentLoaded', loadCourseCards);
     `;
     grid.appendChild(addCard);
   };
+
+// PATCH: handle browser Back button — return to course-cards view
+// instead of navigating away from the page
+window.addEventListener('popstate', (e) => {
+  SELECTED_COURSE_SLUG = null;
+  document.getElementById('predictor-page-content').style.display = 'none';
+  document.getElementById('course-cards-wrap').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+
+
+
+
+
 
 
   document.addEventListener('DOMContentLoaded', () => { loadCourseCards(); });
