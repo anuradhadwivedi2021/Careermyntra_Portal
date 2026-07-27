@@ -1674,7 +1674,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
     if (!tbody) return;
     tbody.innerHTML = allResults.length
       ? allResults.map((r, i) => renderCard(r, i + 1)).join('')
-      : `<tr><td colspan="10" style="text-align:center;padding:40px;color:#9ca3af;">List khaali hai.</td></tr>`;
+      : `<tr><td colspan="10" style="text-align:center;padding:40px;color:#9ca3af;">List is empty.</td></tr>`;
 
     savedIds.forEach(id => { const b = document.getElementById(`save-${id}`); if (b) b.classList.add('saved'); });
 
@@ -1709,41 +1709,113 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
     showToast('🗑️ Removed from list');
   }
 
-  async function openAddCollegeModal() {
-    const query = prompt('College ka naam type karo (search):');
-    if (!query || !query.trim()) return;
+  let _acmSelectedCollege = null;   // { code, name }
+  let _acmSearchTimer = null;
+
+  function openAddCollegeModal() {
+    document.getElementById('acm-search-input').value = '';
+    document.getElementById('acm-suggestions').innerHTML = '';
+    document.getElementById('acm-branch-wrap').style.display = 'none';
+    document.getElementById('acm-branch-select').innerHTML = '<option value="">Select branch</option>';
+    document.getElementById('acm-confirm-btn').disabled = true;
+    _acmSelectedCollege = null;
+    document.getElementById('add-college-modal-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('acm-search-input').focus(), 50);
+  }
+
+  function closeAddCollegeModal() {
+    document.getElementById('add-college-modal-overlay').classList.remove('open');
+  }
+
+  function acmOnSearchInput() {
+    clearTimeout(_acmSearchTimer);
+    const q = document.getElementById('acm-search-input').value.trim();
+    _acmSearchTimer = setTimeout(() => acmSearchColleges(q), 220);
+  }
+
+  async function acmSearchColleges(q) {
+    const box = document.getElementById('acm-suggestions');
+    if (q.length < 2) { box.innerHTML = ''; return; }
     try {
       const res = await fetch(`${API}/college-predictor/colleges?course_slug=${SELECTED_COURSE_SLUG || 'be_btech'}`);
       const colleges = await res.json();
-      const matches = colleges.filter(c => c.name.toLowerCase().includes(query.trim().toLowerCase()));
-      if (!matches.length) { showToast('❌ Koi college nahi mila'); return; }
-
-      const chosen = matches[0]; // simplest: pehla match le lo
-      const branchName = prompt(`"${chosen.name}" ke liye Branch naam daalo:`) || 'Not specified';
-
-      allResults.push({
-        id: `manual-${Date.now()}`,
-        college_code: chosen.code,
-        college_name: chosen.name,
-        branch_name: branchName,
-        branch_code: null,
-        district: '', location: '', university: '',
-        cap_year: document.getElementById('cap_year')?.value || '',
-        cap_round: 'Manually Added',
-        category: document.getElementById('category')?.value || '',
-        cutoff_percentile: null,
-        cutoff_score: null,
-        fees: null, naac_grade: null, nba_accredited: 'No',
-        applicable_quota: ['State'],
-        gender_label: 'All',
-        admission_authority: '',
+      const matches = colleges.filter(c => c.name.toLowerCase().includes(q.toLowerCase())).slice(0, 15);
+      if (!matches.length) {
+        box.innerHTML = '<div class="acm-suggestion-empty">No matching colleges found</div>';
+        return;
+      }
+      box.innerHTML = matches.map(c => `
+        <div class="acm-suggestion-item" data-code="${c.code || ''}" data-name="${c.name.replace(/"/g,'&quot;')}">
+          ${c.code ? `<span class="acm-code">${c.code}</span> - ` : ''}${c.name}
+        </div>
+      `).join('');
+      box.querySelectorAll('.acm-suggestion-item').forEach(item => {
+        item.addEventListener('click', () => acmSelectCollege(item.dataset.code, item.dataset.name));
       });
-
-      renderResultsTable();
-      showToast(`✅ "${chosen.name}" list mein add ho gaya`);
     } catch (e) {
-      showToast('❌ Colleges load karne mein error');
+      box.innerHTML = '<div class="acm-suggestion-empty">❌ Error loading colleges</div>';
     }
+  }
+
+  async function acmSelectCollege(code, name) {
+    _acmSelectedCollege = { code, name };
+    document.getElementById('acm-search-input').value = name;
+    document.getElementById('acm-suggestions').innerHTML = '';
+
+    const branchWrap = document.getElementById('acm-branch-wrap');
+    const branchSel = document.getElementById('acm-branch-select');
+    branchWrap.style.display = 'block';
+    branchSel.innerHTML = '<option value="">Loading branches…</option>';
+    document.getElementById('acm-confirm-btn').disabled = true;
+
+    try {
+      const params = new URLSearchParams();
+      params.set('colleges', name);
+      params.set('course_slug', SELECTED_COURSE_SLUG || 'be_btech');
+      const res = await fetch(`${API}/college-predictor/branches?${params.toString()}`);
+      const branches = await res.json();
+      if (branches && branches.length) {
+        branchSel.innerHTML = '<option value="">Select branch</option>' +
+          branches.map(b => `<option value="${b.replace(/"/g,'&quot;')}">${b}</option>`).join('');
+      } else {
+        branchSel.innerHTML = '<option value="">No branches found for this college</option>';
+      }
+    } catch (e) {
+      branchSel.innerHTML = '<option value="">Error loading branches</option>';
+    }
+  }
+
+  function acmOnBranchChange() {
+    const sel = document.getElementById('acm-branch-select').value;
+    document.getElementById('acm-confirm-btn').disabled = !(_acmSelectedCollege && sel);
+  }
+
+  function acmConfirmAdd() {
+    if (!_acmSelectedCollege) return;
+    const branchName = document.getElementById('acm-branch-select').value;
+    if (!branchName) { showToast('⚠️ Please select a branch'); return; }
+
+    allResults.push({
+      id: `manual-${Date.now()}`,
+      college_code: _acmSelectedCollege.code,
+      college_name: _acmSelectedCollege.name,
+      branch_name: branchName,
+      branch_code: null,
+      district: '', location: '', university: '',
+      cap_year: document.getElementById('cap_year')?.value || '',
+      cap_round: 'Manually Added',
+      category: document.getElementById('category')?.value || '',
+      cutoff_percentile: null,
+      cutoff_score: null,
+      fees: null, naac_grade: null, nba_accredited: 'No',
+      applicable_quota: ['State'],
+      gender_label: 'All',
+      admission_authority: '',
+    });
+
+    renderResultsTable();
+    closeAddCollegeModal();
+    showToast(`✅ "${_acmSelectedCollege.name}" added to list`);
   }
 const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10 };
 
@@ -2857,7 +2929,7 @@ window.addEventListener('popstate', (e) => {
 
   async function saveEditedList() {
     if (!currentStudentId) {
-      showToast('⚠️ Pehle student select/save karo (naam field ke upar se)');
+      showToast('⚠️ Please select/save a student first (use the field above the name)');
       return;
     }
     try {
@@ -2956,6 +3028,68 @@ window.addEventListener('popstate', (e) => {
     <div class="admin-pwd-actions">
       <button class="admin-pwd-cancel" onclick="closeCourseDeleteModal()">Cancel</button>
       <button class="admin-pwd-confirm" onclick="confirmDeleteCourse()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .add-college-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 1200; align-items: center; justify-content: center;
+  }
+  .add-college-modal-overlay.open { display: flex; }
+  .acm-modal {
+    background: #fff; border-radius: 14px; width: 92%; max-width: 440px;
+    padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+  }
+  .acm-modal h3 { font-size: 16px; color: #0d1b3e; margin-bottom: 14px; }
+  .acm-field { position: relative; margin-bottom: 14px; }
+  .acm-field label { display: block; font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 5px; }
+  .acm-field input, .acm-field select {
+    width: 100%; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 9px;
+    font-size: 13px; font-family: inherit; outline: none;
+  }
+  .acm-field input:focus, .acm-field select:focus { border-color: #1565c0; }
+  #acm-suggestions {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+    background: #fff; border: 1.5px solid #e5e7eb; border-radius: 9px;
+    max-height: 220px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+  .acm-suggestion-item { padding: 9px 12px; font-size: 13px; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
+  .acm-suggestion-item:hover { background: #f0f4ff; }
+  .acm-suggestion-item:last-child { border-bottom: none; }
+  .acm-code { color: #1565c0; font-weight: 700; }
+  .acm-suggestion-empty { padding: 10px 12px; font-size: 12px; color: #9ca3af; }
+  .acm-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+  .acm-actions button {
+    padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: inherit; border: 1.5px solid transparent;
+  }
+  .acm-cancel { background: #f3f4f6; color: #374151; }
+  .acm-confirm { background: #1565c0; color: #fff; }
+  .acm-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+
+<div class="add-college-modal-overlay" id="add-college-modal-overlay">
+  <div class="acm-modal">
+    <h3>➕ Add College</h3>
+
+    <div class="acm-field">
+      <label>Search College *</label>
+      <input type="text" id="acm-search-input" placeholder="Type college name..." autocomplete="off" oninput="acmOnSearchInput()"/>
+      <div id="acm-suggestions"></div>
+    </div>
+
+    <div class="acm-field" id="acm-branch-wrap" style="display:none;">
+      <label>Select Branch *</label>
+      <select id="acm-branch-select" onchange="acmOnBranchChange()">
+        <option value="">Select branch</option>
+      </select>
+    </div>
+
+    <div class="acm-actions">
+      <button class="acm-cancel" onclick="closeAddCollegeModal()">Cancel</button>
+      <button class="acm-confirm" id="acm-confirm-btn" onclick="acmConfirmAdd()" disabled>Add College</button>
     </div>
   </div>
 </div>
