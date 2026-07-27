@@ -2824,6 +2824,128 @@ window.addEventListener('popstate', (e) => {
       });
     }
   });
+  </script>    
+  
+  <script>
+  // ── PATCH: Save/Load edited prediction list (persist reorder/add/remove) ──
+
+  // Save button ko "Edit List" toolbar mein inject karo (results-bar ke andar)
+  const _origToggleEditMode = toggleEditMode;
+  toggleEditMode = function () {
+    _origToggleEditMode();
+    injectSaveListButton();
+  };
+
+  function injectSaveListButton() {
+    const editBtn = document.getElementById('edit-list-btn');
+    if (!editBtn) return;
+    let saveBtn = document.getElementById('save-list-btn');
+    if (!editMode) {
+      if (saveBtn) saveBtn.remove();
+      return;
+    }
+    if (!saveBtn) {
+      saveBtn = document.createElement('button');
+      saveBtn.id = 'save-list-btn';
+      saveBtn.className = 'btn-sm btn-save';
+      saveBtn.textContent = '💾 Save List';
+      saveBtn.style.marginLeft = '8px';
+      saveBtn.onclick = () => saveEditedList();
+      editBtn.parentNode.insertBefore(saveBtn, editBtn.nextSibling);
+    }
+  }
+
+  async function saveEditedList() {
+    if (!currentStudentId) {
+      showToast('⚠️ Pehle student select/save karo (naam field ke upar se)');
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/college-predictor/students/${currentStudentId}/edited-results`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ results: allResults }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        showToast(`✅ List saved (${d.count} colleges)`);
+      } else {
+        showToast('❌ ' + (d.error || 'Save failed'));
+      }
+    } catch (e) {
+      showToast('❌ Network error while saving list');
+    }
+  }
+
+  // ── Auto-load saved edited list after predict, jab existing student selected ho ──
+  let _pendingSavedResultsStudentId = null;
+
+  const _origSelectStudent = selectStudent;
+  selectStudent = async function (id) {
+    await _origSelectStudent(id);
+    _pendingSavedResultsStudentId = id; // is student ka saved list load karna hai next predict ke baad
+  };
+
+  const _origRunPredictForSavedList = runPredict;
+  runPredict = async function () {
+    await _origRunPredictForSavedList();
+    if (_pendingSavedResultsStudentId && _pendingSavedResultsStudentId === currentStudentId) {
+      await loadSavedEditedList(_pendingSavedResultsStudentId);
+      _pendingSavedResultsStudentId = null;
+    }
+  };
+
+  async function loadSavedEditedList(studentId) {
+    try {
+      const res = await fetch(`${API}/college-predictor/students/${studentId}/edited-results`);
+      const d = await res.json();
+      if (d.results && d.results.length) {
+        allResults = d.results;
+        renderResultsTable();
+        showToast('📂 Saved edited list loaded');
+      }
+    } catch (e) {
+      console.warn('Load saved edited list failed', e);
+    }
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
 </script>
 
 <div class="admin-pwd-overlay" id="cc-del-overlay">

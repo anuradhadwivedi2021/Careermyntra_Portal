@@ -23,7 +23,7 @@ import io
 import pandas as pd
 from db import get_connection, get_cursor
 from logger_setup import get_logger
-
+import json
 logger = get_logger(__name__)
 college_predictor_bp = Blueprint("college_predictor", __name__)
 
@@ -1467,4 +1467,51 @@ def stats_all():
         "total_records": total,
         "years": sorted(years_set, reverse=True),
         "categories": sorted(categories_set)
+    })
+
+    # ─── NEW: Save/Load edited prediction list (Edit List → Save feature) ───
+# Independent table, student_id se linked. Ye edited results (reorder,
+# add, remove) ko persist karta hai taaki page refresh ya student reopen
+# karne pe bhi edited list wapas mil jaaye.
+
+@college_predictor_bp.route("/college-predictor/students/<int:student_id>/edited-results", methods=["POST"])
+def save_edited_results(student_id):
+    """Save the counsellor's edited (reordered/added/removed) prediction list."""
+    data = request.get_json(silent=True) or {}
+    results = data.get("results", [])
+
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO predictor_edited_lists (student_id, results, updated_at)
+        VALUES (%s, %s, CURRENT_TIMESTAMP)
+        ON CONFLICT (student_id) DO UPDATE SET
+            results = EXCLUDED.results,
+            updated_at = CURRENT_TIMESTAMP
+    """, (student_id, json.dumps(results)))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return jsonify({"message": "Edited list saved", "student_id": student_id, "count": len(results)})
+
+
+@college_predictor_bp.route("/college-predictor/students/<int:student_id>/edited-results", methods=["GET"])
+def get_edited_results(student_id):
+    """Fetch the last saved edited list for this student, if any."""
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute(
+        "SELECT results, updated_at FROM predictor_edited_lists WHERE student_id = %s",
+        (student_id,)
+    )
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
+        return jsonify({"results": None})
+    return jsonify({
+        "results": row["results"],
+        "updated_at": str(row["updated_at"]) if row["updated_at"] else None
     })
