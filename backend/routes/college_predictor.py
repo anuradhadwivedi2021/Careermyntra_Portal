@@ -350,6 +350,7 @@ def upload_cutoff(course_slug):
 
     for _, row in df.iterrows():
         try:
+            cur.execute("SAVEPOINT row_save")
             cur.execute(f"""
                 INSERT INTO {table_name} (
                     college_code, college_name, branch_name, branch_code, district, location, university,
@@ -418,10 +419,11 @@ def upload_cutoff(course_slug):
                 # PATCH: admission_authority now saved into its own column
                 row.get("admission_authority") or "CET CELL",
             ))
+            cur.execute("RELEASE SAVEPOINT row_save")
             inserted += 1
 
         except Exception as e:
-            conn.rollback()
+            cur.execute("ROLLBACK TO SAVEPOINT row_save")
             if skipped == 0:
                 logger.exception("[Predictor Upload] FIRST ROW FAILURE - full traceback")
                 logger.warning(f"[Predictor Upload] First failing row data: {dict(row)}")
