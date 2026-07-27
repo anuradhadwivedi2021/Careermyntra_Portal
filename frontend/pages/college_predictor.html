@@ -1399,9 +1399,16 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
 
       <div class="results-bar">
         <span class="results-count">Found <strong>${total}</strong> probable colleges for percentile <strong>${student_percentile}</strong> (Range: ${pRange.min || ''} – ${pRange.max || ''})</span>
+        <button class="btn-sm btn-website" onclick="toggleEditMode()" id="edit-list-btn">✏️ Edit List</button>
+      </div>`;
+
+    const addCollegeHTML = `
+      <div id="add-college-wrap" style="display:none;">
+        <button class="btn-sm btn-save" onclick="openAddCollegeModal()">➕ Add College</button>
       </div>`;
 
     const tableHTML = `
+      ${addCollegeHTML}
       <div class="results-wrap">
         <div class="table-scroll">
           <table class="pred-table">
@@ -1591,8 +1598,13 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
       quotaHTML = '<span class="quota-pill quota-state">🏢 State</span>';
     }
 
+    const dragHandle = typeof editMode !== 'undefined' && editMode ? `<span style="cursor:grab;margin-right:6px;">⠿</span>` : '';
+    const removeBtn  = typeof editMode !== 'undefined' && editMode
+      ? `<button class="btn-sm btn-delete-student" onclick="removeFromList(${sr - 1})" style="margin-top:5px;">🗑️ Remove</button>`
+      : '';
+
     return `<tr>
-      <td>${sr}</td>
+      <td>${dragHandle}${sr}</td>
       <td class="td-college">
         <div class="cn">${collegeLabel}</div>
         <div class="dist">📍 ${dist}${naac}</div>
@@ -1610,7 +1622,7 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
       <td class="td-fees">${fees}</td>
       <td class="td-prob">
         <div class="prob-bar-wrap"><div class="prob-bar"><div class="prob-fill ${probColorCls}" style="width:${prob}%"></div></div><span class="prob-pct">${prob}% ${probLabel}</span></div>
-        <div style="margin-top:5px;display:flex;gap:5px;">${web}<button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id}, this)">🔖</button></div>
+        <div style="margin-top:5px;display:flex;gap:5px;">${web}<button class="btn-sm btn-save" id="save-${r.id}" onclick="toggleSave(${r.id}, this)">🔖</button>${removeBtn}</div>
       </td>
     </tr>`;
   }
@@ -1638,6 +1650,97 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ── Edit List feature ──────────────────────────────────────
+  let editMode = false;
+
+  function toggleEditMode() {
+    editMode = !editMode;
+    const btn = document.getElementById('edit-list-btn');
+    if (btn) btn.textContent = editMode ? '✅ Done Editing' : '✏️ Edit List';
+
+    const addBtnWrap = document.getElementById('add-college-wrap');
+    if (addBtnWrap) addBtnWrap.style.display = editMode ? 'block' : 'none';
+
+    renderResultsTable();
+  }
+
+  function renderResultsTable() {
+    const tbody = document.getElementById('cards-list');
+    if (!tbody) return;
+    tbody.innerHTML = allResults.length
+      ? allResults.map((r, i) => renderCard(r, i + 1)).join('')
+      : `<tr><td colspan="10" style="text-align:center;padding:40px;color:#9ca3af;">List khaali hai.</td></tr>`;
+
+    savedIds.forEach(id => { const b = document.getElementById(`save-${id}`); if (b) b.classList.add('saved'); });
+
+    if (editMode) {
+      tbody.querySelectorAll('tr').forEach((tr, idx) => {
+        tr.setAttribute('draggable', 'true');
+        tr.dataset.idx = idx;
+        tr.style.cursor = 'grab';
+        tr.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', idx);
+          tr.style.opacity = '0.4';
+        });
+        tr.addEventListener('dragend', () => { tr.style.opacity = '1'; });
+        tr.addEventListener('dragover', e => e.preventDefault());
+        tr.addEventListener('drop', e => {
+          e.preventDefault();
+          const fromIdx = +e.dataTransfer.getData('text/plain');
+          const toIdx = +tr.dataset.idx;
+          if (fromIdx === toIdx) return;
+          const [moved] = allResults.splice(fromIdx, 1);
+          allResults.splice(toIdx, 0, moved);
+          renderResultsTable();
+          showToast('↕️ Reordered');
+        });
+      });
+    }
+  }
+
+  function removeFromList(idx) {
+    allResults.splice(idx, 1);
+    renderResultsTable();
+    showToast('🗑️ Removed from list');
+  }
+
+  async function openAddCollegeModal() {
+    const query = prompt('College ka naam type karo (search):');
+    if (!query || !query.trim()) return;
+    try {
+      const res = await fetch(`${API}/college-predictor/colleges?course_slug=${SELECTED_COURSE_SLUG || 'be_btech'}`);
+      const colleges = await res.json();
+      const matches = colleges.filter(c => c.name.toLowerCase().includes(query.trim().toLowerCase()));
+      if (!matches.length) { showToast('❌ Koi college nahi mila'); return; }
+
+      const chosen = matches[0]; // simplest: pehla match le lo
+      const branchName = prompt(`"${chosen.name}" ke liye Branch naam daalo:`) || 'Not specified';
+
+      allResults.push({
+        id: `manual-${Date.now()}`,
+        college_code: chosen.code,
+        college_name: chosen.name,
+        branch_name: branchName,
+        branch_code: null,
+        district: '', location: '', university: '',
+        cap_year: document.getElementById('cap_year')?.value || '',
+        cap_round: 'Manually Added',
+        category: document.getElementById('category')?.value || '',
+        cutoff_percentile: null,
+        cutoff_score: null,
+        fees: null, naac_grade: null, nba_accredited: 'No',
+        applicable_quota: ['State'],
+        gender_label: 'All',
+        admission_authority: '',
+      });
+
+      renderResultsTable();
+      showToast(`✅ "${chosen.name}" list mein add ho gaya`);
+    } catch (e) {
+      showToast('❌ Colleges load karne mein error');
+    }
   }
 const COL_MAP = { cutoff:6, rank:7, fees:8, prob:9, univ:3, quota:4, distance:10 };
 
