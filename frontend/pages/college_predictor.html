@@ -1147,10 +1147,13 @@ box.querySelectorAll('.chip-x[data-value]').forEach(x => {
     }
   }
 
-  // ── Load admin stats ──
+  // ── Load admin stats (all-courses total before selection, course-specific after) ──
   async function loadStats() {
     try {
-      const r = await fetch(`${API}/college-predictor/stats?course_slug=${SELECTED_COURSE_SLUG || 'be_btech'}`);
+      const url = SELECTED_COURSE_SLUG
+        ? `${API}/college-predictor/stats?course_slug=${SELECTED_COURSE_SLUG}`
+        : `${API}/college-predictor/stats-all`;
+      const r = await fetch(url);
       const d = await r.json();
       document.getElementById('stat-total').textContent = d.total_records.toLocaleString();
       document.getElementById('stat-years').textContent = d.years.join(', ') || '—';

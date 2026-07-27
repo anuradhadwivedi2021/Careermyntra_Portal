@@ -1440,3 +1440,31 @@ def get_available_courses():
         return jsonify({"success": True, "courses": [dict(r) for r in rows]})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@college_predictor_bp.route("/college-predictor/stats-all", methods=["GET"])
+def stats_all():
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute("SELECT table_name FROM predictor_courses WHERE is_active = true")
+    tables = [r["table_name"] for r in cur.fetchall()]
+
+    total = 0
+    years_set = set()
+    categories_set = set()
+
+    for t in tables:
+        cur.execute(f"SELECT COUNT(*) AS total FROM {t}")
+        total += cur.fetchone()["total"]
+        cur.execute(f"SELECT DISTINCT cap_year FROM {t} WHERE cap_year IS NOT NULL")
+        years_set.update(r["cap_year"] for r in cur.fetchall())
+        cur.execute(f"SELECT DISTINCT category FROM {t} WHERE category IS NOT NULL")
+        categories_set.update(r["category"] for r in cur.fetchall())
+
+    cur.close()
+    conn.close()
+    return jsonify({
+        "total_records": total,
+        "years": sorted(years_set, reverse=True),
+        "categories": sorted(categories_set)
+    })
