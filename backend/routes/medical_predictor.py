@@ -294,13 +294,29 @@ def upload_cutoff(course_slug):
 
     df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
 
+    # Column alias mapping — handles different Excel/CSV header naming
+    # conventions (e.g. "Institute Name" instead of "College Name", "Year"
+    # instead of "CAP Year", "Rank"/"Percentile" instead of the DB's
+    # neet_rank_cutoff/neet_marks_cutoff column names) so uploads don't
+    # fail just because the source sheet uses different column titles.
     COLUMN_ALIASES = {
         "institute_name": "college_name",
+        "inst_name": "college_name",
+        "institute_code": "college_code",
+        "inst_code": "college_code",
         "year": "cap_year",
         "rank": "neet_rank_cutoff",
         "percentile": "neet_marks_cutoff",
+        "marks": "neet_marks_cutoff",
+        "admission_autherity": "admission_authority",  # common typo in source sheets
+        "course": "course_name",
+        "quota": "quota_code",
+        "branch": "course_name",
     }
-    df = df.rename(columns=COLUMN_ALIASES)
+    df = df.rename(columns={k: v for k, v in COLUMN_ALIASES.items() if k in df.columns})
+
+    # Drop duplicate columns keeping last (renamed ones take priority)
+    df = df.loc[:, ~df.columns.duplicated(keep="last")]
 
     missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
     if missing:
@@ -574,7 +590,12 @@ def predict():
     })
 
 
-# ─── PDF download (basic — NEET-oriented report) ─────────────────────────
+# ─── PDF download — same visual design as College Predictor's PDF ────────
+# (logo header, green tagline bar, blue contact bar, styled table, green
+# footer, counsellor notes) but with MEDICAL columns/logic: NEET Rank
+# Cutoff instead of Percentile Cut-off, Seat Type + Quota instead of
+# Branch/University, and the rank-based probability already used by
+# this module's /predict endpoint (lower rank = better).
 @medical_predictor_bp.route("/medical-predictor/download-pdf", methods=["POST"])
 def download_pdf():
     data = request.get_json(silent=True) or {}
@@ -584,55 +605,239 @@ def download_pdf():
     try:
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import A4, landscape
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.units import mm
+        from reportlab.platypus import (
+            SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image as RLImage
+        )
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
     except ImportError:
         return jsonify({"error": "reportlab is not installed on the server."}), 500
+
+    def _fmt_number(val):
+        if val is None or val == "":
+            return "-"
+        try:
+            return f"{int(float(str(val).replace(',', '').replace('Rs.', '').strip())):,}"
+        except Exception:
+            return str(val).strip() or "-"
 
     try:
         buffer = io.BytesIO()
         styles = getSampleStyleSheet()
-        doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
         elements = []
 
-        title = f"{student.get('name', 'Student')} — Medical Admission Prediction Report"
-        elements.append(Paragraph(title, styles["Title"]))
-        subtitle = f"NEET Rank: {student.get('neet_rank', '-')}  |  NEET Marks: {student.get('neet_marks', '-')}  |  Category: {student.get('category', '-')}"
-        elements.append(Paragraph(subtitle, styles["Normal"]))
-        elements.append(Spacer(1, 12))
+        # Medical report always uses landscape width — table has 9 columns
+        # so it reads better wide, matching the Engineering PDF's
+        # auto-widen-when-many-columns behaviour.
+        PAGE_WIDTH_MM = 297
+        CONTENT_WIDTH_MM = PAGE_WIDTH_MM - 20
 
-        table_data = [["Sr.", "College", "Course", "Seat Type", "Quota", "NEET Rank Cutoff", "Fees (₹)", "Chance"]]
-        for i, r in enumerate(results, 1):
-            table_data.append([
+        DEJAVU_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        if os.path.exists(DEJAVU_PATH):
+            pdfmetrics.registerFont(TTFont("DejaVuSans", DEJAVU_PATH))
+            FEE_FONT = "DejaVuSans"
+        else:
+            FEE_FONT = "Helvetica"
+
+        # ── HEADER — Logo (centered) ──────────────────────────
+        LOGO_PATH = "/home/anuradha/Careermyntra_Portal/frontend/images/logo.jpeg"
+        if os.path.exists(LOGO_PATH):
+            logo_element = RLImage(LOGO_PATH, width=60 * mm, height=26 * mm, kind="proportional")
+        else:
+            logger.warning(f"[medical:download_pdf] Logo not found at {LOGO_PATH}")
+            logo_element = Paragraph(
+                "<b><font color='#1565c0' size=16>Career</font><font color='#16a34a' size=16>Myntra</font></b>",
+                ParagraphStyle("logo", parent=styles["Normal"], fontSize=16, leading=20, alignment=TA_CENTER)
+            )
+        logo_tbl = Table([[logo_element]], colWidths=[CONTENT_WIDTH_MM * mm])
+        logo_tbl.setStyle(TableStyle([
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(logo_tbl)
+
+        # ── Green tagline bar ─────────────────────────────────
+        tagline_tbl = Table([["Aptitude Test  |  Mock Exams  |  Admission Guidance  |  Skills Dev.  |  Jobs"]],
+                             colWidths=[CONTENT_WIDTH_MM * mm])
+        tagline_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#16a34a")),
+            ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(tagline_tbl)
+
+        # ── Blue contact bar ──────────────────────────────────
+        col_w = CONTENT_WIDTH_MM / 3
+        contact_tbl = Table([[
+            Paragraph("Phone: +91 98609 38338", ParagraphStyle("c1", parent=styles["Normal"], fontSize=9, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)),
+            Paragraph("Email: info@careermyntra.com", ParagraphStyle("c2", parent=styles["Normal"], fontSize=9, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)),
+            Paragraph("Web: https://careermyntra.com", ParagraphStyle("c3", parent=styles["Normal"], fontSize=9, textColor=colors.white, fontName="Helvetica-Bold", alignment=TA_CENTER)),
+        ]], colWidths=[col_w * mm, col_w * mm, col_w * mm])
+        contact_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#1565c0")),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(contact_tbl)
+        elements.append(Spacer(1, 8))
+
+        # ── STUDENT INFO ───────────────────────────────────────
+        name = student.get("name") or "Student"
+        category = student.get("category") or ""
+        neet_rank = student.get("neet_rank") or ""
+        neet_marks = student.get("neet_marks") or ""
+
+        info_style = ParagraphStyle("info", parent=styles["Normal"], fontSize=10,
+                                     textColor=colors.HexColor("#0d1b3e"), leading=16)
+        elements.append(Paragraph(f"<b>Full Name:</b> {name}", info_style))
+        if category:
+            elements.append(Paragraph(f"<b>Category:</b> {category}", info_style))
+        if neet_rank:
+            elements.append(Paragraph(f"<b>NEET Rank:</b> {neet_rank}", info_style))
+        if neet_marks:
+            elements.append(Paragraph(f"<b>NEET Marks:</b> {neet_marks}", info_style))
+        elements.append(Spacer(1, 10))
+
+        # ── TABLE TITLE ─────────────────────────────────────────
+        title_style = ParagraphStyle("title", parent=styles["Normal"], fontSize=13,
+                                      fontName="Helvetica-Bold", alignment=TA_CENTER,
+                                      textColor=colors.HexColor("#0d1b3e"), spaceAfter=6)
+        elements.append(Paragraph("Medical College Prediction List", title_style))
+        elements.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#0d1b3e")))
+        elements.append(Spacer(1, 4))
+
+        # ── Doc (landscape) ──────────────────────────────────────
+        doc = SimpleDocTemplate(
+            buffer, pagesize=landscape(A4),
+            topMargin=12 * mm, bottomMargin=12 * mm,
+            leftMargin=10 * mm, rightMargin=10 * mm
+        )
+
+        col_headers = ["Sr.", "College Name", "Course", "Seat Type", "Location",
+                        "Quota", "NEET Rank Cutoff", "Fees (₹)", "Chance"]
+        raw_widths = [10, 46, 20, 22, 20, 18, 24, 22, 20]
+        available_width_mm = 297 - 20
+        total_raw = sum(raw_widths)
+        scale = available_width_mm / total_raw if total_raw > available_width_mm else 1.0
+        col_widths = [w * scale * mm for w in raw_widths]
+
+        table_data = [col_headers]
+
+        for i, r in enumerate(results, start=1):
+            cutoff_rank = r.get("neet_rank_cutoff")
+            rank_str = _fmt_number(cutoff_rank)
+
+            fees = _fmt_number(r.get("fees"))
+            fees_str = Paragraph(
+                f"₹{fees} / year" if fees != "-" else "—",
+                ParagraphStyle("fee", fontSize=7, leading=9, fontName=FEE_FONT, alignment=1)
+            )
+
+            chance = r.get("chance") or "Dream"
+            prob_pct = r.get("probability_pct")
+            prob_label = r.get("probability_label") or chance
+            prob_str = f"{prob_pct}% {prob_label}" if prob_pct is not None else prob_label
+
+            college_label = str(r.get("college_name") or "—")
+            course_label = str(r.get("course_name") or "—")
+            location_val = str(r.get("district") or r.get("location") or "—")
+            location_html = f'<font color="#dc2626">&#8226;</font> {location_val}' if location_val != "—" else "—"
+
+            row = [
                 str(i),
-                r.get("college_name", "-"),
-                r.get("course_name", "-"),
-                r.get("seat_type", "-"),
-                r.get("quota_code", "-"),
-                str(r.get("neet_rank_cutoff", "-")),
-                str(r.get("fees", "-")),
-                r.get("chance", "-"),
-            ])
+                Paragraph(college_label, ParagraphStyle("cn", fontSize=8, leading=10)),
+                Paragraph(course_label, ParagraphStyle("crs", fontSize=8, leading=10)),
+                str(r.get("seat_type") or "—"),
+                Paragraph(location_html, ParagraphStyle("loc", fontSize=8, leading=10, fontName=FEE_FONT, alignment=1)),
+                str(r.get("quota_code") or "—"),
+                rank_str,
+                fees_str,
+                prob_str,
+            ]
+            table_data.append(row)
 
-        t = Table(table_data, repeatRows=1)
-        t.setStyle(TableStyle([
+        tbl = Table(table_data, repeatRows=1, colWidths=col_widths)
+
+        row_styles = [
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1565c0")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8faff")]),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 8),
+            ("FONTSIZE", (0, 1), (-1, -1), 7),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("ALIGN", (1, 1), (2, -1), "LEFT"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LINEBELOW", (0, 0), (-1, 0), 1.5, colors.HexColor("#0d47a1")),
+        ]
+        for row_idx in range(1, len(table_data)):
+            bg = colors.white if row_idx % 2 == 0 else colors.HexColor("#f0fdf4")
+            row_styles.append(("BACKGROUND", (0, row_idx), (-1, row_idx), bg))
+        row_styles.append(("BOX", (0, 0), (-1, -1), 1.5, colors.HexColor("#16a34a")))
+        tbl.setStyle(TableStyle(row_styles))
+        elements.append(tbl)
+        elements.append(Spacer(1, 12))
+
+        # ── COUNSELLOR NOTE ────────────────────────────────────
+        note_title = ParagraphStyle("nt", parent=styles["Normal"], fontSize=9,
+                                     fontName="Helvetica-Bold", textColor=colors.HexColor("#0d1b3e"),
+                                     spaceAfter=4)
+        note_body = ParagraphStyle("nb", parent=styles["Normal"], fontSize=8,
+                                    textColor=colors.HexColor("#374151"), leading=13)
+        elements.append(Paragraph("Counsellor's Note", note_title))
+        notes = [
+            "This list is a <b>prediction</b> based on your NEET rank/marks and is <b>not an official CAP allotment or admission list</b>.",
+            "The predictions are prepared using <b>previous CAP/counselling cut-offs, your category, rank, seat availability, and other admission parameters</b>.",
+            "The <b>Chance (%)</b> indicates the likelihood of admission. It does <b>not guarantee admission</b>.",
+            "The <b>fees shown are approximate annual tuition fees</b>. Actual fees may vary by seat type and quota.",
+            "Cut-offs may change every year based on applicants, seat availability, and reservation policies.",
+            "We recommend a <b>balanced mix of Dream, Moderate, and Safe colleges</b> in your option form.",
+            "Before confirming admission, verify latest fee structure and eligibility from the respective institute.",
+            "For the best outcome, <b>consult your counsellor</b> before finalizing your option form.",
+        ]
+        for idx, note in enumerate(notes, 1):
+            elements.append(Paragraph(f"{idx}. {note}", note_body))
+        elements.append(Spacer(1, 10))
+
+        # ── GREEN FOOTER ────────────────────────────────────────
+        footer_tbl = Table([["Sunny Pride, JM Road, Z Bridge, Deccan Gymkhana, Pune, Maharashtra 411004"]],
+                            colWidths=[277 * mm])
+        footer_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#16a34a")),
+            ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
         ]))
-        elements.append(t)
+        elements.append(footer_tbl)
+
         doc.build(elements)
         buffer.seek(0)
 
+        safe_name = "".join(c for c in name if c.isalnum() or c in " _-").strip().replace(" ", "_") or "Student"
         return send_file(
-            buffer, mimetype="application/pdf", as_attachment=True,
-            download_name="Medical_Admission_Prediction.pdf"
+            buffer,
+            as_attachment=True,
+            download_name=f"{safe_name}_Medical_Prediction.pdf",
+            mimetype="application/pdf",
         )
+
     except Exception as e:
-        logger.exception("[medical:download_pdf] failed")
-        return jsonify({"error": str(e)}), 500
+        logger.exception("[medical:download_pdf] PDF generation failed")
+        return jsonify({"error": f"PDF generation failed: {str(e)}"}), 500
 
 
 # ─── Admin: clear all data for a medical course (dangerous, password-protected) ──
