@@ -480,6 +480,9 @@
         <td><span class="chance-pill ${r.chance}">${r.probability_pct}% ${r.probability_label}</span></td>
       </tr>`).join('');
     sec.innerHTML = summaryHTML + `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+        <button class="btn-upload" style="background:linear-gradient(135deg,#1565c0,#0d47a1);" onclick="downloadPDF()">📄 Download PDF</button>
+      </div>
       <div class="results-wrap">
         <div class="table-scroll">
           <table class="pred-table">
