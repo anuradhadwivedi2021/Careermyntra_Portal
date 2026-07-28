@@ -36,6 +36,7 @@ from routes.college_predictor_dynamic_filters import college_predictor_filters_b
 from routes.student_data import student_data_bp
 from routes.student_delete import student_delete_bp
 from routes.course_admin import course_admin_bp
+from routes.medical_predictor import medical_predictor_bp
 
 from db import init_db
 from monitor_service import start_monitor
@@ -129,6 +130,7 @@ app.register_blueprint(college_predictor_filters_bp, url_prefix="/api")
 app.register_blueprint(student_data_bp, url_prefix="/api")
 app.register_blueprint(student_delete_bp, url_prefix="/api")
 app.register_blueprint(course_admin_bp, url_prefix="/api")
+app.register_blueprint(medical_predictor_bp, url_prefix="/api")
 
 # Targeted limits on monitor endpoints that change state (password/config,
 # start/stop) — these are not polled repeatedly by the frontend like
