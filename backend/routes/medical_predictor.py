@@ -294,6 +294,12 @@ def upload_cutoff(course_slug):
 
     df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
 
+    COLUMN_ALIASES = {
+        "institute_name": "college_name",
+        "year": "cap_year",
+    }
+    df = df.rename(columns=COLUMN_ALIASES)
+
     missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
     if missing:
         return jsonify({"error": f"Missing required columns: {', '.join(missing)}"}), 400
