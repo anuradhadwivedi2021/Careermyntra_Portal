@@ -297,6 +297,8 @@ def upload_cutoff(course_slug):
     COLUMN_ALIASES = {
         "institute_name": "college_name",
         "year": "cap_year",
+        "rank": "neet_rank_cutoff",
+        "percentile": "neet_marks_cutoff",
     }
     df = df.rename(columns=COLUMN_ALIASES)
 
