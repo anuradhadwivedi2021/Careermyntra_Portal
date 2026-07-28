@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Medical Admission Predictor – CareerMyntra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0fdf9; min-height: 100vh; color: #0d1b3e; }
+    .navbar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 40px; height: 68px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 500; box-shadow: 0 1px 12px rgba(13,27,62,0.06); }
+    .nav-left img { height: 42px; object-fit: contain; }
+    .btn-back, .btn-logout { padding: 8px 20px; border-radius: 9px; font-size: 13px; font-weight: 700; text-decoration: none; margin-left: 10px; }
+    .btn-back { background: #ecfdf5; border: 1.5px solid #a7f3d0; color: #047857; }
+    .btn-logout { background: #fff; border: 1.5px solid #fecaca; color: #ef4444; }
+
+    .hero { background: linear-gradient(135deg, #059669 0%, #047857 55%, #065f46 100%); padding: 48px 40px 56px; text-align: center; }
+    .hero h1 { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .hero p { font-size: 14px; color: rgba(255,255,255,0.8); max-width: 600px; margin: 0 auto; }
+
+    .course-cards-wrap { max-width: 900px; margin: 40px auto; padding: 0 40px; }
+    .course-cards-title { text-align: center; font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .course-cards-sub { text-align: center; color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+    .course-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+    .course-card, .add-course-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 16px; padding: 28px 16px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .course-card:hover { border-color: #059669; box-shadow: 0 6px 20px rgba(5,150,105,0.15); transform: translateY(-3px); }
+    .add-course-card { border-style: dashed; border-color: #cbd5e1; background: #f8fafc; }
+    .add-course-card:hover { border-color: #059669; background: #ecfdf5; }
+    .cc-icon { font-size: 34px; margin-bottom: 10px; }
+    .cc-name { font-weight: 700; font-size: 14px; }
+
+    .page { max-width: 1600px; margin: 0 auto; padding: 0 40px 60px; }
+    .main-layout { display: grid; grid-template-columns: 420px 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 1100px) { .main-layout { grid-template-columns: 1fr; } }
+
+    .form-card { background: #fff; border-radius: 16px; border: 1.5px solid #e5e7eb; overflow: hidden; }
+    .form-card-header { background: linear-gradient(135deg, #059669, #047857); padding: 18px 24px; }
+    .form-card-header h2 { color: #fff; font-size: 16px; font-weight: 800; }
+    .form-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 12px; font-weight: 700; color: #374151; }
+    .field input, .field select {
+      padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 13px;
+      font-family: inherit; background: #fafafa; outline: none;
+    }
+    .field input:focus, .field select:focus { border-color: #059669; background: #fff; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .help { font-size: 11px; color: #9ca3af; }
+
+    .btn-predict { padding: 14px; background: linear-gradient(135deg, #059669, #047857); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; }
+    .btn-predict:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-reset { padding: 14px 18px; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 13px; font-weight: 700; color: #6b7280; cursor: pointer; }
+    .btn-row { display: flex; gap: 10px; }
+
+    .ms-box { min-height: 42px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 6px 10px; background: #fafafa; cursor: pointer; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+    .ms-panel { display: none; border: 1.5px solid #e5e7eb; border-radius: 8px; margin-top: 4px; max-height: 180px; overflow-y: auto; background: #fff; }
+    .ms-panel.open { display: block; }
+    .ms-option { padding: 8px 10px; font-size: 13px; cursor: pointer; }
+    .ms-option:hover { background: #ecfdf5; }
+    .ms-option.selected { background: #d1fae5; font-weight: 700; }
+    .chip { background: #059669; color: #fff; border-radius: 5px; padding: 2px 8px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+    .chip-x { cursor: pointer; }
+
+    .state-box { background: #fff; border: 1.5px dashed #e5e7eb; border-radius: 16px; padding: 56px 24px; text-align: center; }
+    .state-box .icon { font-size: 46px; margin-bottom: 12px; }
+
+    .summary-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+    .sbox { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 16px; text-align: center; }
+    .sbox strong { font-size: 26px; font-weight: 800; color: #059669; display: block; }
+    .sbox span { font-size: 11px; color: #6b7280; font-weight: 700; }
+
+    .results-wrap { background: #fff; border-radius: 14px; border: 1.5px solid #e5e7eb; overflow: hidden; }
+    .table-scroll { overflow-x: auto; }
+    .pred-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+    .pred-table thead tr { background: linear-gradient(135deg, #059669, #047857); }
+    .pred-table thead th { padding: 12px 14px; color: #fff; font-size: 11px; text-transform: uppercase; text-align: left; }
+    .pred-table td { padding: 11px 14px; border-bottom: 1px solid #f3f4f6; }
+    .chance-pill { padding: 4px 10px; border-radius: 16px; font-size: 11px; font-weight: 800; }
+    .chance-pill.Safe { background: #dcfce7; color: #15803d; }
+    .chance-pill.Moderate { background: #fef9c3; color: #92400e; }
+    .chance-pill.Dream { background: #fee2e2; color: #991b1b; }
+
+    .admin-card { background: #fff; border: 1.5px solid #fde68a; border-radius: 16px; margin-top: 24px; overflow: hidden; }
+    .admin-header { background: #fffbeb; padding: 14px 20px; font-weight: 800; color: #92400e; font-size: 13px; }
+    .admin-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+    .admin-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .astat { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; text-align: center; }
+    .astat strong { display: block; font-size: 18px; font-weight: 800; }
+    .upload-zone { border: 2px dashed #e5e7eb; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; }
+    .upload-zone input { display: none; }
+    .btn-upload { padding: 10px 20px; background: linear-gradient(135deg,#f59e0b,#d97706); color: #fff; border: none; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .btn-upload:disabled { opacity: 0.5; }
+    .upload-msg { font-size: 13px; font-weight: 600; padding: 8px 12px; border-radius: 8px; }
+    .upload-msg.success { background: #f0fdf4; color: #16a34a; }
+    .upload-msg.error { background: #fef2f2; color: #dc2626; }
+
+    .ac-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1100; align-items: center; justify-content: center; }
+    .ac-modal-overlay.open { display: flex; }
+    .ac-modal { background: #fff; border-radius: 14px; width: 92%; max-width: 400px; padding: 20px; }
+    .ac-field { margin-bottom: 10px; }
+    .ac-field label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+    .ac-field input { width: 100%; padding: 8px 10px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 13px; }
+    .ac-error { color: #b91c1c; font-size: 12px; min-height: 14px; margin: 4px 0; }
+    .ac-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+    .ac-actions button { padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
+    .ac-cancel { background: #f3f4f6; color: #374151; }
+    .ac-confirm { background: #059669; color: #fff; }
+
+    #toast { position: fixed; bottom: 28px; right: 28px; background: #1e293b; color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 13px; z-index: 9999; opacity: 0; transform: translateY(10px); transition: all 0.3s; }
+    #toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-left"><img src="../images/logo.jpeg" alt="CareerMyntra"/></div>
+  <div>
+    <a href="../dashboard.html" class="btn-back">← Dashboard</a>
+    <a href="../index.html" class="btn-logout">Logout</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>🩺 Medical Admission Predictor</h1>
+  <p>Enter your NEET Rank/Marks to find MBBS, BDS and other medical colleges with realistic admission chances.</p>
+</div>
+
+<div class="course-cards-wrap" id="course-cards-wrap">
+  <div class="course-cards-title">Choose Your Medical Course</div>
+  <div class="course-cards-sub">Select a course to start predicting colleges</div>
+  <div class="course-cards-grid" id="course-cards-grid">
+    <div style="grid-column:1/-1;text-align:center;color:#9ca3af;padding:20px;">⏳ Loading courses...</div>
+  </div>
+</div>
+
+<div class="page" id="predictor-page-content" style="display:none;">
+  <div class="main-layout">
+
+    <div class="form-card">
+      <div class="form-card-header"><h2>NEET Prediction Form</h2></div>
+      <div class="form-body">
+
+        <div class="field">
+          <label>Student Name</label>
+          <input type="text" id="student_name" placeholder="Enter student full name"/>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>NEET Rank *</label>
+            <input type="number" id="neet_rank" placeholder="e.g. 15234"/>
+          </div>
+          <div class="field">
+            <label>NEET Marks (out of 720)</label>
+            <input type="number" id="neet_marks" placeholder="e.g. 610"/>
+          </div>
+        </div>
+        <span class="help">Rank is used for prediction; Marks shown for reference. Provide at least one.</span>
+
+        <div class="field">
+          <label>Category *</label>
+          <select id="category"><option value="">Loading…</option></select>
+        </div>
+
+        <div class="field">
+          <label>Gender</label>
+          <select id="gender"><option value="">All Genders</option></select>
+        </div>
+
+        <div class="field">
+          <label>Interested Districts</label>
+          <div class="ms-wrap" id="district-wrap">
+            <div class="ms-box" id="district-box" onclick="togglePanel('district')">
+              <span id="district-ph">All Districts</span>
+            </div>
+            <div class="ms-panel" id="district-panel"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Seat Type</label>
+          <div class="ms-wrap" id="seat_type-wrap">
+            <div class="ms-box" id="seat_type-box" onclick="togglePanel('seat_type')">
+              <span id="seat_type-ph">All Seat Types</span>
+            </div>
+            <div class="ms-panel" id="seat_type-panel"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Quota</label>
+          <div class="ms-wrap" id="quota-wrap">
+            <div class="ms-box" id="quota-box" onclick="togglePanel('quota')">
+              <span id="quota-ph">All Quotas</span>
+            </div>
+            <div class="ms-panel" id="quota-panel"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>CAP Year</label>
+            <select id="cap_year"><option value="">Loading…</option></select>
+          </div>
+          <div class="field">
+            <label>CAP Round</label>
+            <div class="ms-wrap" id="cap_round-wrap">
+              <div class="ms-box" id="cap_round-box" onclick="togglePanel('cap_round')">
+                <span id="cap_round-ph">All Rounds</span>
+              </div>
+              <div class="ms-panel" id="cap_round-panel"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-reset" onclick="resetForm()">↩ Reset</button>
+          <button class="btn-predict" id="predict-btn" onclick="runPredict()" style="flex:1;">🎯 Get Predictions</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="results-section">
+      <div class="state-box">
+        <div class="icon">🩺</div>
+        <h3>Ready to Predict!</h3>
+        <p>Enter your NEET Rank above and click "Get Predictions".</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="admin-card">
+    <div class="admin-header">⚙️ Admin — Upload Medical Cutoff Data</div>
+    <div class="admin-body">
+      <div class="admin-stats">
+        <div class="astat"><strong id="stat-total">—</strong><span>Total Records</span></div>
+        <div class="astat"><strong id="stat-years">—</strong><span>CAP Years</span></div>
+        <div class="astat"><strong id="stat-cats">—</strong><span>Categories</span></div>
+      </div>
+      <div class="upload-zone" onclick="document.getElementById('csv-file').click()">
+        <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(this)"/>
+        <div style="font-size:26px;">📁</div>
+        <strong id="file-name-display">Click to select CSV / Excel file</strong>
+        <p style="font-size:12px;color:#9ca3af;margin-top:4px;">Required: college_name, category, cap_year, cap_round (+ neet_rank_cutoff, neet_marks_cutoff recommended)</p>
+      </div>
+      <button class="btn-upload" id="upload-btn" onclick="uploadCutoff()" disabled>Upload Cutoff Data</button>
+      <div id="upload-msg" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="ac-modal-overlay" id="ac-modal-overlay">
+  <div class="ac-modal">
+    <h3 style="margin-bottom:12px;">➕ Add New Medical Course</h3>
+    <div class="ac-field"><label>Display Name *</label><input type="text" id="ac-display-name" placeholder="e.g. BAMS" oninput="acAutoSlug()"/></div>
+    <div class="ac-field"><label>Slug</label><input type="text" id="ac-slug" placeholder="e.g. bams"/></div>
+    <div class="ac-field"><label>Icon (emoji)</label><input type="text" id="ac-icon" placeholder="🌿" maxlength="4"/></div>
+    <div class="ac-field"><label>Admin Password *</label><input type="password" id="ac-admin-pwd" autocomplete="off"/></div>
+    <div class="ac-error" id="ac-error"></div>
+    <div class="ac-actions">
+      <button class="ac-cancel" onclick="closeAddCourseModal()">Cancel</button>
+      <button class="ac-confirm" id="ac-submit-btn" onclick="submitNewCourse()">Create Course</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000/api'
+    : 'https://edtechmyntra.com/api';
+
+  let SELECTED_COURSE_SLUG = null;
+
+  const state = {
+    district: { selected: new Set(), options: [], open: false },
+    seat_type: { selected: new Set(), options: [], open: false },
+    quota: { selected: new Set(), options: [], open: false },
+    cap_round: { selected: new Set(), options: [], open: false },
+  };
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ── Multi-select helpers (simplified, shared across district/seat_type/quota/cap_round) ──
+  function togglePanel(type) {
+    const panel = document.getElementById(`${type}-panel`);
+    const willOpen = !state[type].open;
+    Object.keys(state).forEach(t => { state[t].open = false; document.getElementById(`${t}-panel`).classList.remove('open'); });
+    state[type].open = willOpen;
+    if (willOpen) { renderOptions(type); panel.classList.add('open'); }
+  }
+
+  function renderOptions(type) {
+    const panel = document.getElementById(`${type}-panel`);
+    const opts = state[type].options;
+    if (!opts.length) { panel.innerHTML = '<div style="padding:10px;color:#9ca3af;font-size:12px;">No options</div>'; return; }
+    panel.innerHTML = opts.map(o => {
+      const sel = state[type].selected.has(o);
+      return `<div class="ms-option ${sel ? 'selected' : ''}" data-val="${o.replace(/"/g,'&quot;')}">${o}</div>`;
+    }).join('');
+    panel.querySelectorAll('.ms-option').forEach(el => {
+      el.addEventListener('click', () => {
+        const v = el.dataset.val;
+        if (state[type].selected.has(v)) state[type].selected.delete(v);
+        else state[type].selected.add(v);
+        renderOptions(type);
+        renderBox(type);
+      });
+    });
+  }
+
+  function renderBox(type) {
+    const box = document.getElementById(`${type}-box`);
+    const ph = document.getElementById(`${type}-ph`);
+    box.querySelectorAll('.chip').forEach(c => c.remove());
+    const sel = [...state[type].selected];
+    const LABELS = { district: 'All Districts', seat_type: 'All Seat Types', quota: 'All Quotas', cap_round: 'All Rounds' };
+    if (!sel.length) { ph.style.display = 'inline'; ph.textContent = LABELS[type]; return; }
+    ph.style.display = 'none';
+    sel.forEach(v => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = `${v} <span class="chip-x" data-v="${v.replace(/"/g,'&quot;')}">×</span>`;
+      box.appendChild(chip);
+    });
+    box.querySelectorAll('.chip-x').forEach(x => {
+      x.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state[type].selected.delete(x.dataset.v);
+        renderBox(type);
+        if (state[type].open) renderOptions(type);
+      });
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    Object.keys(state).forEach(type => {
+      const wrap = document.getElementById(`${type}-wrap`);
+      if (state[type].open && wrap && !wrap.contains(e.target)) {
+        state[type].open = false;
+        document.getElementById(`${type}-panel`).classList.remove('open');
+      }
+    });
+  });
+
+  // ── Load dropdowns ──
+  async function loadFilterOptions() {
+    try {
+      const res = await fetch(`${API}/medical-predictor/filter-options?course_slug=${SELECTED_COURSE_SLUG || 'mbbs'}`);
+      const d = await res.json();
+
+      const catSel = document.getElementById('category');
+      catSel.innerHTML = d.categories && d.categories.length
+        ? d.categories.map(c => `<option value="${c}">${c}</option>`).join('')
+        : '<option value="">No categories found</option>';
+
+      const genderSel = document.getElementById('gender');
+      genderSel.innerHTML = '<option value="">All Genders</option>' +
+        (d.genders || []).map(g => `<option value="${g}">${g}</option>`).join('');
+
+      const yearSel = document.getElementById('cap_year');
+      yearSel.innerHTML = d.years && d.years.length
+        ? d.years.map(y => `<option value="${y}">${y}</option>`).join('')
+        : '<option value="">No years found</option>';
+
+      state.seat_type.options = d.seat_types || [];
+      state.quota.options = d.quotas || [];
+      state.cap_round.options = d.rounds || [];
+    } catch (e) { console.warn('filter-options failed', e); }
+  }
+
+  async function loadDistricts() {
+    try {
+      const res = await fetch(`${API}/medical-predictor/districts?course_slug=${SELECTED_COURSE_SLUG || 'mbbs'}`);
+      state.district.options = await res.json();
+    } catch (e) { state.district.options = []; }
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/medical-predictor/stats?course_slug=${SELECTED_COURSE_SLUG || 'mbbs'}`);
+      const d = await res.json();
+      document.getElementById('stat-total').textContent = (d.total_records || 0).toLocaleString();
+      document.getElementById('stat-years').textContent = (d.years || []).join(', ') || '—';
+      document.getElementById('stat-cats').textContent = (d.categories || []).length;
+    } catch (e) {}
+  }
+
+  // ── Upload ──
+  let selectedFile = null;
+  function handleFileSelect(input) {
+    selectedFile = input.files[0];
+    if (selectedFile) {
+      document.getElementById('file-name-display').textContent = selectedFile.name;
+      document.getElementById('upload-btn').disabled = false;
+    }
+  }
+  async function uploadCutoff() {
+    if (!selectedFile) return;
+    const btn = document.getElementById('upload-btn');
+    const msg = document.getElementById('upload-msg');
+    btn.disabled = true; btn.textContent = 'Uploading…'; msg.style.display = 'none';
+    const fd = new FormData(); fd.append('file', selectedFile);
+    try {
+      const res = await fetch(`${API}/medical-predictor/upload-cutoff/${SELECTED_COURSE_SLUG || 'mbbs'}`, { method: 'POST', body: fd });
+      const d = await res.json();
+      msg.style.display = 'block';
+      msg.className = res.ok ? 'upload-msg success' : 'upload-msg error';
+      msg.textContent = res.ok ? d.message : (d.error || 'Upload failed');
+      if (res.ok) { loadStats(); loadFilterOptions(); loadDistricts(); showToast('✅ ' + d.message); }
+    } catch (e) {
+      msg.style.display = 'block'; msg.className = 'upload-msg error'; msg.textContent = 'Network error.';
+    }
+    btn.disabled = false; btn.textContent = 'Upload Cutoff Data';
+  }
+
+  // ── Predict ──
+  let allResults = [];
+  async function runPredict() {
+    const neet_rank = document.getElementById('neet_rank').value;
+    const neet_marks = document.getElementById('neet_marks').value;
+    if (!neet_rank && !neet_marks) { showToast('⚠️ Enter NEET Rank or Marks'); return; }
+
+    const btn = document.getElementById('predict-btn');
+    btn.disabled = true; btn.textContent = 'Predicting…';
+
+    const payload = {
+      course_slug: SELECTED_COURSE_SLUG || 'mbbs',
+      neet_rank: neet_rank || null,
+      neet_marks: neet_marks || null,
+      category: document.getElementById('category').value,
+      gender: document.getElementById('gender').value,
+      cap_year: document.getElementById('cap_year').value,
+      cap_round: state.cap_round.selected.size ? [...state.cap_round.selected] : 'All Rounds',
+      districts: [...state.district.selected],
+      seat_types: [...state.seat_type.selected],
+      quotas: [...state.quota.selected],
+    };
+
+    try {
+      const res = await fetch(`${API}/medical-predictor/predict`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast('❌ ' + (data.error || 'Prediction failed')); return; }
+      allResults = data.results || [];
+      renderResults(data);
+    } catch (e) { showToast('❌ Network error'); }
+    finally { btn.disabled = false; btn.textContent = '🎯 Get Predictions'; }
+  }
+
+  function renderResults(data) {
+    const sec = document.getElementById('results-section');
+    if (!data.total) {
+      sec.innerHTML = `<div class="state-box"><div class="icon">😔</div><h3>No Colleges Found</h3><p>No cutoff data matches your filters.</p></div>`;
+      return;
+    }
+    const summaryHTML = `
+      <div class="summary-row">
+        <div class="sbox"><strong>${data.total}</strong><span>🎯 Probable Colleges</span></div>
+        <div class="sbox"><strong>${data.student_neet_rank || '—'}</strong><span>⭐ Your NEET Rank</span></div>
+        <div class="sbox"><strong>${data.student_neet_marks || '—'}</strong><span>📊 Your NEET Marks</span></div>
+      </div>`;
+    const rowsHTML = data.results.map((r, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td><strong>${r.college_name}</strong><br/><span style="font-size:11px;color:#6b7280;">📍 ${r.district || '—'}</span></td>
+        <td>${r.course_name || '—'}</td>
+        <td>${r.seat_type || '—'}</td>
+        <td>${r.quota_code || '—'}</td>
+        <td>${r.neet_rank_cutoff != null ? r.neet_rank_cutoff.toLocaleString() : '—'}</td>
+        <td>${r.fees ? '₹' + Number(r.fees).toLocaleString('en-IN') : '—'}</td>
+        <td><span class="chance-pill ${r.chance}">${r.probability_pct}% ${r.probability_label}</span></td>
+      </tr>`).join('');
+    sec.innerHTML = summaryHTML + `
+      <div class="results-wrap">
+        <div class="table-scroll">
+          <table class="pred-table">
+            <thead><tr><th>Sr.</th><th>College</th><th>Course</th><th>Seat Type</th><th>Quota</th><th>NEET Rank Cutoff</th><th>Fees</th><th>Chance</th></tr></thead>
+            <tbody>${rowsHTML}</tbody>
+          </table>
+        </div>
+      </div>`;
+    sec.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function resetForm() {
+    document.getElementById('student_name').value = '';
+    document.getElementById('neet_rank').value = '';
+    document.getElementById('neet_marks').value = '';
+    document.getElementById('category').selectedIndex = 0;
+    document.getElementById('gender').selectedIndex = 0;
+    Object.keys(state).forEach(t => { state[t].selected.clear(); renderBox(t); });
+    document.getElementById('results-section').innerHTML = `
+      <div class="state-box"><div class="icon">🩺</div><h3>Ready to Predict!</h3><p>Enter your NEET Rank above and click "Get Predictions".</p></div>`;
+  }
+
+  // ── Course cards ──
+  async function loadCourseCards() {
+    try {
+      const res = await fetch(`${API}/medical-predictor/available-courses`);
+      const data = await res.json();
+      const grid = document.getElementById('course-cards-grid');
+      if (!data.success || !data.courses.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#9ca3af;">No courses available yet.</div>`;
+      } else {
+        grid.innerHTML = data.courses.map(c => `
+          <div class="course-card" onclick="selectCourse('${c.slug}')">
+            <div class="cc-icon">${c.icon || '⚕️'}</div>
+            <div class="cc-name">${c.display_name}</div>
+          </div>`).join('');
+      }
+      const addCard = document.createElement('div');
+      addCard.className = 'add-course-card';
+      addCard.onclick = openAddCourseModal;
+      addCard.innerHTML = `<div class="cc-icon">➕</div><div class="cc-name">Add New Course</div>`;
+      grid.appendChild(addCard);
+    } catch (e) {
+      document.getElementById('course-cards-grid').innerHTML = `<div style="grid-column:1/-1;color:#ef4444;">⚠️ Could not load courses.</div>`;
+    }
+  }
+
+  function selectCourse(slug) {
+    SELECTED_COURSE_SLUG = slug;
+    document.getElementById('course-cards-wrap').style.display = 'none';
+    document.getElementById('predictor-page-content').style.display = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    (async () => {
+      await loadDistricts();
+      await loadFilterOptions();
+      loadStats();
+    })();
+  }
+
+  // ── Add New Course modal ──
+  function openAddCourseModal() {
+    document.getElementById('ac-display-name').value = '';
+    document.getElementById('ac-slug').value = '';
+    document.getElementById('ac-icon').value = '';
+    document.getElementById('ac-admin-pwd').value = '';
+    document.getElementById('ac-error').textContent = '';
+    document.getElementById('ac-modal-overlay').classList.add('open');
+  }
+  function closeAddCourseModal() { document.getElementById('ac-modal-overlay').classList.remove('open'); }
+  function acAutoSlug() {
+    const slugEl = document.getElementById('ac-slug');
+    if (slugEl.dataset.userEdited === 'true') return;
+    const name = document.getElementById('ac-display-name').value || '';
+    slugEl.value = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+  document.getElementById('ac-slug').addEventListener('input', function () { this.dataset.userEdited = 'true'; });
+
+  async function submitNewCourse() {
+    const errEl = document.getElementById('ac-error');
+    const btn = document.getElementById('ac-submit-btn');
+    const display_name = document.getElementById('ac-display-name').value.trim();
+    const slug = document.getElementById('ac-slug').value.trim().toLowerCase();
+    const icon = document.getElementById('ac-icon').value.trim() || '⚕️';
+    const admin_password = document.getElementById('ac-admin-pwd').value;
+    if (!display_name) { errEl.textContent = 'Display name is required'; return; }
+    if (!admin_password) { errEl.textContent = 'Admin password is required'; return; }
+    btn.disabled = true; btn.textContent = 'Creating…'; errEl.textContent = '';
+    try {
+      const res = await fetch(`${API}/medical-predictor/courses/new`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_name, slug, icon, admin_password }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        closeAddCourseModal();
+        showToast(`✅ Course '${display_name}' created`);
+        await loadCourseCards();
+      } else { errEl.textContent = d.error || 'Failed to create course'; }
+    } catch (e) { errEl.textContent = 'Network error'; }
+    finally { btn.disabled = false; btn.textContent = 'Create Course'; }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadCourseCards);
+</script>
+
+</body>
+</html>
