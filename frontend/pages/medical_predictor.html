@@ -586,7 +586,67 @@
   }
 
   document.addEventListener('DOMContentLoaded', loadCourseCards);
+
+
+
+async function downloadPDF() {
+    if (!allResults.length) { showToast('⚠️ No results to download'); return; }
+    const payload = {
+      student: {
+        name: document.getElementById('student_name').value || 'Student',
+        neet_rank: document.getElementById('neet_rank').value || '-',
+        neet_marks: document.getElementById('neet_marks').value || '-',
+        category: document.getElementById('category').value || '-',
+      },
+      results: allResults,
+    };
+    try {
+      const res = await fetch(`${API}/medical-predictor/download-pdf`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      if (!res.ok) { showToast('❌ PDF generation failed'); return; }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Medical_Admission_Prediction.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) { showToast('❌ Network error'); }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </script>
+
+
+
+
+
+
+
 
 </body>
 </html>
