@@ -646,8 +646,6 @@
 
   document.addEventListener('DOMContentLoaded', loadCourseCards);
 
-
-
 async function downloadPDF() {
     if (!allResults.length) { showToast('⚠️ No results to download'); return; }
     const payload = {
@@ -676,37 +674,6 @@ async function downloadPDF() {
       window.URL.revokeObjectURL(url);
     } catch (e) { showToast('❌ Network error'); }
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 </script>
-
-
-
-
-
-
-
-
 </body>
 </html>

@@ -379,10 +379,20 @@ def upload_cutoff(course_slug):
                 ON CONFLICT (college_name, course_name, cap_year, cap_round, category,
                              sub_category, seat_type, quota_code, gender)
                 DO UPDATE SET
-                    neet_marks_cutoff = EXCLUDED.neet_marks_cutoff,
-                    neet_rank_cutoff  = EXCLUDED.neet_rank_cutoff,
-                    fees = EXCLUDED.fees,
-                    updated_at = CURRENT_TIMESTAMP
+                    college_code       = EXCLUDED.college_code,
+                    neet_marks_cutoff  = EXCLUDED.neet_marks_cutoff,
+                    neet_rank_cutoff   = EXCLUDED.neet_rank_cutoff,
+                    fees               = EXCLUDED.fees,
+                    university         = EXCLUDED.university,
+                    district           = EXCLUDED.district,
+                    location           = EXCLUDED.location,
+                    address            = EXCLUDED.address,
+                    naac_grade         = EXCLUDED.naac_grade,
+                    nba_accredited     = EXCLUDED.nba_accredited,
+                    website            = EXCLUDED.website,
+                    admission_authority = EXCLUDED.admission_authority,
+                    is_autonomous      = EXCLUDED.is_autonomous,
+                    updated_at         = CURRENT_TIMESTAMP
             """, (
                 str(val("college_code", "")).strip(),
                 college_name,
