@@ -84,29 +84,56 @@ def _check_admin(data):
     return None
 
 
-# ─── Rank/Marks-based probability (opposite direction from percentile) ───
-# A LOWER NEET rank is BETTER. So a student is more likely admitted the
-# further their rank is BELOW (numerically less than) the cutoff rank.
-def _calc_probability(student_rank, cutoff_rank):
+# ─── Rank-based & Marks-based probability (two SEPARATE calculations) ───
+# Rank: a LOWER NEET rank is BETTER — closing rank ABOVE the student's rank
+#   (i.e. numerically larger/worse) means the college is comfortably
+#   reachable => Very High. Closing rank BELOW the student's rank means the
+#   college needed a better rank than the student has => chance drops the
+#   further away that gets. Near-equal cutoff/rank => High (borderline).
+# Marks: a HIGHER NEET score is BETTER — the mirror image of rank. Cutoff
+#   marks BELOW the student's marks => easily cleared => Very High. Cutoff
+#   marks ABOVE the student's marks => harder to clear => chance drops the
+#   further away that gets.
+# Both share the same bucket thresholds; only the sign of diff_ratio differs
+# depending on which direction is "better" for that metric.
+def _prob_from_ratio(diff_ratio):
+    if diff_ratio >= 0.20:  return {"pct": 99, "label": "Very High"}
+    if diff_ratio >= 0.05:  return {"pct": 92, "label": "Very High"}
+    if diff_ratio >= -0.05: return {"pct": 78, "label": "High"}
+    if diff_ratio >= -0.15: return {"pct": 55, "label": "Medium"}
+    if diff_ratio >= -0.30: return {"pct": 30, "label": "Low"}
+    if diff_ratio >= -0.50: return {"pct": 12, "label": "Very Low"}
+    return {"pct": 0, "label": "Out of Range"}
+
+
+def _calc_rank_probability(student_rank, cutoff_rank):
+    # No cutoff data for this college => don't invent a probability.
     if student_rank is None or cutoff_rank is None:
-        return {"pct": 15, "label": "Unknown"}
+        return {"pct": 0, "label": "No Data"}
     try:
         student_rank = int(student_rank)
         cutoff_rank = int(cutoff_rank)
     except (TypeError, ValueError):
-        return {"pct": 15, "label": "Unknown"}
-
+        return {"pct": 0, "label": "No Data"}
+    if cutoff_rank <= 0:
+        return {"pct": 0, "label": "No Data"}
     # Positive diff = student's rank is BETTER (lower number) than the
     # last-admitted rank at this college/category last year.
-    diff_ratio = (cutoff_rank - student_rank) / max(cutoff_rank, 1)
+    return _prob_from_ratio((cutoff_rank - student_rank) / cutoff_rank)
 
-    if diff_ratio >= 0.20:  return {"pct": 99, "label": "Very High"}
-    if diff_ratio >= 0.10:  return {"pct": 92, "label": "High"}
-    if diff_ratio >= 0.02:  return {"pct": 80, "label": "High"}
-    if diff_ratio >= -0.02: return {"pct": 60, "label": "Medium"}
-    if diff_ratio >= -0.08: return {"pct": 40, "label": "Low"}
-    if diff_ratio >= -0.15: return {"pct": 20, "label": "Very Low"}
-    return {"pct": 8, "label": "Very Low"}
+
+def _calc_marks_probability(student_marks, cutoff_marks):
+    if student_marks is None or cutoff_marks is None:
+        return {"pct": 0, "label": "No Data"}
+    try:
+        student_marks = float(student_marks)
+        cutoff_marks = float(cutoff_marks)
+    except (TypeError, ValueError):
+        return {"pct": 0, "label": "No Data"}
+    if cutoff_marks <= 0:
+        return {"pct": 0, "label": "No Data"}
+    # Positive diff = student's marks are HIGHER (better) than the cutoff.
+    return _prob_from_ratio((student_marks - cutoff_marks) / cutoff_marks)
 
 
 def _chance_label(diff_ratio):
@@ -490,6 +517,10 @@ def stats():
 
 
 # ─── Predict — NEET Marks / NEET Rank based (core of this module) ────────
+# Rank-Based and Marks-Based prediction are two SEPARATE calculations
+# (never mixed into one probability number — see requirement doc). Rank
+# takes priority when both are supplied since NEET counselling itself runs
+# on rank; marks-only mode kicks in only when no rank is entered.
 @medical_predictor_bp.route("/medical-predictor/predict", methods=["POST"])
 def predict():
     data = request.get_json(silent=True) or {}
@@ -502,6 +533,8 @@ def predict():
     neet_marks = data.get("neet_marks")
     if not neet_rank and not neet_marks:
         return jsonify({"error": "Provide NEET Rank or NEET Marks"}), 400
+
+    mode = "rank" if neet_rank else "marks"
 
     category = data.get("category", "")
     cap_year = data.get("cap_year", "")
@@ -545,22 +578,29 @@ def predict():
         where.append("gender = %s")
         params.append(gender)
 
-    # Core NEET logic: a student is a realistic match at a college/round
-    # if their NEET rank is not drastically worse than the last-admitted
-    # (cutoff) rank there. We widen the window generously (up to 40% worse
-    # than cutoff) so "Dream" colleges still show up, then rank/label
-    # everything client-side-friendly via probability.
-    if neet_rank:
+    neet_rank_int = None
+    neet_marks_val = None
+    if mode == "rank":
         try:
             neet_rank_int = int(neet_rank)
-            where.append("neet_rank_cutoff IS NOT NULL AND neet_rank_cutoff >= %s * 0.6")
-            params.append(neet_rank_int)
         except (TypeError, ValueError):
-            neet_rank_int = None
+            return jsonify({"error": "NEET Rank must be a number"}), 400
+        order_by = "neet_rank_cutoff ASC NULLS LAST"
     else:
-        neet_rank_int = None
+        try:
+            neet_marks_val = float(neet_marks)
+        except (TypeError, ValueError):
+            return jsonify({"error": "NEET Marks must be a number"}), 400
+        order_by = "neet_marks_cutoff DESC NULLS LAST"
 
-    query = f"SELECT * FROM {table_name} WHERE {' AND '.join(where)} ORDER BY neet_rank_cutoff ASC"
+    # IMPORTANT: we no longer exclude rows here just because a cutoff looks
+    # "too tough" or "too easy" for this rank/marks. Every college matching
+    # the selected admission parameters (category, quota, round, etc.) is
+    # returned — the *Probability Chance* computed below is what tells the
+    # student how realistic each one is. Rows with no cutoff value, or that
+    # fall outside the range this filtered dataset has ever admitted, get
+    # Probability Chance = 0% instead of being silently dropped.
+    query = f"SELECT * FROM {table_name} WHERE {' AND '.join(where)} ORDER BY {order_by}"
 
     conn = get_connection()
     cur = get_cursor(conn)
@@ -569,23 +609,47 @@ def predict():
     cur.close()
     conn.close()
 
+    # ── Dataset-level out-of-range check (requirement #3) ──
+    # If the student's rank/marks falls outside the range this filtered
+    # dataset has EVER admitted, there is no cutoff evidence to support any
+    # probability at all, so every result in this set is forced to 0%.
+    dataset_out_of_range = False
+    if mode == "rank":
+        valid_cutoffs = [r["neet_rank_cutoff"] for r in rows if r.get("neet_rank_cutoff") is not None]
+        if valid_cutoffs and neet_rank_int > max(valid_cutoffs):
+            dataset_out_of_range = True
+    else:
+        valid_cutoffs = [r["neet_marks_cutoff"] for r in rows if r.get("neet_marks_cutoff") is not None]
+        if valid_cutoffs and neet_marks_val < min(float(v) for v in valid_cutoffs):
+            dataset_out_of_range = True
+
     results = []
     for r in rows:
         cutoff_rank = r.get("neet_rank_cutoff")
-        prob = _calc_probability(neet_rank_int, cutoff_rank)
-        diff_ratio = 0
-        if neet_rank_int and cutoff_rank:
-            diff_ratio = (cutoff_rank - neet_rank_int) / max(cutoff_rank, 1)
+        cutoff_marks = r.get("neet_marks_cutoff")
+
+        if mode == "rank":
+            prob = _calc_rank_probability(neet_rank_int, cutoff_rank)
+            diff_ratio = ((cutoff_rank - neet_rank_int) / cutoff_rank) if cutoff_rank else 0
+        else:
+            prob = _calc_marks_probability(neet_marks_val, cutoff_marks)
+            diff_ratio = ((neet_marks_val - float(cutoff_marks)) / float(cutoff_marks)) if cutoff_marks else 0
+
+        if dataset_out_of_range:
+            prob = {"pct": 0, "label": "Out of Range"}
+
         r["probability_pct"] = prob["pct"]
         r["probability_label"] = prob["label"]
-        r["chance"] = _chance_label(diff_ratio)
+        r["chance"] = _chance_label(diff_ratio) if prob["pct"] > 0 else "Dream"
+        r["prediction_mode"] = mode
         r["id"] = r.get("id")
         results.append(r)
 
     return jsonify({
         "total": len(results),
+        "mode": mode,
         "student_neet_rank": neet_rank_int,
-        "student_neet_marks": neet_marks,
+        "student_neet_marks": (float(neet_marks) if neet_marks not in (None, "") else None),
         "results": results,
     })
 
@@ -722,9 +786,30 @@ def download_pdf():
             leftMargin=10 * mm, rightMargin=10 * mm
         )
 
-        col_headers = ["Sr.", "College Name", "Course", "Seat Type", "Location",
-                        "Quota", "NEET Rank Cutoff", "Fees (₹)", "Chance"]
-        raw_widths = [10, 46, 20, 22, 20, 18, 24, 22, 20]
+        # Column ON/OFF toggles (requirement #5) — sent by the frontend as
+        # data.columns = {rank, marks, status, fees, probability}. College
+        # Code - College Name (+ CAP Round beneath it) is always shown and
+        # is not one of the toggle-able columns.
+        col_toggles = data.get("columns") or {}
+        show_status = col_toggles.get("status", True)
+        show_rank = col_toggles.get("rank", True)
+        show_marks = col_toggles.get("marks", True)
+        show_fees = col_toggles.get("fees", True)
+        show_probability = col_toggles.get("probability", True)
+
+        col_headers = ["Sr.", "College Code - College Name"]
+        raw_widths = [8, 62]
+        if show_status:
+            col_headers.append("Status"); raw_widths.append(16)
+        if show_rank:
+            col_headers.append("Rank"); raw_widths.append(20)
+        if show_marks:
+            col_headers.append("Marks"); raw_widths.append(18)
+        if show_fees:
+            col_headers.append("Fees (₹)"); raw_widths.append(20)
+        if show_probability:
+            col_headers.append("Probability Chance (%)"); raw_widths.append(26)
+
         available_width_mm = 297 - 20
         total_raw = sum(raw_widths)
         scale = available_width_mm / total_raw if total_raw > available_width_mm else 1.0
@@ -733,9 +818,6 @@ def download_pdf():
         table_data = [col_headers]
 
         for i, r in enumerate(results, start=1):
-            cutoff_rank = r.get("neet_rank_cutoff")
-            rank_str = _fmt_number(cutoff_rank)
-
             fees = _fmt_number(r.get("fees"))
             fees_str = Paragraph(
                 f"₹{fees} / year" if fees != "-" else "—",
@@ -747,22 +829,30 @@ def download_pdf():
             prob_label = r.get("probability_label") or chance
             prob_str = f"{prob_pct}% {prob_label}" if prob_pct is not None else prob_label
 
-            college_label = str(r.get("college_name") or "—")
-            course_label = str(r.get("course_name") or "—")
-            location_val = str(r.get("district") or r.get("location") or "—")
-            location_html = f'<font color="#dc2626">&#8226;</font> {location_val}' if location_val != "—" else "—"
+            college_code = str(r.get("college_code") or "").strip()
+            college_name_val = str(r.get("college_name") or "—")
+            code_name_label = f"{college_code} - {college_name_val}" if college_code else college_name_val
+            cap_round_val = str(r.get("cap_round") or "").strip()
+            cap_round_line = (
+                f'<br/><font size="7" color="#6b7280">CAP Round: {cap_round_val}</font>'
+                if cap_round_val else ""
+            )
+            college_para = Paragraph(
+                f"{code_name_label}{cap_round_line}",
+                ParagraphStyle("cn", fontSize=8, leading=10)
+            )
 
-            row = [
-                str(i),
-                Paragraph(college_label, ParagraphStyle("cn", fontSize=8, leading=10)),
-                Paragraph(course_label, ParagraphStyle("crs", fontSize=8, leading=10)),
-                str(r.get("seat_type") or "—"),
-                Paragraph(location_html, ParagraphStyle("loc", fontSize=8, leading=10, fontName=FEE_FONT, alignment=1)),
-                str(r.get("quota_code") or "—"),
-                rank_str,
-                fees_str,
-                prob_str,
-            ]
+            row = [str(i), college_para]
+            if show_status:
+                row.append(str(chance))
+            if show_rank:
+                row.append(_fmt_number(r.get("neet_rank_cutoff")))
+            if show_marks:
+                row.append(_fmt_number(r.get("neet_marks_cutoff")))
+            if show_fees:
+                row.append(fees_str)
+            if show_probability:
+                row.append(prob_str)
             table_data.append(row)
 
         tbl = Table(table_data, repeatRows=1, colWidths=col_widths)
@@ -774,7 +864,7 @@ def download_pdf():
             ("FONTSIZE", (0, 0), (-1, 0), 8),
             ("FONTSIZE", (0, 1), (-1, -1), 7),
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-            ("ALIGN", (1, 1), (2, -1), "LEFT"),
+            ("ALIGN", (1, 1), (1, -1), "LEFT"),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
             ("TOPPADDING", (0, 0), (-1, -1), 4),

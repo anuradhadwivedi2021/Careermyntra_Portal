@@ -80,6 +80,16 @@
     .chance-pill.Moderate { background: #fef9c3; color: #92400e; }
     .chance-pill.Dream { background: #fee2e2; color: #991b1b; }
 
+    .col-toggle-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .col-toggle-label { font-size: 12px; font-weight: 700; color: #6b7280; margin-right: 2px; }
+    .col-toggle-btn {
+      padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700;
+      border: 1.5px solid #e5e7eb; background: #fff; color: #9ca3af; cursor: pointer; transition: all 0.15s;
+    }
+    .col-toggle-btn.on { background: #059669; border-color: #059669; color: #fff; }
+    .cap-round-line { font-size: 11px; color: #6b7280; display: block; margin-top: 2px; }
+    .no-data-pill { background: #f3f4f6; color: #6b7280; }
+
     .admin-card { background: #fff; border: 1.5px solid #fde68a; border-radius: 16px; margin-top: 24px; overflow: hidden; }
     .admin-header { background: #fffbeb; padding: 14px 20px; font-weight: 800; color: #92400e; font-size: 13px; }
     .admin-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
@@ -282,6 +292,11 @@
     cap_round: { selected: new Set(), options: [], open: false },
   };
 
+  // Result column ON/OFF toggles (requirement #5). College Code - Name
+  // (with CAP Round beneath it) is always shown and is not toggle-able.
+  const columnToggles = { rank: true, marks: true, status: true, fees: true, probability: true };
+  const COLUMN_TOGGLE_LABELS = { status: 'Status', rank: 'Rank', marks: 'Marks', fees: 'Fees', probability: 'Probability' };
+
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
@@ -456,7 +471,10 @@
     finally { btn.disabled = false; btn.textContent = '🎯 Get Predictions'; }
   }
 
+  let lastPredictData = null;
+
   function renderResults(data) {
+    lastPredictData = data;
     const sec = document.getElementById('results-section');
     if (!data.total) {
       sec.innerHTML = `<div class="state-box"><div class="icon">😔</div><h3>No Colleges Found</h3><p>No cutoff data matches your filters.</p></div>`;
@@ -468,30 +486,71 @@
         <div class="sbox"><strong>${data.student_neet_rank || '—'}</strong><span>⭐ Your NEET Rank</span></div>
         <div class="sbox"><strong>${data.student_neet_marks || '—'}</strong><span>📊 Your NEET Marks</span></div>
       </div>`;
-    const rowsHTML = data.results.map((r, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td><strong>${r.college_name}</strong><br/><span style="font-size:11px;color:#6b7280;">📍 ${r.district || '—'}</span></td>
-        <td>${r.course_name || '—'}</td>
-        <td>${r.seat_type || '—'}</td>
-        <td>${r.quota_code || '—'}</td>
-        <td>${r.neet_rank_cutoff != null ? r.neet_rank_cutoff.toLocaleString() : '—'}</td>
-        <td>${r.fees ? '₹' + Number(r.fees).toLocaleString('en-IN') : '—'}</td>
-        <td><span class="chance-pill ${r.chance}">${r.probability_pct}% ${r.probability_label}</span></td>
-      </tr>`).join('');
+
+    const toggleBarHTML = `
+      <div class="col-toggle-bar">
+        <span class="col-toggle-label">Columns:</span>
+        ${Object.keys(COLUMN_TOGGLE_LABELS).map(key => `
+          <button type="button" class="col-toggle-btn ${columnToggles[key] ? 'on' : ''}" onclick="toggleColumn('${key}')">
+            ${COLUMN_TOGGLE_LABELS[key]}
+          </button>`).join('')}
+      </div>`;
+
     sec.innerHTML = summaryHTML + `
       <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
         <button class="btn-upload" style="background:linear-gradient(135deg,#1565c0,#0d47a1);" onclick="downloadPDF()">📄 Download PDF</button>
       </div>
+      ${toggleBarHTML}
       <div class="results-wrap">
-        <div class="table-scroll">
-          <table class="pred-table">
-            <thead><tr><th>Sr.</th><th>College</th><th>Course</th><th>Seat Type</th><th>Quota</th><th>NEET Rank Cutoff</th><th>Fees</th><th>Chance</th></tr></thead>
-            <tbody>${rowsHTML}</tbody>
-          </table>
-        </div>
+        <div class="table-scroll" id="results-table-scroll"></div>
       </div>`;
+    renderResultsTable();
     sec.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function toggleColumn(key) {
+    columnToggles[key] = !columnToggles[key];
+    // Just re-render the toggle bar + table in place, no need to redo the whole section.
+    document.querySelectorAll('.col-toggle-btn').forEach(btn => {
+      if (btn.textContent.trim() === COLUMN_TOGGLE_LABELS[key]) btn.classList.toggle('on', columnToggles[key]);
+    });
+    renderResultsTable();
+  }
+
+  function renderResultsTable() {
+    if (!lastPredictData || !lastPredictData.total) return;
+    const scroll = document.getElementById('results-table-scroll');
+    if (!scroll) return;
+
+    const headers = ['Sr.', 'College Code - College Name'];
+    if (columnToggles.status) headers.push('Status');
+    if (columnToggles.rank) headers.push('Rank');
+    if (columnToggles.marks) headers.push('Marks');
+    if (columnToggles.fees) headers.push('Fees');
+    if (columnToggles.probability) headers.push('Probability Chance (%)');
+
+    const rowsHTML = lastPredictData.results.map((r, i) => {
+      const codeName = r.college_code ? `${r.college_code} - ${r.college_name}` : (r.college_name || '—');
+      const capRoundLine = r.cap_round ? `<span class="cap-round-line">CAP Round: ${r.cap_round}</span>` : '';
+      let cells = `
+        <td>${i + 1}</td>
+        <td><strong>${codeName}</strong>${capRoundLine}</td>`;
+      if (columnToggles.status) cells += `<td><span class="chance-pill ${r.chance}">${r.chance}</span></td>`;
+      if (columnToggles.rank) cells += `<td>${r.neet_rank_cutoff != null ? r.neet_rank_cutoff.toLocaleString() : '—'}</td>`;
+      if (columnToggles.marks) cells += `<td>${r.neet_marks_cutoff != null ? r.neet_marks_cutoff : '—'}</td>`;
+      if (columnToggles.fees) cells += `<td>${r.fees ? '₹' + Number(r.fees).toLocaleString('en-IN') : '—'}</td>`;
+      if (columnToggles.probability) {
+        const pillClass = r.probability_pct > 0 ? (r.chance || 'Dream') : 'no-data-pill';
+        cells += `<td><span class="chance-pill ${pillClass}">${r.probability_pct}% ${r.probability_label}</span></td>`;
+      }
+      return `<tr>${cells}</tr>`;
+    }).join('');
+
+    scroll.innerHTML = `
+      <table class="pred-table">
+        <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${rowsHTML}</tbody>
+      </table>`;
   }
 
   function resetForm() {
@@ -599,6 +658,7 @@ async function downloadPDF() {
         category: document.getElementById('category').value || '-',
       },
       results: allResults,
+      columns: columnToggles,
     };
     try {
       const res = await fetch(`${API}/medical-predictor/download-pdf`, {
