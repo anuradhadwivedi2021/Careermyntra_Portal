@@ -438,7 +438,7 @@ def upload_cutoff(course_slug):
                     location, address, naac_grade, nba_accredited, website,
                     admission_authority, is_autonomous
                 ) VALUES (
-                    %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s
+                    %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s
                 )
                 ON CONFLICT (college_name, course_name, cap_year, cap_round, category,
                              sub_category, seat_type, quota_code, gender)
