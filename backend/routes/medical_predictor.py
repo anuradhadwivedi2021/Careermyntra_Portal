@@ -1138,7 +1138,8 @@ def list_medical_students():
     conn = get_connection()
     cur = get_cursor(conn)
     cur.execute("""
-        SELECT id, student_name, counsellor_name, course_slug, neet_rank, neet_marks, updated_at
+        SELECT id, student_name, counsellor_name, course_slug, neet_rank, neet_marks,
+               category, cap_year, updated_at
         FROM medical_predictor_students
         ORDER BY updated_at DESC
         LIMIT 200
@@ -1154,6 +1155,8 @@ def list_medical_students():
             "course_slug": r["course_slug"],
             "neet_rank": r["neet_rank"],
             "neet_marks": r["neet_marks"],
+            "category": r["category"],
+            "cap_year": r["cap_year"],
             "updated_at": r["updated_at"].isoformat() if r["updated_at"] else None,
         } for r in rows
     ])

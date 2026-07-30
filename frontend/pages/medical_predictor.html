@@ -259,6 +259,25 @@
 
   </div>
 
+  <div class="admin-card" style="margin-top:24px;">
+    <div class="admin-header" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);">💾 Saved Students</div>
+    <div class="admin-body">
+      <div class="table-scroll">
+        <table class="pred-table" id="saved-students-table">
+          <thead>
+            <tr>
+              <th>Student Name</th><th>Counsellor Name</th><th>Course</th>
+              <th>Rank</th><th>Marks</th><th>Category</th><th>CAP Year</th><th>Saved On</th>
+            </tr>
+          </thead>
+          <tbody id="saved-students-tbody">
+            <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:16px;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <div class="admin-card">
     <div class="admin-header">⚙️ Admin — Upload Medical Cutoff Data</div>
     <div class="admin-body">
@@ -495,7 +514,34 @@
       const sel = document.getElementById('saved_student_select');
       sel.innerHTML = '<option value="">— Select a saved student —</option>' +
         list.map(s => `<option value="${s.id}">${s.student_name}${s.counsellor_name ? ' (' + s.counsellor_name + ')' : ''}</option>`).join('');
+      renderSavedStudentsTable(list);
     } catch (e) { console.warn('load saved students failed', e); }
+  }
+
+  // ── Full "Saved Students" detail table (Student Name, Counsellor Name,
+  // Course, Rank, Marks, Category, CAP Year, Saved On) ──
+  function renderSavedStudentsTable(list) {
+    const tbody = document.getElementById('saved-students-tbody');
+    if (!tbody) return;
+    if (!list || !list.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:16px;">No students saved yet.</td></tr>`;
+      return;
+    }
+    const courseNameFor = (slug) => {
+      const c = AVAILABLE_COURSES.find(c => c.slug === slug);
+      return c ? c.display_name : (slug || '—');
+    };
+    tbody.innerHTML = list.map(s => `
+      <tr>
+        <td><strong>${s.student_name}</strong></td>
+        <td>${s.counsellor_name || '—'}</td>
+        <td>${courseNameFor(s.course_slug)}</td>
+        <td>${s.neet_rank || '—'}</td>
+        <td>${s.neet_marks || '—'}</td>
+        <td>${s.category || '—'}</td>
+        <td>${s.cap_year || '—'}</td>
+        <td>${s.updated_at ? new Date(s.updated_at).toLocaleString() : '—'}</td>
+      </tr>`).join('');
   }
 
   // ── Pre-fill the form from a saved student (requirement #5) ──
