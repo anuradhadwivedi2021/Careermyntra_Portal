@@ -151,8 +151,23 @@
       <div class="form-body">
 
         <div class="field">
+          <label>Course *</label>
+          <select id="form_course_select" onchange="onCourseDropdownChange()"><option value="">Loading…</option></select>
+        </div>
+
+        <div class="field">
+          <label>Load Saved Student</label>
+          <select id="saved_student_select" onchange="loadSavedStudent()"><option value="">— Select a saved student —</option></select>
+        </div>
+
+        <div class="field">
           <label>Student Name</label>
           <input type="text" id="student_name" placeholder="Enter student full name"/>
+        </div>
+
+        <div class="field">
+          <label>Counsellor Name</label>
+          <input type="text" id="counsellor_name" placeholder="Enter counsellor name"/>
         </div>
 
         <div class="grid-2">
@@ -227,6 +242,9 @@
           <button class="btn-reset" onclick="resetForm()">↩ Reset</button>
           <button class="btn-predict" id="predict-btn" onclick="runPredict()" style="flex:1;">🎯 Get Predictions</button>
         </div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn-upload" style="width:100%;background:linear-gradient(135deg,#7c3aed,#5b21b6);" onclick="saveStudent()">💾 Save Student</button>
+        </div>
 
       </div>
     </div>
@@ -284,6 +302,7 @@
     : 'https://edtechmyntra.com/api';
 
   let SELECTED_COURSE_SLUG = null;
+  let AVAILABLE_COURSES = [];
 
   const state = {
     district: { selected: new Set(), options: [], open: false },
@@ -295,7 +314,7 @@
   // Result column ON/OFF toggles (requirement #5). College Code - Name
   // (with CAP Round beneath it) is always shown and is not toggle-able.
   const columnToggles = { rank: true, marks: true, status: true, fees: true, probability: true };
-  const COLUMN_TOGGLE_LABELS = { status: 'Status', rank: 'Rank', marks: 'Marks', fees: 'Fees', probability: 'Probability' };
+  const COLUMN_TOGGLE_LABELS = { status: 'Chance', rank: 'Rank', marks: 'Marks', fees: 'Fees', probability: 'Probability' };
 
   function showToast(msg) {
     const t = document.getElementById('toast');
@@ -436,6 +455,86 @@
     btn.disabled = false; btn.textContent = 'Upload Cutoff Data';
   }
 
+  // ── Save Student (requirement #5) ──
+  async function saveStudent() {
+    const name = document.getElementById('student_name').value.trim();
+    if (!name) { showToast('⚠️ Enter Student Name first'); return; }
+
+    const payload = {
+      student_name: name,
+      counsellor_name: document.getElementById('counsellor_name').value.trim(),
+      course_slug: SELECTED_COURSE_SLUG || 'mbbs',
+      neet_rank: document.getElementById('neet_rank').value,
+      neet_marks: document.getElementById('neet_marks').value,
+      category: document.getElementById('category').value,
+      gender: document.getElementById('gender').value,
+      cap_year: document.getElementById('cap_year').value,
+      cap_round: [...state.cap_round.selected],
+      districts: [...state.district.selected],
+      seat_types: [...state.seat_type.selected],
+      quotas: [...state.quota.selected],
+      colleges: [],
+    };
+
+    try {
+      const res = await fetch(`${API}/medical-predictor/students`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      const d = await res.json();
+      if (!res.ok) { showToast('❌ ' + (d.error || 'Save failed')); return; }
+      showToast('✅ Student saved');
+      loadSavedStudentsDropdown();
+    } catch (e) { showToast('❌ Network error while saving'); }
+  }
+
+  // ── Load saved students into the dropdown ──
+  async function loadSavedStudentsDropdown() {
+    try {
+      const res = await fetch(`${API}/medical-predictor/students`);
+      const list = await res.json();
+      const sel = document.getElementById('saved_student_select');
+      sel.innerHTML = '<option value="">— Select a saved student —</option>' +
+        list.map(s => `<option value="${s.id}">${s.student_name}${s.counsellor_name ? ' (' + s.counsellor_name + ')' : ''}</option>`).join('');
+    } catch (e) { console.warn('load saved students failed', e); }
+  }
+
+  // ── Pre-fill the form from a saved student (requirement #5) ──
+  async function loadSavedStudent() {
+    const id = document.getElementById('saved_student_select').value;
+    if (!id) return;
+    try {
+      const res = await fetch(`${API}/medical-predictor/students/${id}`);
+      const s = await res.json();
+      if (!res.ok) { showToast('❌ ' + (s.error || 'Could not load student')); return; }
+
+      document.getElementById('student_name').value = s.student_name || '';
+      document.getElementById('counsellor_name').value = s.counsellor_name || '';
+      document.getElementById('neet_rank').value = s.neet_rank || '';
+      document.getElementById('neet_marks').value = s.neet_marks || '';
+
+      const switchCourse = s.course_slug && s.course_slug !== SELECTED_COURSE_SLUG;
+      if (switchCourse) {
+        SELECTED_COURSE_SLUG = s.course_slug;
+        populateCourseDropdown();
+        await loadDistricts();
+        await loadFilterOptions();
+        loadStats();
+      }
+
+      document.getElementById('category').value = s.category || '';
+      document.getElementById('gender').value = s.gender || '';
+      document.getElementById('cap_year').value = s.cap_year || '';
+
+      state.cap_round.selected = new Set(s.cap_round || []);
+      state.district.selected = new Set(s.districts || []);
+      state.seat_type.selected = new Set(s.seat_types || []);
+      state.quota.selected = new Set(s.quotas || []);
+      ['district', 'seat_type', 'quota', 'cap_round'].forEach(renderBox);
+
+      showToast('✅ Student loaded');
+    } catch (e) { showToast('❌ Network error while loading student'); }
+  }
+
   // ── Predict ──
   let allResults = [];
   async function runPredict() {
@@ -522,8 +621,8 @@
     const scroll = document.getElementById('results-table-scroll');
     if (!scroll) return;
 
-    const headers = ['Sr.', 'College Code - College Name'];
-    if (columnToggles.status) headers.push('Status');
+    const headers = ['Sr.', 'College Code - College Name', 'College Status'];
+    if (columnToggles.status) headers.push('Chance');
     if (columnToggles.rank) headers.push('Rank');
     if (columnToggles.marks) headers.push('Marks');
     if (columnToggles.fees) headers.push('Fees');
@@ -534,7 +633,8 @@
       const capRoundLine = r.cap_round ? `<span class="cap-round-line">CAP Round: ${r.cap_round}</span>` : '';
       let cells = `
         <td>${i + 1}</td>
-        <td><strong>${codeName}</strong>${capRoundLine}</td>`;
+        <td><strong>${codeName}</strong>${capRoundLine}</td>
+        <td>${r.college_status || '—'}</td>`;
       if (columnToggles.status) cells += `<td><span class="chance-pill ${r.chance}">${r.chance}</span></td>`;
       if (columnToggles.rank) cells += `<td>${r.neet_rank_cutoff != null ? r.neet_rank_cutoff.toLocaleString() : '—'}</td>`;
       if (columnToggles.marks) cells += `<td>${r.neet_marks_cutoff != null ? r.neet_marks_cutoff : '—'}</td>`;
@@ -555,6 +655,8 @@
 
   function resetForm() {
     document.getElementById('student_name').value = '';
+    document.getElementById('counsellor_name').value = '';
+    document.getElementById('saved_student_select').selectedIndex = 0;
     document.getElementById('neet_rank').value = '';
     document.getElementById('neet_marks').value = '';
     document.getElementById('category').selectedIndex = 0;
@@ -569,6 +671,7 @@
     try {
       const res = await fetch(`${API}/medical-predictor/available-courses`);
       const data = await res.json();
+      AVAILABLE_COURSES = (data.success && data.courses) ? data.courses : [];
       const grid = document.getElementById('course-cards-grid');
       if (!data.success || !data.courses.length) {
         grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#9ca3af;">No courses available yet.</div>`;
@@ -584,9 +687,34 @@
       addCard.onclick = openAddCourseModal;
       addCard.innerHTML = `<div class="cc-icon">➕</div><div class="cc-name">Add New Course</div>`;
       grid.appendChild(addCard);
+      populateCourseDropdown();
     } catch (e) {
       document.getElementById('course-cards-grid').innerHTML = `<div style="grid-column:1/-1;color:#ef4444;">⚠️ Could not load courses.</div>`;
     }
+  }
+
+  // Course dropdown INSIDE the NEET Prediction Form (requirement #1) — lets
+  // the student switch course without going back to the course-card page.
+  // Changing it re-fetches filters/districts/colleges/stats for the new
+  // course's dataset, exactly like clicking a different course card.
+  function populateCourseDropdown() {
+    const sel = document.getElementById('form_course_select');
+    if (!AVAILABLE_COURSES.length) { sel.innerHTML = '<option value="">No courses found</option>'; return; }
+    sel.innerHTML = AVAILABLE_COURSES.map(c =>
+      `<option value="${c.slug}" ${c.slug === SELECTED_COURSE_SLUG ? 'selected' : ''}>${c.display_name}</option>`
+    ).join('');
+  }
+
+  function onCourseDropdownChange() {
+    const slug = document.getElementById('form_course_select').value;
+    if (!slug || slug === SELECTED_COURSE_SLUG) return;
+    SELECTED_COURSE_SLUG = slug;
+    Object.keys(state).forEach(t => { state[t].selected.clear(); renderBox(t); });
+    (async () => {
+      await loadDistricts();
+      await loadFilterOptions();
+      loadStats();
+    })();
   }
 
   function selectCourse(slug) {
@@ -594,6 +722,8 @@
     document.getElementById('course-cards-wrap').style.display = 'none';
     document.getElementById('predictor-page-content').style.display = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    populateCourseDropdown();
+    loadSavedStudentsDropdown();
     (async () => {
       await loadDistricts();
       await loadFilterOptions();
@@ -646,6 +776,8 @@
 
   document.addEventListener('DOMContentLoaded', loadCourseCards);
 
+
+
 async function downloadPDF() {
     if (!allResults.length) { showToast('⚠️ No results to download'); return; }
     const payload = {
@@ -674,6 +806,37 @@ async function downloadPDF() {
       window.URL.revokeObjectURL(url);
     } catch (e) { showToast('❌ Network error'); }
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </script>
+
+
+
+
+
+
+
+
 </body>
 </html>

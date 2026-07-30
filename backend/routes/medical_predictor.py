@@ -41,6 +41,7 @@
 import os
 import re
 import io
+import json
 import pandas as pd
 from flask import Blueprint, request, jsonify, send_file
 from dotenv import load_dotenv
@@ -84,6 +85,59 @@ def _check_admin(data):
     return None
 
 
+# ─── One-time startup migration ──────────────────────────────────────────
+# Adds the college_status column to every EXISTING medical course table
+# (MBBS, BDS, and any custom courses added later) so older tables created
+# before this column existed still get it. Safe to run every time the app
+# starts — IF NOT EXISTS makes it a no-op once applied. Also creates the
+# saved-students table used by the "Save Student" feature.
+def _ensure_medical_schema():
+    try:
+        conn = get_connection()
+        cur = get_cursor(conn)
+        try:
+            cur.execute("SELECT table_name FROM medical_courses")
+            table_names = [r["table_name"] for r in cur.fetchall()]
+        except Exception:
+            table_names = []  # medical_courses table itself doesn't exist yet — nothing to migrate
+
+        for tbl in table_names:
+            try:
+                cur.execute(f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS college_status VARCHAR(100)")
+            except Exception:
+                logger.exception(f"[medical:schema_migration] failed to add college_status to {tbl}")
+        conn.commit()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS medical_predictor_students (
+                id                SERIAL PRIMARY KEY,
+                student_name      TEXT NOT NULL,
+                counsellor_name   TEXT,
+                course_slug       TEXT,
+                neet_rank         TEXT,
+                neet_marks        TEXT,
+                category          TEXT,
+                gender            TEXT,
+                cap_year          TEXT,
+                cap_round         JSONB DEFAULT '[]',
+                districts         JSONB DEFAULT '[]',
+                seat_types        JSONB DEFAULT '[]',
+                quotas            JSONB DEFAULT '[]',
+                colleges          JSONB DEFAULT '[]',
+                created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception:
+        logger.exception("[medical:schema_migration] startup migration failed")
+
+
+_ensure_medical_schema()
+
+
 # ─── Rank-based & Marks-based probability (two SEPARATE calculations) ───
 # Rank: a LOWER NEET rank is BETTER — closing rank ABOVE the student's rank
 #   (i.e. numerically larger/worse) means the college is comfortably
@@ -96,13 +150,21 @@ def _check_admin(data):
 #   further away that gets.
 # Both share the same bucket thresholds; only the sign of diff_ratio differs
 # depending on which direction is "better" for that metric.
+#
+# Bucket widths were retuned to match the requirement's explicit examples:
+#   - Rank 18,000 with a cutoff anywhere in 17,500-18,500 (~±3%) => High
+#   - Marks 439 with a cutoff anywhere in 434-444 (~±1-2%) => High
+# The old wider "-0.05 to +0.05 => High" band let a college needing far
+# more marks/a far better rank (e.g. cutoff 500 for a 439-marks student,
+# diff_ratio -12%) fall into "High" by mistake — that band is now much
+# tighter (-3% to +8%) so only genuinely-close cutoffs land in High.
 def _prob_from_ratio(diff_ratio):
-    if diff_ratio >= 0.20:  return {"pct": 99, "label": "Very High"}
-    if diff_ratio >= 0.05:  return {"pct": 92, "label": "Very High"}
-    if diff_ratio >= -0.05: return {"pct": 78, "label": "High"}
-    if diff_ratio >= -0.15: return {"pct": 55, "label": "Medium"}
-    if diff_ratio >= -0.30: return {"pct": 30, "label": "Low"}
-    if diff_ratio >= -0.50: return {"pct": 12, "label": "Very Low"}
+    if diff_ratio >= 0.25:  return {"pct": 99, "label": "Very High"}
+    if diff_ratio >= 0.08:  return {"pct": 92, "label": "Very High"}
+    if diff_ratio >= -0.03: return {"pct": 78, "label": "High"}
+    if diff_ratio >= -0.10: return {"pct": 55, "label": "Medium"}
+    if diff_ratio >= -0.25: return {"pct": 30, "label": "Low"}
+    if diff_ratio >= -0.45: return {"pct": 12, "label": "Very Low"}
     return {"pct": 0, "label": "Out of Range"}
 
 
@@ -224,6 +286,7 @@ def add_new_medical_course():
                 neet_marks_cutoff NUMERIC(7,2),
                 neet_rank_cutoff INTEGER,
                 fees NUMERIC(12,2),
+                college_status VARCHAR(100),
                 university VARCHAR(300),
                 district VARCHAR(100),
                 location TEXT,
@@ -339,6 +402,7 @@ def upload_cutoff(course_slug):
         "course": "course_name",
         "quota": "quota_code",
         "branch": "course_name",
+        "status": "college_status",  # e.g. Un-Aided / Government / Corporation
     }
     df = df.rename(columns={k: v for k, v in COLUMN_ALIASES.items() if k in df.columns})
 
@@ -370,7 +434,7 @@ def upload_cutoff(course_slug):
                 INSERT INTO {table_name} (
                     college_code, college_name, course_name, category, sub_category,
                     seat_type, quota_code, gender, cap_year, cap_round,
-                    neet_marks_cutoff, neet_rank_cutoff, fees, university, district,
+                    neet_marks_cutoff, neet_rank_cutoff, fees, college_status, university, district,
                     location, address, naac_grade, nba_accredited, website,
                     admission_authority, is_autonomous
                 ) VALUES (
@@ -383,6 +447,7 @@ def upload_cutoff(course_slug):
                     neet_marks_cutoff  = EXCLUDED.neet_marks_cutoff,
                     neet_rank_cutoff   = EXCLUDED.neet_rank_cutoff,
                     fees               = EXCLUDED.fees,
+                    college_status     = EXCLUDED.college_status,
                     university         = EXCLUDED.university,
                     district           = EXCLUDED.district,
                     location           = EXCLUDED.location,
@@ -407,6 +472,7 @@ def upload_cutoff(course_slug):
                 val("neet_marks_cutoff"),
                 val("neet_rank_cutoff"),
                 val("fees"),
+                str(val("college_status", "")).strip() or None,
                 str(val("university", "")).strip() or None,
                 str(val("district", "")).strip() or None,
                 str(val("location", "")).strip() or None,
@@ -807,10 +873,10 @@ def download_pdf():
         show_fees = col_toggles.get("fees", True)
         show_probability = col_toggles.get("probability", True)
 
-        col_headers = ["Sr.", "College Code - College Name"]
-        raw_widths = [8, 62]
+        col_headers = ["Sr.", "College Code - College Name", "College Status"]
+        raw_widths = [8, 56, 20]
         if show_status:
-            col_headers.append("Status"); raw_widths.append(16)
+            col_headers.append("Chance"); raw_widths.append(14)
         if show_rank:
             col_headers.append("Rank"); raw_widths.append(20)
         if show_marks:
@@ -852,7 +918,9 @@ def download_pdf():
                 ParagraphStyle("cn", fontSize=8, leading=10)
             )
 
-            row = [str(i), college_para]
+            college_status_val = str(r.get("college_status") or "—").strip() or "—"
+
+            row = [str(i), college_para, college_status_val]
             if show_status:
                 row.append(str(chance))
             if show_rank:
@@ -966,3 +1034,191 @@ def clear_data():
     finally:
         cur.close()
         conn.close()
+
+
+# ─── Save Student — Medical Prediction Form (requirement #5) ────────────
+# Saves: Student Details, Course, Marks, Rank, selected admission
+# parameters (category/quota/gender/districts/seat types/CAP year/round/
+# colleges), and Counsellor Name. One row per student name — re-saving the
+# same student name updates that row instead of creating duplicates, same
+# pattern as the Engineering predictor's predictor_students table.
+@medical_predictor_bp.route("/medical-predictor/students", methods=["POST"])
+def save_medical_student():
+    data = request.get_json(silent=True) or {}
+
+    student_id = data.get("id")
+    name = (data.get("student_name") or "").strip()
+    if not name:
+        return jsonify({"error": "student_name is required"}), 400
+
+    counsellor_name = (data.get("counsellor_name") or "").strip()
+    course_slug = data.get("course_slug", "")
+    neet_rank = str(data.get("neet_rank", "") or "")
+    neet_marks = str(data.get("neet_marks", "") or "")
+    category = data.get("category", "")
+    gender = data.get("gender", "")
+    cap_year = data.get("cap_year", "")
+    cap_round = data.get("cap_round", [])
+    districts = data.get("districts", [])
+    seat_types = data.get("seat_types", [])
+    quotas = data.get("quotas", [])
+    colleges = data.get("colleges", [])
+
+    if not isinstance(cap_round, list):
+        cap_round = [cap_round] if cap_round else []
+
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        if student_id:
+            cur.execute("""
+                UPDATE medical_predictor_students SET
+                    student_name = %s, counsellor_name = %s, course_slug = %s,
+                    neet_rank = %s, neet_marks = %s, category = %s, gender = %s,
+                    cap_year = %s, cap_round = %s, districts = %s, seat_types = %s,
+                    quotas = %s, colleges = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (
+                name, counsellor_name, course_slug, neet_rank, neet_marks, category, gender,
+                cap_year, json.dumps(cap_round), json.dumps(districts), json.dumps(seat_types),
+                json.dumps(quotas), json.dumps(colleges), student_id
+            ))
+            if cur.rowcount == 0:
+                student_id = None
+
+        if not student_id:
+            cur.execute(
+                "SELECT id FROM medical_predictor_students WHERE student_name = %s "
+                "ORDER BY updated_at DESC LIMIT 1", (name,)
+            )
+            existing = cur.fetchone()
+            if existing:
+                student_id = existing[0]
+                cur.execute("""
+                    UPDATE medical_predictor_students SET
+                        counsellor_name = %s, course_slug = %s, neet_rank = %s, neet_marks = %s,
+                        category = %s, gender = %s, cap_year = %s, cap_round = %s,
+                        districts = %s, seat_types = %s, quotas = %s, colleges = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (
+                    counsellor_name, course_slug, neet_rank, neet_marks, category, gender,
+                    cap_year, json.dumps(cap_round), json.dumps(districts), json.dumps(seat_types),
+                    json.dumps(quotas), json.dumps(colleges), student_id
+                ))
+            else:
+                cur.execute("""
+                    INSERT INTO medical_predictor_students (
+                        student_name, counsellor_name, course_slug, neet_rank, neet_marks,
+                        category, gender, cap_year, cap_round, districts, seat_types, quotas, colleges
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    RETURNING id
+                """, (
+                    name, counsellor_name, course_slug, neet_rank, neet_marks, category, gender,
+                    cap_year, json.dumps(cap_round), json.dumps(districts), json.dumps(seat_types),
+                    json.dumps(quotas), json.dumps(colleges)
+                ))
+                student_id = cur.fetchone()[0]
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        logger.exception("[medical:save_student] failed")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+    return jsonify({"message": "Student saved", "id": student_id})
+
+
+# ─── List saved students (dropdown to pick from) ─────────────────────────
+@medical_predictor_bp.route("/medical-predictor/students", methods=["GET"])
+def list_medical_students():
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute("""
+        SELECT id, student_name, counsellor_name, course_slug, neet_rank, neet_marks, updated_at
+        FROM medical_predictor_students
+        ORDER BY updated_at DESC
+        LIMIT 200
+    """)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([
+        {
+            "id": r["id"],
+            "student_name": r["student_name"],
+            "counsellor_name": r["counsellor_name"],
+            "course_slug": r["course_slug"],
+            "neet_rank": r["neet_rank"],
+            "neet_marks": r["neet_marks"],
+            "updated_at": r["updated_at"].isoformat() if r["updated_at"] else None,
+        } for r in rows
+    ])
+
+
+# ─── Search saved students by name ───────────────────────────────────────
+@medical_predictor_bp.route("/medical-predictor/students/search", methods=["GET"])
+def search_medical_students():
+    q = request.args.get("q", "").strip()
+    conn = get_connection()
+    cur = get_cursor(conn)
+    if q:
+        cur.execute("""
+            SELECT id, student_name, counsellor_name, course_slug, updated_at
+            FROM medical_predictor_students
+            WHERE student_name ILIKE %s
+            ORDER BY updated_at DESC
+            LIMIT 50
+        """, (f"%{q}%",))
+    else:
+        cur.execute("""
+            SELECT id, student_name, counsellor_name, course_slug, updated_at
+            FROM medical_predictor_students
+            ORDER BY updated_at DESC
+            LIMIT 50
+        """)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([
+        {
+            "id": r["id"],
+            "student_name": r["student_name"],
+            "counsellor_name": r["counsellor_name"],
+            "course_slug": r["course_slug"],
+            "updated_at": r["updated_at"].isoformat() if r["updated_at"] else None,
+        } for r in rows
+    ])
+
+
+# ─── Full saved data for one student (used for form pre-fill) ───────────
+@medical_predictor_bp.route("/medical-predictor/students/<int:student_id>", methods=["GET"])
+def get_medical_student(student_id):
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute("SELECT * FROM medical_predictor_students WHERE id = %s", (student_id,))
+    r = cur.fetchone()
+    cur.close()
+    conn.close()
+    if not r:
+        return jsonify({"error": "Student not found"}), 404
+
+    return jsonify({
+        "id": r["id"],
+        "student_name": r["student_name"],
+        "counsellor_name": r["counsellor_name"] or "",
+        "course_slug": r["course_slug"] or "",
+        "neet_rank": r["neet_rank"] or "",
+        "neet_marks": r["neet_marks"] or "",
+        "category": r["category"] or "",
+        "gender": r["gender"] or "",
+        "cap_year": r["cap_year"] or "",
+        "cap_round": r["cap_round"] or [],
+        "districts": r["districts"] or [],
+        "seat_types": r["seat_types"] or [],
+        "quotas": r["quotas"] or [],
+        "colleges": r["colleges"] or [],
+    })
