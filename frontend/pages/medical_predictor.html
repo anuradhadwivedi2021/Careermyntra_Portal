@@ -385,6 +385,7 @@
     : 'https://edtechmyntra.com/api';
 
   let SELECTED_COURSE_SLUG = null;
+  let currentStudentId = null;
   let AVAILABLE_COURSES = [];
 
   const state = {
@@ -591,6 +592,7 @@
       const s = await res.json();
       if (!res.ok) { showToast('❌ ' + (s.error || 'Could not load student')); return; }
 
+      currentStudentId = s.id;
       document.getElementById('student_name').value = s.student_name || '';
       document.getElementById('counsellor_name').value = s.counsellor_name || '';
       document.getElementById('neet_rank').value = s.neet_rank || '';
@@ -739,7 +741,11 @@
   // save step to end up connected in medical_predictor_students. ──
   const _originalRunPredict = runPredict;
   runPredict = async function () {
-    await saveStudent(true); // silent — doesn't toast/alert on failure
+    try {
+      await saveStudent(true); // silent — doesn't toast/alert on failure
+    } catch (e) {
+      console.warn('auto-save on predict failed (non-blocking):', e);
+    }
     await _originalRunPredict();
   };
 
@@ -862,6 +868,7 @@
   }
 
   function resetForm() {
+    currentStudentId = null;
     document.getElementById('student_name').value = '';
     document.getElementById('counsellor_name').value = '';
     document.getElementById('saved_student_select').selectedIndex = 0;
