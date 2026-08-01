@@ -721,6 +721,36 @@ def predict():
         r["id"] = r.get("id")
         results.append(r)
 
+    # ── De-duplicate by college (requirement) ──
+    # The same college often has several historical cutoff rows after
+    # filters are applied (one per CAP round, seat type, quota, etc.), so
+    # it used to appear multiple times in the list with different
+    # probabilities — confusing to read and to build an option form from.
+    # We now keep exactly ONE row per college: whichever of its matching
+    # records gives the student the best (highest) Probability Chance, i.e.
+    # the most favourable cutoff for THIS student among that college's
+    # available rounds/quotas — recalculated on that single selected
+    # record only, per the requirement.
+    best_by_college = {}
+    for r in results:
+        key = (r.get("college_code") or "").strip() or (r.get("college_name") or "").strip()
+        current_best = best_by_college.get(key)
+        if current_best is None or r["probability_pct"] > current_best["probability_pct"]:
+            best_by_college[key] = r
+
+    deduped = list(best_by_college.values())
+
+    # Keep the same "hardest cutoff first" reading order used before
+    # de-duplication, now applied to each college's single representative
+    # record: lowest rank cutoff first (rank mode) / highest marks cutoff
+    # first (marks mode). Rows with no cutoff value sort last.
+    if mode == "rank":
+        deduped.sort(key=lambda r: (r.get("neet_rank_cutoff") is None, r.get("neet_rank_cutoff")))
+    else:
+        deduped.sort(key=lambda r: (r.get("neet_marks_cutoff") is None, -(r.get("neet_marks_cutoff") or 0)))
+
+    results = deduped
+
     return jsonify({
         "total": len(results),
         "mode": mode,
