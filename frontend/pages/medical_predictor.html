@@ -242,8 +242,9 @@
           <button class="btn-reset" onclick="resetForm()">↩ Reset</button>
           <button class="btn-predict" id="predict-btn" onclick="runPredict()" style="flex:1;">🎯 Get Predictions</button>
         </div>
-        <div class="btn-row" style="margin-top:8px;">
-          <button class="btn-upload" style="width:100%;background:linear-gradient(135deg,#7c3aed,#5b21b6);" onclick="saveStudent()">💾 Save Student</button>
+        <div class="btn-row" style="margin-top:8px;gap:8px;">
+          <button class="btn-upload" style="flex:1;background:linear-gradient(135deg,#7c3aed,#5b21b6);" onclick="saveStudent()">💾 Save Student</button>
+          <button class="btn-upload" style="flex:1;background:linear-gradient(135deg,#16a34a,#15803d);" onclick="openStudentsModal()">👥 Students</button>
         </div>
 
       </div>
@@ -257,25 +258,6 @@
       </div>
     </div>
 
-  </div>
-
-  <div class="admin-card" style="margin-top:24px;">
-    <div class="admin-header" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);">💾 Saved Students</div>
-    <div class="admin-body">
-      <div class="table-scroll">
-        <table class="pred-table" id="saved-students-table">
-          <thead>
-            <tr>
-              <th>Student Name</th><th>Counsellor Name</th><th>Course</th>
-              <th>Rank</th><th>Marks</th><th>Category</th><th>CAP Year</th><th>Saved On</th>
-            </tr>
-          </thead>
-          <tbody id="saved-students-tbody">
-            <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:16px;">Loading…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
   </div>
 
   <div class="admin-card">
@@ -314,6 +296,88 @@
 </div>
 
 <div id="toast"></div>
+
+<style>
+  .students-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 1000; align-items: center; justify-content: center;
+  }
+  .students-modal-overlay.open { display: flex; }
+  .students-modal {
+    background: #fff; border-radius: 14px; width: 92%; max-width: 950px;
+    max-height: 82vh; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  }
+  .students-modal-header {
+    padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex;
+    align-items: center; justify-content: space-between;
+  }
+  .students-modal-header h3 { margin: 0; font-size: 16px; color: #0d1b3e; }
+  .students-modal-close { border: none; background: transparent; font-size: 20px; cursor: pointer; color: #6b7280; }
+  .students-modal-search {
+    margin: 12px 20px 0; padding: 9px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px;
+    font-size: 13px; font-family: inherit; outline: none;
+  }
+  .students-modal-search:focus { border-color: #16a34a; }
+  .students-modal-body { padding: 12px 20px 20px; overflow-y: auto; }
+  .students-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .students-table th, .students-table td {
+    text-align: left; padding: 8px 10px; border-bottom: 1px solid #f3f4f6; white-space: nowrap;
+  }
+  .students-table th { color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  .students-table td { color: #0d1b3e; }
+  .btn-delete-student {
+    padding: 6px 12px; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 7px;
+    font-size: 12px; font-weight: 700; color: #b91c1c; cursor: pointer; font-family: inherit;
+  }
+  .btn-delete-student:hover { background: #fee2e2; }
+  .students-table-empty { text-align: center; color: #9ca3af; padding: 24px; font-size: 13px; }
+
+  .admin-pwd-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 1100; align-items: center; justify-content: center;
+  }
+  .admin-pwd-overlay.open { display: flex; }
+  .admin-pwd-box { background: #fff; border-radius: 12px; padding: 20px; width: 92%; max-width: 340px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+  .admin-pwd-box h4 { margin: 0 0 10px; font-size: 14px; color: #0d1b3e; }
+  .admin-pwd-box input {
+    width: 100%; padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+    font-size: 13px; font-family: inherit; outline: none; margin-bottom: 10px;
+  }
+  .admin-pwd-box input:focus { border-color: #16a34a; }
+  .admin-pwd-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .admin-pwd-actions button { padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; border: 1.5px solid transparent; }
+  .admin-pwd-cancel { background: #f3f4f6; color: #374151; }
+  .admin-pwd-confirm { background: #b91c1c; color: #fff; }
+  .admin-pwd-error { color: #b91c1c; font-size: 11px; margin: -4px 0 8px; min-height: 14px; }
+</style>
+
+<div class="students-modal-overlay" id="students-modal-overlay">
+  <div class="students-modal">
+    <div class="students-modal-header">
+      <h3>👥 Saved Students</h3>
+      <button class="students-modal-close" onclick="closeStudentsModal()">✕</button>
+    </div>
+    <input type="text" class="students-modal-search" id="students-modal-search"
+           placeholder="🔍 Search saved students by name..." autocomplete="off"
+           oninput="filterStudentsModal(this.value)"/>
+    <div class="students-modal-body" id="students-modal-body">
+      <div class="students-table-empty">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<div class="admin-pwd-overlay" id="admin-pwd-overlay">
+  <div class="admin-pwd-box">
+    <h4>🔒 Enter admin password to delete this student</h4>
+    <input type="password" id="admin-pwd-input" placeholder="Admin password" autocomplete="off" />
+    <div class="admin-pwd-error" id="admin-pwd-error"></div>
+    <div class="admin-pwd-actions">
+      <button class="admin-pwd-cancel" onclick="closeAdminPwdModal()">Cancel</button>
+      <button class="admin-pwd-confirm" onclick="confirmDeleteStudent()">Delete</button>
+    </div>
+  </div>
+</div>
 
 <script>
   const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
@@ -475,11 +539,12 @@
   }
 
   // ── Save Student (requirement #5) ──
-  async function saveStudent() {
+  async function saveStudent(silent) {
     const name = document.getElementById('student_name').value.trim();
-    if (!name) { showToast('⚠️ Enter Student Name first'); return; }
+    if (!name) { if (!silent) showToast('⚠️ Enter Student Name first'); return; }
 
     const payload = {
+      id: currentStudentId,
       student_name: name,
       counsellor_name: document.getElementById('counsellor_name').value.trim(),
       course_slug: SELECTED_COURSE_SLUG || 'mbbs',
@@ -500,10 +565,10 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       const d = await res.json();
-      if (!res.ok) { showToast('❌ ' + (d.error || 'Save failed')); return; }
-      showToast('✅ Student saved');
-      loadSavedStudentsDropdown();
-    } catch (e) { showToast('❌ Network error while saving'); }
+      if (!res.ok) { if (!silent) showToast('❌ ' + (d.error || 'Save failed')); return; }
+      currentStudentId = d.id;
+      if (!silent) { showToast('✅ Student saved'); loadSavedStudentsDropdown(); }
+    } catch (e) { if (!silent) showToast('❌ Network error while saving'); }
   }
 
   // ── Load saved students into the dropdown ──
@@ -514,34 +579,7 @@
       const sel = document.getElementById('saved_student_select');
       sel.innerHTML = '<option value="">— Select a saved student —</option>' +
         list.map(s => `<option value="${s.id}">${s.student_name}${s.counsellor_name ? ' (' + s.counsellor_name + ')' : ''}</option>`).join('');
-      renderSavedStudentsTable(list);
     } catch (e) { console.warn('load saved students failed', e); }
-  }
-
-  // ── Full "Saved Students" detail table (Student Name, Counsellor Name,
-  // Course, Rank, Marks, Category, CAP Year, Saved On) ──
-  function renderSavedStudentsTable(list) {
-    const tbody = document.getElementById('saved-students-tbody');
-    if (!tbody) return;
-    if (!list || !list.length) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:16px;">No students saved yet.</td></tr>`;
-      return;
-    }
-    const courseNameFor = (slug) => {
-      const c = AVAILABLE_COURSES.find(c => c.slug === slug);
-      return c ? c.display_name : (slug || '—');
-    };
-    tbody.innerHTML = list.map(s => `
-      <tr>
-        <td><strong>${s.student_name}</strong></td>
-        <td>${s.counsellor_name || '—'}</td>
-        <td>${courseNameFor(s.course_slug)}</td>
-        <td>${s.neet_rank || '—'}</td>
-        <td>${s.neet_marks || '—'}</td>
-        <td>${s.category || '—'}</td>
-        <td>${s.cap_year || '—'}</td>
-        <td>${s.updated_at ? new Date(s.updated_at).toLocaleString() : '—'}</td>
-      </tr>`).join('');
   }
 
   // ── Pre-fill the form from a saved student (requirement #5) ──
@@ -580,6 +618,130 @@
       showToast('✅ Student loaded');
     } catch (e) { showToast('❌ Network error while loading student'); }
   }
+
+  // ── Saved Students modal (separate, connected via medical_predictor_students table) ──
+  let _lastStudentsModalList = [];
+  let _pendingDeleteId = null;
+
+  async function openStudentsModal() {
+    const overlay = document.getElementById('students-modal-overlay');
+    const body = document.getElementById('students-modal-body');
+    document.getElementById('students-modal-search').value = '';
+    overlay.classList.add('open');
+    body.innerHTML = '<div class="students-table-empty">Loading...</div>';
+
+    try {
+      const res = await fetch(`${API}/medical-predictor/students`);
+      const students = await res.json();
+      _lastStudentsModalList = students || [];
+      renderStudentsModalTable(_lastStudentsModalList);
+    } catch (e) {
+      body.innerHTML = '<div class="students-table-empty">❌ Failed to load students.</div>';
+    }
+  }
+
+  function renderStudentsModalTable(students) {
+    const body = document.getElementById('students-modal-body');
+    if (!students || !students.length) {
+      body.innerHTML = '<div class="students-table-empty">No saved students yet.</div>';
+      return;
+    }
+    const courseNameFor = (slug) => {
+      const c = AVAILABLE_COURSES.find(c => c.slug === slug);
+      return c ? c.display_name : (slug || '—');
+    };
+    body.innerHTML = `
+      <table class="students-table">
+        <thead>
+          <tr>
+            <th>Name</th><th>Counsellor</th><th>Course</th><th>Rank</th>
+            <th>Marks</th><th>Category</th><th>Updated</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${students.map(s => `
+            <tr id="student-row-${s.id}">
+              <td>${s.student_name}</td>
+              <td>${s.counsellor_name || '—'}</td>
+              <td>${courseNameFor(s.course_slug)}</td>
+              <td>${s.neet_rank || '—'}</td>
+              <td>${s.neet_marks || '—'}</td>
+              <td>${s.category || '—'}</td>
+              <td>${s.updated_at ? new Date(s.updated_at).toLocaleDateString() : '—'}</td>
+              <td><button class="btn-delete-student" onclick="promptDeleteStudent(${s.id})">🗑️ Delete</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function filterStudentsModal(q) {
+    q = (q || '').trim().toLowerCase();
+    if (!q) { renderStudentsModalTable(_lastStudentsModalList); return; }
+    renderStudentsModalTable(_lastStudentsModalList.filter(s => (s.student_name || '').toLowerCase().includes(q)));
+  }
+
+  function closeStudentsModal() {
+    document.getElementById('students-modal-overlay').classList.remove('open');
+  }
+
+  function promptDeleteStudent(id) {
+    _pendingDeleteId = id;
+    document.getElementById('admin-pwd-input').value = '';
+    document.getElementById('admin-pwd-error').textContent = '';
+    document.getElementById('admin-pwd-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('admin-pwd-input').focus(), 50);
+  }
+
+  function closeAdminPwdModal() {
+    _pendingDeleteId = null;
+    document.getElementById('admin-pwd-overlay').classList.remove('open');
+  }
+
+  async function confirmDeleteStudent() {
+    const errEl = document.getElementById('admin-pwd-error');
+    const pwd = document.getElementById('admin-pwd-input').value;
+    if (!pwd) { errEl.textContent = 'Password is required'; return; }
+    if (!_pendingDeleteId) return;
+
+    try {
+      const res = await fetch(`${API}/medical-predictor/students/${_pendingDeleteId}`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_password: pwd }),
+      });
+      const d = await res.json();
+
+      if (res.ok) {
+        const row = document.getElementById(`student-row-${_pendingDeleteId}`);
+        if (row) row.remove();
+        _lastStudentsModalList = _lastStudentsModalList.filter(s => s.id !== _pendingDeleteId);
+        closeAdminPwdModal();
+        showToast('✅ Student deleted');
+        loadSavedStudentsDropdown();
+        if (!_lastStudentsModalList.length) {
+          document.getElementById('students-modal-body').innerHTML = '<div class="students-table-empty">No saved students yet.</div>';
+        }
+      } else {
+        errEl.textContent = d.error || 'Delete failed';
+      }
+    } catch (e) {
+      errEl.textContent = 'Network error while deleting';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const pwdInput = document.getElementById('admin-pwd-input');
+    if (pwdInput) pwdInput.addEventListener('keydown', e => { if (e.key === 'Enter') confirmDeleteStudent(); });
+  });
+
+  // ── Auto-save on Predict: silently save/update the student record every
+  // time "Get Predictions" is clicked, so nothing needs a separate manual
+  // save step to end up connected in medical_predictor_students. ──
+  const _originalRunPredict = runPredict;
+  runPredict = async function () {
+    await saveStudent(true); // silent — doesn't toast/alert on failure
+    await _originalRunPredict();
+  };
 
   // ── Predict ──
   let allResults = [];
