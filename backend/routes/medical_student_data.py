@@ -57,6 +57,8 @@ def save_medical_student():
     gender = data.get("gender", "")
     cap_year = data.get("cap_year", "")
     cap_round = data.get("cap_round", [])
+    admission_authority = data.get("admission_authority", "")
+    states = data.get("states", [])
     districts = data.get("districts", [])
     seat_types = data.get("seat_types", [])
     quotas = data.get("quotas", [])
@@ -73,12 +75,14 @@ def save_medical_student():
                 UPDATE medical_predictor_students SET
                     student_name = %s, counsellor_name = %s, course_slug = %s,
                     neet_rank = %s, neet_marks = %s, category = %s, gender = %s,
-                    cap_year = %s, cap_round = %s, districts = %s, seat_types = %s,
+                    cap_year = %s, cap_round = %s, admission_authority = %s, states = %s,
+                    districts = %s, seat_types = %s,
                     quotas = %s, colleges = %s, updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
             """, (
                 name, counsellor_name, course_slug, neet_rank, neet_marks, category, gender,
-                cap_year, json.dumps(cap_round), json.dumps(districts), json.dumps(seat_types),
+                cap_year, json.dumps(cap_round), admission_authority, json.dumps(states),
+                json.dumps(districts), json.dumps(seat_types),
                 json.dumps(quotas), json.dumps(colleges), student_id
             ))
             if cur.rowcount == 0:
@@ -96,24 +100,28 @@ def save_medical_student():
                     UPDATE medical_predictor_students SET
                         counsellor_name = %s, course_slug = %s, neet_rank = %s, neet_marks = %s,
                         category = %s, gender = %s, cap_year = %s, cap_round = %s,
+                        admission_authority = %s, states = %s,
                         districts = %s, seat_types = %s, quotas = %s, colleges = %s,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (
                     counsellor_name, course_slug, neet_rank, neet_marks, category, gender,
-                    cap_year, json.dumps(cap_round), json.dumps(districts), json.dumps(seat_types),
+                    cap_year, json.dumps(cap_round), admission_authority, json.dumps(states),
+                    json.dumps(districts), json.dumps(seat_types),
                     json.dumps(quotas), json.dumps(colleges), student_id
                 ))
             else:
                 cur.execute("""
                     INSERT INTO medical_predictor_students (
                         student_name, counsellor_name, course_slug, neet_rank, neet_marks,
-                        category, gender, cap_year, cap_round, districts, seat_types, quotas, colleges
-                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                        category, gender, cap_year, cap_round, admission_authority, states,
+                        districts, seat_types, quotas, colleges
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     RETURNING id
                 """, (
                     name, counsellor_name, course_slug, neet_rank, neet_marks, category, gender,
-                    cap_year, json.dumps(cap_round), json.dumps(districts), json.dumps(seat_types),
+                    cap_year, json.dumps(cap_round), admission_authority, json.dumps(states),
+                    json.dumps(districts), json.dumps(seat_types),
                     json.dumps(quotas), json.dumps(colleges)
                 ))
                 student_id = cur.fetchone()[0]
@@ -218,6 +226,8 @@ def get_medical_student(student_id):
         "gender": r["gender"] or "",
         "cap_year": r["cap_year"] or "",
         "cap_round": r["cap_round"] or [],
+        "admission_authority": r["admission_authority"] or "",
+        "states": r["states"] or [],
         "districts": r["districts"] or [],
         "seat_types": r["seat_types"] or [],
         "quotas": r["quotas"] or [],

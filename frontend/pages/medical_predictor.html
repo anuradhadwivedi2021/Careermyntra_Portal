@@ -170,26 +170,19 @@
           <input type="text" id="counsellor_name" placeholder="Enter counsellor name"/>
         </div>
 
-        <div class="grid-2">
-          <div class="field">
-            <label>NEET Rank *</label>
-            <input type="number" id="neet_rank" placeholder="e.g. 15234"/>
-          </div>
-          <div class="field">
-            <label>NEET Marks (out of 720)</label>
-            <input type="number" id="neet_marks" placeholder="e.g. 610"/>
-          </div>
-        </div>
-        <span class="help">Rank is used for prediction; Marks shown for reference. Provide at least one.</span>
-
         <div class="field">
-          <label>Category *</label>
-          <select id="category"><option value="">Loading…</option></select>
+          <label>Admission Authority</label>
+          <select id="admission_authority" onchange="onAdmissionAuthorityChange()"><option value="">All Authorities</option></select>
         </div>
 
         <div class="field">
-          <label>Gender</label>
-          <select id="gender"><option value="">All Genders</option></select>
+          <label>State</label>
+          <div class="ms-wrap" id="state-wrap">
+            <div class="ms-box" id="state-box" onclick="togglePanel('state')">
+              <span id="state-ph">All States</span>
+            </div>
+            <div class="ms-panel" id="state-panel"></div>
+          </div>
         </div>
 
         <div class="field">
@@ -200,6 +193,28 @@
             </div>
             <div class="ms-panel" id="district-panel"></div>
           </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>NEET Rank</label>
+            <input type="number" id="neet_rank" placeholder="e.g. 15234"/>
+          </div>
+          <div class="field">
+            <label>NEET Marks (out of 720)</label>
+            <input type="number" id="neet_marks" placeholder="e.g. 610"/>
+          </div>
+        </div>
+        <span class="help">Enter <strong>either</strong> NEET Rank <strong>or</strong> NEET Marks to get predictions — one of the two is required.</span>
+
+        <div class="field">
+          <label>Category *</label>
+          <select id="category"><option value="">Loading…</option></select>
+        </div>
+
+        <div class="field">
+          <label>Gender</label>
+          <select id="gender"><option value="">All Genders</option></select>
         </div>
 
         <div class="field">
@@ -389,6 +404,7 @@
   let AVAILABLE_COURSES = [];
 
   const state = {
+    state: { selected: new Set(), options: [], open: false },
     district: { selected: new Set(), options: [], open: false },
     seat_type: { selected: new Set(), options: [], open: false },
     quota: { selected: new Set(), options: [], open: false },
@@ -424,12 +440,20 @@
       return `<div class="ms-option ${sel ? 'selected' : ''}" data-val="${o.replace(/"/g,'&quot;')}">${o}</div>`;
     }).join('');
     panel.querySelectorAll('.ms-option').forEach(el => {
-      el.addEventListener('click', () => {
+      el.addEventListener('click', async () => {
         const v = el.dataset.val;
         if (state[type].selected.has(v)) state[type].selected.delete(v);
         else state[type].selected.add(v);
         renderOptions(type);
         renderBox(type);
+        if (type === 'state') {
+          // State selection changed → districts must cascade: clear the
+          // (possibly now-invalid) district selection and reload the list.
+          state.district.selected.clear();
+          renderBox('district');
+          await loadDistricts();
+          if (state.district.open) renderOptions('district');
+        }
       });
     });
   }
@@ -439,7 +463,7 @@
     const ph = document.getElementById(`${type}-ph`);
     box.querySelectorAll('.chip').forEach(c => c.remove());
     const sel = [...state[type].selected];
-    const LABELS = { district: 'All Districts', seat_type: 'All Seat Types', quota: 'All Quotas', cap_round: 'All Rounds' };
+    const LABELS = { state: 'All States', district: 'All Districts', seat_type: 'All Seat Types', quota: 'All Quotas', cap_round: 'All Rounds' };
     if (!sel.length) { ph.style.display = 'inline'; ph.textContent = LABELS[type]; return; }
     ph.style.display = 'none';
     sel.forEach(v => {
@@ -494,9 +518,48 @@
     } catch (e) { console.warn('filter-options failed', e); }
   }
 
+  // ── Admission Authority → State → District cascading dropdowns ──
+  async function loadAdmissionAuthorities() {
+    try {
+      const res = await fetch(`${API}/medical-predictor/admission-authorities?course_slug=${SELECTED_COURSE_SLUG || 'mbbs'}`);
+      const authorities = await res.json();
+      const sel = document.getElementById('admission_authority');
+      sel.innerHTML = '<option value="">All Authorities</option>' +
+        (authorities || []).map(a => `<option value="${a}">${a}</option>`).join('');
+    } catch (e) { console.warn('admission-authorities failed', e); }
+  }
+
+  async function loadStates() {
+    try {
+      const authority = document.getElementById('admission_authority').value || '';
+      const res = await fetch(
+        `${API}/medical-predictor/states?course_slug=${SELECTED_COURSE_SLUG || 'mbbs'}` +
+        (authority ? `&admission_authority=${encodeURIComponent(authority)}` : '')
+      );
+      state.state.options = await res.json();
+    } catch (e) { state.state.options = []; }
+  }
+
+  // Admission Authority changed → its States list changes, so clear any
+  // previously selected States/Districts (they may no longer be valid)
+  // and reload both, cascading down.
+  async function onAdmissionAuthorityChange() {
+    state.state.selected.clear();
+    state.district.selected.clear();
+    renderBox('state');
+    renderBox('district');
+    await loadStates();
+    await loadDistricts();
+  }
+
   async function loadDistricts() {
     try {
-      const res = await fetch(`${API}/medical-predictor/districts?course_slug=${SELECTED_COURSE_SLUG || 'mbbs'}`);
+      const authority = document.getElementById('admission_authority').value || '';
+      const selectedStates = [...state.state.selected];
+      const params = new URLSearchParams({ course_slug: SELECTED_COURSE_SLUG || 'mbbs' });
+      if (authority) params.set('admission_authority', authority);
+      if (selectedStates.length) params.set('states', selectedStates.join(','));
+      const res = await fetch(`${API}/medical-predictor/districts?${params.toString()}`);
       state.district.options = await res.json();
     } catch (e) { state.district.options = []; }
   }
@@ -555,6 +618,8 @@
       gender: document.getElementById('gender').value,
       cap_year: document.getElementById('cap_year').value,
       cap_round: [...state.cap_round.selected],
+      admission_authority: document.getElementById('admission_authority').value,
+      states: [...state.state.selected],
       districts: [...state.district.selected],
       seat_types: [...state.seat_type.selected],
       quotas: [...state.quota.selected],
@@ -602,7 +667,7 @@
       if (switchCourse) {
         SELECTED_COURSE_SLUG = s.course_slug;
         populateCourseDropdown();
-        await loadDistricts();
+        await loadAdmissionAuthorities();
         await loadFilterOptions();
         loadStats();
       }
@@ -610,12 +675,19 @@
       document.getElementById('category').value = s.category || '';
       document.getElementById('gender').value = s.gender || '';
       document.getElementById('cap_year').value = s.cap_year || '';
+      document.getElementById('admission_authority').value = s.admission_authority || '';
 
-      state.cap_round.selected = new Set(s.cap_round || []);
+      // States depend on Admission Authority, and Districts depend on
+      // States — reload both option lists in that order before applying
+      // the saved selections, so the cascade stays consistent.
+      await loadStates();
+      state.state.selected = new Set(s.states || []);
+      await loadDistricts();
       state.district.selected = new Set(s.districts || []);
       state.seat_type.selected = new Set(s.seat_types || []);
       state.quota.selected = new Set(s.quotas || []);
-      ['district', 'seat_type', 'quota', 'cap_round'].forEach(renderBox);
+      state.cap_round.selected = new Set(s.cap_round || []);
+      ['state', 'district', 'seat_type', 'quota', 'cap_round'].forEach(renderBox);
 
       showToast('✅ Student loaded');
     } catch (e) { showToast('❌ Network error while loading student'); }
@@ -754,7 +826,10 @@
   async function runPredict() {
     const neet_rank = document.getElementById('neet_rank').value;
     const neet_marks = document.getElementById('neet_marks').value;
-    if (!neet_rank && !neet_marks) { showToast('⚠️ Enter NEET Rank or Marks'); return; }
+    if (!neet_rank && !neet_marks) {
+      showToast('⚠️ Please enter either NEET Rank or NEET Marks to proceed');
+      return;
+    }
 
     const btn = document.getElementById('predict-btn');
     btn.disabled = true; btn.textContent = 'Predicting…';
@@ -767,6 +842,8 @@
       gender: document.getElementById('gender').value,
       cap_year: document.getElementById('cap_year').value,
       cap_round: state.cap_round.selected.size ? [...state.cap_round.selected] : 'All Rounds',
+      admission_authority: document.getElementById('admission_authority').value,
+      states: [...state.state.selected],
       districts: [...state.district.selected],
       seat_types: [...state.seat_type.selected],
       quotas: [...state.quota.selected],
@@ -876,7 +953,10 @@
     document.getElementById('neet_marks').value = '';
     document.getElementById('category').selectedIndex = 0;
     document.getElementById('gender').selectedIndex = 0;
+    document.getElementById('admission_authority').selectedIndex = 0;
     Object.keys(state).forEach(t => { state[t].selected.clear(); renderBox(t); });
+    loadStates();
+    loadDistricts();
     document.getElementById('results-section').innerHTML = `
       <div class="state-box"><div class="icon">🩺</div><h3>Ready to Predict!</h3><p>Enter your NEET Rank above and click "Get Predictions".</p></div>`;
   }
@@ -924,8 +1004,11 @@
     const slug = document.getElementById('form_course_select').value;
     if (!slug || slug === SELECTED_COURSE_SLUG) return;
     SELECTED_COURSE_SLUG = slug;
+    document.getElementById('admission_authority').innerHTML = '<option value="">All Authorities</option>';
     Object.keys(state).forEach(t => { state[t].selected.clear(); renderBox(t); });
     (async () => {
+      await loadAdmissionAuthorities();
+      await loadStates();
       await loadDistricts();
       await loadFilterOptions();
       loadStats();
@@ -940,6 +1023,8 @@
     populateCourseDropdown();
     loadSavedStudentsDropdown();
     (async () => {
+      await loadAdmissionAuthorities();
+      await loadStates();
       await loadDistricts();
       await loadFilterOptions();
       loadStats();

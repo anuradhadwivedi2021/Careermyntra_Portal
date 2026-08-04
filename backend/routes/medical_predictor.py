@@ -103,6 +103,7 @@ def _ensure_medical_schema():
         for tbl in table_names:
             try:
                 cur.execute(f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS college_status VARCHAR(100)")
+                cur.execute(f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS state VARCHAR(100)")
             except Exception:
                 logger.exception(f"[medical:schema_migration] failed to add college_status to {tbl}")
         conn.commit()
@@ -119,6 +120,8 @@ def _ensure_medical_schema():
                 gender            TEXT,
                 cap_year          TEXT,
                 cap_round         JSONB DEFAULT '[]',
+                admission_authority TEXT,
+                states            JSONB DEFAULT '[]',
                 districts         JSONB DEFAULT '[]',
                 seat_types        JSONB DEFAULT '[]',
                 quotas            JSONB DEFAULT '[]',
@@ -128,6 +131,17 @@ def _ensure_medical_schema():
             )
         """)
         conn.commit()
+
+        # Auto-migration for existing installs (adds the two new columns
+        # if this table already existed before Admission Authority/State
+        # cascading filters were introduced).
+        try:
+            cur.execute("ALTER TABLE medical_predictor_students ADD COLUMN IF NOT EXISTS admission_authority TEXT")
+            cur.execute("ALTER TABLE medical_predictor_students ADD COLUMN IF NOT EXISTS states JSONB DEFAULT '[]'")
+            conn.commit()
+        except Exception:
+            logger.exception("[medical:schema_migration] failed to add admission_authority/states to medical_predictor_students")
+
         cur.close()
         conn.close()
     except Exception:
@@ -287,6 +301,7 @@ def add_new_medical_course():
                 fees NUMERIC(12,2),
                 college_status VARCHAR(100),
                 university VARCHAR(300),
+                state VARCHAR(100),
                 district VARCHAR(100),
                 location TEXT,
                 address TEXT,
@@ -433,11 +448,11 @@ def upload_cutoff(course_slug):
                 INSERT INTO {table_name} (
                     college_code, college_name, course_name, category, sub_category,
                     seat_type, quota_code, gender, cap_year, cap_round,
-                    neet_marks_cutoff, neet_rank_cutoff, fees, college_status, university, district,
+                    neet_marks_cutoff, neet_rank_cutoff, fees, college_status, university, state, district,
                     location, address, naac_grade, nba_accredited, website,
                     admission_authority, is_autonomous
                 ) VALUES (
-                    %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s
+                    %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s
                 )
                 ON CONFLICT (college_name, course_name, cap_year, cap_round, category,
                              sub_category, seat_type, quota_code, gender)
@@ -448,6 +463,7 @@ def upload_cutoff(course_slug):
                     fees               = EXCLUDED.fees,
                     college_status     = EXCLUDED.college_status,
                     university         = EXCLUDED.university,
+                    state              = EXCLUDED.state,
                     district           = EXCLUDED.district,
                     location           = EXCLUDED.location,
                     address            = EXCLUDED.address,
@@ -473,6 +489,7 @@ def upload_cutoff(course_slug):
                 val("fees"),
                 str(val("college_status", "")).strip() or None,
                 str(val("university", "")).strip() or None,
+                str(val("state", "")).strip() or None,
                 str(val("district", "")).strip() or None,
                 str(val("location", "")).strip() or None,
                 str(val("address", "")).strip() or None,
@@ -529,15 +546,81 @@ def get_filter_options():
     })
 
 
-@medical_predictor_bp.route("/medical-predictor/districts", methods=["GET"])
-def get_districts():
+# ─── Admission Authority — drives the first cascading dropdown ─────────
+@medical_predictor_bp.route("/medical-predictor/admission-authorities", methods=["GET"])
+def get_admission_authorities():
     course_slug = request.args.get("course_slug", "mbbs")
     table_name = _get_table_name(course_slug)
     if not table_name:
         return jsonify([])
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute(f"SELECT DISTINCT district FROM {table_name} WHERE district IS NOT NULL ORDER BY district")
+    cur.execute(
+        f"SELECT DISTINCT admission_authority FROM {table_name} "
+        f"WHERE admission_authority IS NOT NULL AND admission_authority <> '' "
+        f"ORDER BY admission_authority"
+    )
+    authorities = [r["admission_authority"] for r in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify(authorities)
+
+
+# ─── States — filtered by the selected Admission Authority ─────────────
+@medical_predictor_bp.route("/medical-predictor/states", methods=["GET"])
+def get_states():
+    course_slug = request.args.get("course_slug", "mbbs")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify([])
+    admission_authority = request.args.get("admission_authority", "").strip()
+
+    where = ["state IS NOT NULL", "state <> ''"]
+    params = []
+    if admission_authority:
+        where.append("admission_authority = %s")
+        params.append(admission_authority)
+
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute(
+        f"SELECT DISTINCT state FROM {table_name} WHERE {' AND '.join(where)} ORDER BY state",
+        tuple(params)
+    )
+    states = [r["state"] for r in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify(states)
+
+
+@medical_predictor_bp.route("/medical-predictor/districts", methods=["GET"])
+def get_districts():
+    course_slug = request.args.get("course_slug", "mbbs")
+    table_name = _get_table_name(course_slug)
+    if not table_name:
+        return jsonify([])
+
+    # Cascading filters (requirement): Admission Authority → State →
+    # District. Both are optional so this endpoint still works standalone.
+    admission_authority = request.args.get("admission_authority", "").strip()
+    states = [s.strip() for s in (request.args.get("states") or "").split(",") if s.strip()]
+
+    where = ["district IS NOT NULL"]
+    params = []
+    if admission_authority:
+        where.append("admission_authority = %s")
+        params.append(admission_authority)
+    if states:
+        placeholders = ",".join(["%s"] * len(states))
+        where.append(f"state IN ({placeholders})")
+        params.extend(states)
+
+    conn = get_connection()
+    cur = get_cursor(conn)
+    cur.execute(
+        f"SELECT DISTINCT district FROM {table_name} WHERE {' AND '.join(where)} ORDER BY district",
+        tuple(params)
+    )
     districts = [r["district"] for r in cur.fetchall()]
     cur.close()
     conn.close()
@@ -614,6 +697,8 @@ def predict():
     category = data.get("category", "")
     cap_year = data.get("cap_year", "")
     cap_round = data.get("cap_round")  # list or "All Rounds"
+    admission_authority = data.get("admission_authority", "")
+    states = data.get("states", []) or []
     districts = data.get("districts", []) or []
     colleges = data.get("colleges", []) or []
     seat_types = data.get("seat_types", []) or []
@@ -623,6 +708,13 @@ def predict():
     where = ["1=1"]
     params = []
 
+    if admission_authority:
+        where.append("admission_authority = %s")
+        params.append(admission_authority)
+    if states:
+        placeholders = ",".join(["%s"] * len(states))
+        where.append(f"state IN ({placeholders})")
+        params.extend(states)
     if category:
         where.append("category = %s")
         params.append(category)
