@@ -372,6 +372,35 @@
     .col-toggle:hover { transform: translateY(-1px); }
     .col-toggle.active { background:#1565c0; color:#fff; border-color:#1565c0; }
     .col-toggle .dot { width:7px; height:7px; border-radius:50%; background:currentColor; opacity:0.7; }
+
+    @media (max-width: 700px) {
+      .navbar { padding: 0 16px; height: auto; flex-wrap: wrap; row-gap: 8px; padding-top: 10px; padding-bottom: 10px; }
+      .nav-right { gap: 8px; }
+      .btn-back, .btn-logout { padding: 6px 12px; font-size: 12px; }
+      .hero { padding: 32px 16px 36px; }
+      .hero h1 { font-size: 24px; }
+      .hero p { font-size: 13px; }
+      .course-cards-wrap { padding: 0 16px; }
+      .course-cards-grid { grid-template-columns: repeat(2, 1fr); }
+      .form-card-header { padding: 16px 18px; }
+      .form-body { padding: 18px; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .btn-row { flex-direction: column; }
+      .btn-predict, .btn-reset { width: 100%; }
+      .summary-row { grid-template-columns: 1fr !important; }
+      .admin-stats { grid-template-columns: 1fr 1fr; }
+      .admin-body { padding: 16px; }
+      .ssb-fields { grid-template-columns: 1fr; }
+      .ssb-header { padding: 14px 16px; }
+      .ssb-body { padding: 14px 16px; }
+      .results-bar { flex-direction: column; align-items: stretch; }
+      .filter-tabs { justify-content: flex-start; }
+      .col-toggle-bar { padding: 10px 12px; }
+      .col-toggle { font-size: 11px; padding: 5px 10px; }
+      .counsellor-note { padding: 16px 18px; }
+      .ac-modal, .acm-modal, .students-modal { width: 94%; }
+      .students-table { font-size: 12px; }
+    }
   </style>
 </head>
 <body>

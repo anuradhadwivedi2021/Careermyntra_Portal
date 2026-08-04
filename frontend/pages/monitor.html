@@ -100,6 +100,26 @@
     }
     @media (max-width: 1024px) { .container { grid-template-columns: 1fr; padding: 28px 20px 48px; } }
 
+    @media (max-width: 640px) {
+      .navbar { padding: 0 16px; height: auto; flex-wrap: wrap; row-gap: 8px; padding-top: 10px; padding-bottom: 10px; }
+      .nav-left { gap: 8px; }
+      .nav-back { padding: 6px 10px; font-size: 12px; }
+      .hero { padding: 36px 16px 40px; }
+      .hero h1 { font-size: 24px; }
+      .hero p { font-size: 13px; }
+      .container { padding: 20px 14px 36px; gap: 16px; }
+      .card-header { padding: 16px 16px; }
+      .card-body { padding: 16px; }
+      .status-bar { flex-wrap: wrap; padding: 14px; }
+      .auto-badge { margin-left: 0; }
+      .stats-row { flex-wrap: wrap; }
+      .stat-pill { min-width: 45%; }
+      .url-add-row { flex-direction: column; }
+      .btn-add { width: 100%; }
+      .url-item { flex-wrap: wrap; }
+      .log-box { font-size: 11.5px; max-height: 180px; }
+    }
+
     .card {
       background: #fff; border-radius: 18px;
       border: 1px solid #e9ecf3;

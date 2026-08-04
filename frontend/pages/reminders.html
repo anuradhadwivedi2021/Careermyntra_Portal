@@ -73,6 +73,28 @@
     .page-wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px; display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
     @media (max-width: 900px) { .page-wrap { grid-template-columns: 1fr; } }
 
+    @media (max-width: 640px) {
+      .navbar { padding: 0 16px; height: auto; flex-wrap: wrap; row-gap: 8px; padding-top: 10px; padding-bottom: 10px; }
+      .nav-left { flex-wrap: wrap; gap: 8px; }
+      .nav-back { padding: 5px 8px; font-size: 12px; }
+      .hero { padding: 28px 16px 36px; }
+      .hero h1 { font-size: 22px; }
+      .hero p { font-size: 13px; }
+      .hero-stats { gap: 16px; flex-wrap: wrap; }
+      .hero-stat strong { font-size: 18px; }
+      .page-wrap { padding: 18px 14px; }
+      .tab { padding: 7px 14px; font-size: 12px; }
+      .card-header { padding: 14px 16px; }
+      .card-body { padding: 16px; }
+      .add-new-row { flex-direction: column; }
+      .event-card { flex-direction: column; }
+      .ev-date-box { width: auto; align-self: flex-start; padding: 4px 10px; }
+      .ev-actions { flex-direction: row; align-self: flex-end; }
+      .log-table { font-size: 11px; }
+      .log-table th, .log-table td { padding: 6px 8px; }
+      #cat-recipients-panel .modal-box { width: 94%; padding: 18px; }
+    }
+
     /* ── TABS ── */
     .tab-row { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
     .tab {

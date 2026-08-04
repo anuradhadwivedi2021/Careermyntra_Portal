@@ -33,6 +33,27 @@
     .main-layout { display: grid; grid-template-columns: 420px 1fr; gap: 24px; align-items: start; }
     @media (max-width: 1100px) { .main-layout { grid-template-columns: 1fr; } }
 
+    @media (max-width: 700px) {
+      .navbar { padding: 0 16px; height: auto; flex-wrap: wrap; row-gap: 8px; padding-top: 10px; padding-bottom: 10px; }
+      .btn-back, .btn-logout { padding: 6px 12px; font-size: 12px; margin-left: 6px; }
+      .hero { padding: 32px 16px 36px; }
+      .hero h1 { font-size: 24px; }
+      .hero p { font-size: 13px; }
+      .course-cards-wrap { padding: 0 16px; margin: 24px auto; }
+      .course-cards-grid { grid-template-columns: repeat(2, 1fr); }
+      .page { padding: 0 16px 40px; }
+      .form-body { padding: 16px; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .btn-row { flex-direction: column; }
+      .summary-row { grid-template-columns: 1fr; }
+      .admin-stats { grid-template-columns: 1fr 1fr; }
+      .admin-body { padding: 14px; }
+      .col-toggle-bar { gap: 6px; }
+      .col-toggle-btn { font-size: 11px; padding: 5px 10px; }
+      .ac-modal, .students-modal { width: 94%; }
+      .students-table { font-size: 12px; }
+    }
+
     .form-card { background: #fff; border-radius: 16px; border: 1.5px solid #e5e7eb; overflow: hidden; }
     .form-card-header { background: linear-gradient(135deg, #059669, #047857); padding: 18px 24px; }
     .form-card-header h2 { color: #fff; font-size: 16px; font-weight: 800; }

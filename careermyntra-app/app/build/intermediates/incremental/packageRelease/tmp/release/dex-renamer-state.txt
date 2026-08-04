@@ -1,0 +1,4 @@
+#Tue Aug 04 15:56:11 IST 2026
+base.0=C\:\\Users\\anura\\PORTAL_MADE_ANU\\portal\\careermyntra-app\\app\\build\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
+renamed.0=classes.dex
+path.0=classes.dex
