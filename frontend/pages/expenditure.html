@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Expenditure – CareerMyntra</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f4ff; min-height: 100vh; color: #0d1b3e; }
+    .navbar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+    .nav-left img { height: 42px; object-fit: contain; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-link { font-size: 13px; font-weight: 600; color: #374151; text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; }
+    .nav-link:hover { background: #fef3e2; color: #b45309; }
+    .user-chip { display: flex; align-items: center; gap: 8px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 24px; padding: 5px 14px 5px 6px; cursor: pointer; }
+    .user-avatar { width: 30px; height: 30px; background: linear-gradient(135deg, #d97706, #b45309); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+    .user-chip span { font-size: 13px; font-weight: 700; color: #b45309; }
+    .btn-logout { padding: 7px 16px; background: #fff; border: 1.5px solid #fecaca; border-radius: 8px; font-size: 13px; font-weight: 700; color: #ef4444; cursor: pointer; text-decoration: none; transition: all 0.2s; font-family: inherit; }
+    .btn-logout:hover { background: #fef2f2; }
+
+    /* Hero — amber/gold theme for money */
+    .hero { background: linear-gradient(135deg, #b45309 0%, #92400e 60%, #78350f 100%); padding: 44px 32px 48px; text-align: center; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: rgba(255,255,255,0.04); top: -200px; right: -100px; }
+    .hero::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(255,255,255,0.04); bottom: -100px; left: -80px; }
+    .hero-badge { display: inline-block; background: rgba(253,230,138,0.2); border: 1px solid rgba(253,230,138,0.4); color: #fde68a; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 20px; margin-bottom: 16px; letter-spacing: 0.5px; }
+    .hero h1 { font-size: 32px; font-weight: 800; color: #fff; letter-spacing: -0.8px; margin-bottom: 10px; position: relative; z-index: 2; }
+    .hero p { font-size: 14px; color: rgba(255,255,255,0.75); max-width: 520px; margin: 0 auto; line-height: 1.6; position: relative; z-index: 2; }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 28px 24px 60px; }
+
+    /* Internal tabs */
+    .tab-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+    .tab-btn { padding: 10px 20px; border-radius: 24px; font-size: 13px; font-weight: 700; cursor: pointer; border: 2px solid #e5e7eb; background: #fff; color: #6b7280; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; gap: 6px; }
+    .tab-btn.active { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(180,83,9,0.3); }
+    .tab-btn:hover:not(.active) { border-color: #d97706; color: #b45309; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Dashboard cards */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; margin-bottom: 8px; }
+    .stat-card { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 18px; }
+    .stat-card .sc-label { font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
+    .stat-card .sc-value { font-size: 24px; font-weight: 800; color: #0d1b3e; }
+    .stat-card.positive .sc-value { color: #059669; }
+    .stat-card.negative .sc-value { color: #dc2626; }
+
+    /* Toolbar */
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+    .toolbar h2 { font-size: 18px; font-weight: 800; }
+    .filters-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filters-row select, .filters-row input { padding: 8px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; background: #fff; }
+
+    .btn-primary { padding: 10px 20px; background: linear-gradient(135deg, #d97706, #b45309); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .btn-primary:hover { box-shadow: 0 6px 18px rgba(180,83,9,0.3); transform: translateY(-1px); }
+    .btn-secondary { padding: 9px 16px; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 9px; font-size: 13px; font-weight: 700; color: #374151; cursor: pointer; font-family: inherit; }
+    .btn-secondary:hover { border-color: #d97706; color: #b45309; }
+    .btn-danger { padding: 6px 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 7px; font-size: 12px; font-weight: 700; color: #ef4444; cursor: pointer; font-family: inherit; }
+    .btn-edit { padding: 6px 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 7px; font-size: 12px; font-weight: 700; color: #1d4ed8; cursor: pointer; font-family: inherit; margin-right: 6px; }
+
+    /* Table */
+    .table-wrap { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; overflow: hidden; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    thead { background: #fffbeb; }
+    th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 800; color: #92400e; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+    td { padding: 12px 16px; font-size: 13px; border-top: 1px solid #f1f5f9; white-space: nowrap; }
+    tbody tr:hover { background: #fffbeb; }
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge.office { background: #e0f2fe; color: #0369a1; }
+    .badge.individual { background: #f3e8ff; color: #7e22ce; }
+    .badge.shared { background: #fef3c7; color: #92400e; }
+    .empty-state { text-align: center; padding: 40px; color: #9ca3af; font-size: 13px; font-weight: 600; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,20,60,0.45); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(3px); padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 20px; padding: 28px; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; border: 1px solid #e5e7eb; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .modal-header h3 { font-size: 18px; font-weight: 800; }
+    .close-btn { width: 32px; height: 32px; background: #f3f4f6; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .close-btn:hover { background: #e5e7eb; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-field { display: flex; flex-direction: column; gap: 5px; }
+    .form-field.full { grid-column: 1 / -1; }
+    .form-field label { font-size: 12px; font-weight: 700; color: #374151; }
+    .form-field input, .form-field select, .form-field textarea { padding: 9px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 13px; font-family: inherit; }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: none; border-color: #d97706; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+    .checkbox-row input { width: 16px; height: 16px; }
+    .checkbox-row label { font-size: 13px; font-weight: 700; }
+
+    .sub-box { background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px; padding: 14px; margin-bottom: 14px; display: none; }
+    .sub-box.show { display: block; }
+    .person-check-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+    .custom-split-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+    .custom-split-row span { flex: 1; font-size: 13px; font-weight: 600; }
+    .custom-split-row input { width: 110px; }
+    .split-total-hint { font-size: 12px; font-weight: 700; margin-top: 8px; }
+    .split-total-hint.ok { color: #059669; }
+    .split-total-hint.bad { color: #dc2626; }
+
+    #form-error { display: none; color: #ef4444; font-size: 13px; font-weight: 600; margin-bottom: 10px; padding: 8px 12px; background: #fef2f2; border-radius: 8px; border: 1px solid #fecaca; }
+
+    /* Outstanding cards */
+    .owe-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 12px; margin-bottom: 10px; }
+    .owe-names { font-size: 14px; font-weight: 700; }
+    .owe-amount { font-size: 16px; font-weight: 800; color: #b45309; }
+
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 22px; }
+      .navbar { padding: 0 16px; }
+      .container { padding: 20px 14px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .modal-box { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-left"><img src="../images/logo.jpeg" alt="CareerMyntra"/></div>
+  <div class="nav-right">
+    <a href="../dashboard.html" class="nav-link">🏠 Dashboard</a>
+    <a href="college_master.html" class="nav-link">🏛️ College Master</a>
+    <a href="college_predictor.html" class="nav-link">🎯 Predictor</a>
+    <a href="expenditure.html" class="nav-link">💰 Expenditure</a>
+    <a href="../admin.html" class="nav-link">⚙️ Admin</a>
+    <div class="user-chip">
+      <div class="user-avatar" id="user-avatar">U</div>
+      <span id="user-name">User</span>
+    </div>
+    <a href="../index.html" class="btn-logout">Logout</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">💰 Office & Personal Expense Tracking</div>
+  <h1>Expenditure Management</h1>
+  <p>Track office and individual expenses, split shared bills automatically, and manage settlements between members.</p>
+</div>
+
+<div class="container">
+  <div class="tab-row">
+    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn" data-tab="expenses" onclick="switchTab('expenses')">🧾 Expenses</button>
+    <button class="tab-btn" data-tab="settlements" onclick="switchTab('settlements')">🤝 Settlements</button>
+    <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">📈 Reports</button>
+    <button class="tab-btn" data-tab="persons" onclick="switchTab('persons')">👥 Persons</button>
+    <button class="tab-btn" data-tab="types" onclick="switchTab('types')">🏷️ Expense Types</button>
+  </div>
+
+  <!-- ============ DASHBOARD ============ -->
+  <div class="panel active" id="panel-dashboard">
+    <div class="cards-grid" id="dashboard-cards">
+      <div class="empty-state">⏳ Loading dashboard...</div>
+    </div>
+  </div>
+
+  <!-- ============ EXPENSES ============ -->
+  <div class="panel" id="panel-expenses">
+    <div class="toolbar">
+      <h2>Expenses</h2>
+      <button class="btn-primary" onclick="openExpenseModal()">+ Add Expense</button>
+    </div>
+    <div class="filters-row">
+      <select id="filter-category" onchange="loadExpenses()">
+        <option value="">All Categories</option>
+        <option value="Office">Office</option>
+        <option value="Individual">Individual</option>
+      </select>
+      <select id="filter-month" onchange="loadExpenses()"></select>
+      <input type="text" id="filter-search" placeholder="Search expense name..." oninput="debounceSearch()"/>
+      <button class="btn-secondary" onclick="clearExpenseFilters()">Clear</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Name</th><th>Type</th><th>Category</th><th>Amount</th>
+            <th>Paid By</th><th>Split</th><th>Recurring</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="expenses-tbody">
+          <tr><td colspan="9" class="empty-state">⏳ Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ SETTLEMENTS ============ -->
+  <div class="panel" id="panel-settlements">
+    <div class="toolbar">
+      <h2>Who Owes Whom</h2>
+    </div>
+    <div id="outstanding-list">
+      <div class="empty-state">⏳ Loading...</div>
+    </div>
+
+    <div class="toolbar" style="margin-top:32px;">
+      <h2>Settlement History</h2>
+      <button class="btn-primary" onclick="openSettlementModal()">+ Settle Payment</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>From</th><th>To</th><th>Amount</th><th>Mode</th><th>Reference</th><th>Actions</th></tr></thead>
+        <tbody id="settlements-tbody"><tr><td colspan="7" class="empty-state">⏳ Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ REPORTS ============ -->
+  <div class="panel" id="panel-reports">
+    <div class="toolbar"><h2>Category-wise Summary</h2></div>
+    <div class="filters-row">
+      <select id="report-period" onchange="renderReportFilters()">
+        <option value="monthly">Monthly</option>
+        <option value="quarterly">Quarterly</option>
+        <option value="six_monthly">Six Monthly</option>
+        <option value="yearly">Yearly</option>
+      </select>
+      <div id="report-extra-filters" style="display:contents;"></div>
+      <select id="report-category">
+        <option value="">All Categories</option>
+        <option value="Office">Office</option>
+        <option value="Individual">Individual</option>
+      </select>
+      <button class="btn-primary" onclick="loadSummaryReport()">Apply</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Expense Type</th><th>Total Amount</th></tr></thead>
+        <tbody id="summary-tbody"><tr><td colspan="2" class="empty-state">Select filters and click Apply</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="toolbar" style="margin-top:32px;"><h2>Person-wise Report</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Person</th><th>Total Paid</th><th>Personal Expense</th><th>Shared Expense</th><th>Balance</th></tr></thead>
+        <tbody id="personwise-tbody"><tr><td colspan="5" class="empty-state">⏳ Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ PERSONS ============ -->
+  <div class="panel" id="panel-persons">
+    <div class="toolbar">
+      <h2>Person Master</h2>
+      <button class="btn-primary" onclick="openPersonModal()">+ Add Person</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Mobile</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="persons-tbody"><tr><td colspan="4" class="empty-state">⏳ Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ EXPENSE TYPES ============ -->
+  <div class="panel" id="panel-types">
+    <div class="toolbar">
+      <h2>Expense Type Master</h2>
+      <button class="btn-primary" onclick="openTypeModal()">+ Add Expense Type</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Expense Type</th><th>Actions</th></tr></thead>
+        <tbody id="types-tbody"><tr><td colspan="2" class="empty-state">⏳ Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EXPENSE MODAL ============ -->
+<div class="modal-overlay" id="expense-modal" onclick="closeOutside(event,'expense-modal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="expense-modal-title">Add Expense</h3>
+      <button class="close-btn" onclick="closeModal('expense-modal')">✕</button>
+    </div>
+    <div id="expense-form-error"></div>
+    <div class="form-grid">
+      <div class="form-field full">
+        <label>Expense Name</label>
+        <input type="text" id="exp-name" placeholder="e.g. Office Electricity Bill"/>
+      </div>
+      <div class="form-field">
+        <label>Expense Type</label>
+        <select id="exp-type"></select>
+      </div>
+      <div class="form-field">
+        <label>Category</label>
+        <select id="exp-category">
+          <option value="Office">Office</option>
+          <option value="Individual">Individual</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Amount (₹)</label>
+        <input type="number" id="exp-amount" placeholder="0.00" step="0.01"/>
+      </div>
+      <div class="form-field">
+        <label>Paid By</label>
+        <select id="exp-paid-by"></select>
+      </div>
+      <div class="form-field">
+        <label>Paid Date</label>
+        <input type="date" id="exp-paid-date"/>
+      </div>
+      <div class="form-field">
+        <label>Expense Month</label>
+        <input type="month" id="exp-month"/>
+      </div>
+      <div class="form-field full">
+        <label>Description / Remarks</label>
+        <textarea id="exp-description" rows="2"></textarea>
+      </div>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="exp-is-recurring" onchange="toggleRecurringBox()"/>
+      <label for="exp-is-recurring">Is Recurring Expense</label>
+    </div>
+    <div class="sub-box" id="recurring-box">
+      <div class="form-grid">
+        <div class="form-field">
+          <label>Recurring Type</label>
+          <select id="exp-recurring-type">
+            <option value="Monthly">Monthly (full amount repeats)</option>
+            <option value="Quarterly">Quarterly (total ÷ 4)</option>
+            <option value="Six Months">Six Months (total ÷ 2)</option>
+            <option value="Yearly">Yearly (total ÷ 12)</option>
+          </select>
+        </div>
+        <div class="form-field"></div>
+        <div class="form-field">
+          <label>Start Month</label>
+          <input type="month" id="exp-recurring-start"/>
+        </div>
+        <div class="form-field">
+          <label>End Month (optional)</label>
+          <input type="month" id="exp-recurring-end"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="exp-is-split" onchange="toggleSplitBox()"/>
+      <label for="exp-is-split">Split this expense?</label>
+    </div>
+    <div class="sub-box" id="split-box">
+      <div class="form-field" style="margin-bottom:10px;">
+        <label>Split Type</label>
+        <select id="exp-split-type" onchange="renderSplitInputs()">
+          <option value="Equal">Equal Split</option>
+          <option value="Custom">Custom Split</option>
+        </select>
+      </div>
+      <div id="split-inputs"></div>
+      <div class="split-total-hint" id="split-total-hint"></div>
+    </div>
+
+    <button class="btn-primary" style="width:100%; margin-top:8px;" onclick="submitExpense()">Save Expense</button>
+  </div>
+</div>
+
+<!-- ============ SETTLEMENT MODAL ============ -->
+<div class="modal-overlay" id="settlement-modal" onclick="closeOutside(event,'settlement-modal')">
+  <div class="modal-box" style="width:440px;">
+    <div class="modal-header">
+      <h3>Settle Payment</h3>
+      <button class="close-btn" onclick="closeModal('settlement-modal')">✕</button>
+    </div>
+    <div id="settlement-form-error"></div>
+    <div class="form-grid">
+      <div class="form-field"><label>From Person</label><select id="settle-from"></select></div>
+      <div class="form-field"><label>To Person</label><select id="settle-to"></select></div>
+      <div class="form-field"><label>Amount (₹)</label><input type="number" id="settle-amount" step="0.01"/></div>
+      <div class="form-field"><label>Payment Date</label><input type="date" id="settle-date"/></div>
+      <div class="form-field">
+        <label>Payment Mode</label>
+        <select id="settle-mode">
+          <option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Card</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Reference Number</label><input type="text" id="settle-ref"/></div>
+      <div class="form-field full"><label>Remarks</label><input type="text" id="settle-remarks"/></div>
+    </div>
+    <button class="btn-primary" style="width:100%;" onclick="submitSettlement()">Save Settlement</button>
+  </div>
+</div>
+
+<!-- ============ PERSON MODAL ============ -->
+<div class="modal-overlay" id="person-modal" onclick="closeOutside(event,'person-modal')">
+  <div class="modal-box" style="width:400px;">
+    <div class="modal-header">
+      <h3 id="person-modal-title">Add Person</h3>
+      <button class="close-btn" onclick="closeModal('person-modal')">✕</button>
+    </div>
+    <div id="person-form-error"></div>
+    <input type="hidden" id="person-id"/>
+    <div class="form-field" style="margin-bottom:14px;"><label>Name</label><input type="text" id="person-name"/></div>
+    <div class="form-field" style="margin-bottom:14px;"><label>Mobile Number (Optional)</label><input type="text" id="person-mobile"/></div>
+    <div class="form-field" style="margin-bottom:14px;">
+      <label>Status</label>
+      <select id="person-status"><option>Active</option><option>Inactive</option></select>
+    </div>
+    <button class="btn-primary" style="width:100%;" onclick="submitPerson()">Save Person</button>
+  </div>
+</div>
+
+<!-- ============ EXPENSE TYPE MODAL ============ -->
+<div class="modal-overlay" id="type-modal" onclick="closeOutside(event,'type-modal')">
+  <div class="modal-box" style="width:400px;">
+    <div class="modal-header">
+      <h3 id="type-modal-title">Add Expense Type</h3>
+      <button class="close-btn" onclick="closeModal('type-modal')">✕</button>
+    </div>
+    <div id="type-form-error"></div>
+    <input type="hidden" id="type-id"/>
+    <div class="form-field" style="margin-bottom:14px;"><label>Expense Type Name</label><input type="text" id="type-name"/></div>
+    <button class="btn-primary" style="width:100%;" onclick="submitType()">Save Expense Type</button>
+  </div>
+</div>
+
+<script>
+  const BACKEND = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000"
+    : "https://edtechmyntra.com";
+
+  async function authFetch(url, options = {}) {
+    const token = localStorage.getItem("cm_token");
+    if (!token) { window.location.href = "../index.html"; return Promise.reject(new Error("No token")); }
+    options.headers = { ...(options.headers || {}), "Authorization": "Bearer " + token };
+    const res = await fetch(url, options);
+    if (res.status === 401) { localStorage.removeItem("cm_token"); window.location.href = "../index.html"; return Promise.reject(new Error("Unauthorized")); }
+    return res;
+  }
+  async function apiJSON(url, options = {}) {
+    if (options.body) { options.headers = { ...(options.headers||{}), "Content-Type": "application/json" }; }
+    const res = await authFetch(BACKEND + url, options);
+    return res.json();
+  }
+
+  let personsCache = [], typesCache = [];
+  const money = n => "₹" + Number(n || 0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  // ---------- Tabs ----------
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    if (tab === 'dashboard') loadDashboard();
+    if (tab === 'expenses') loadExpenses();
+    if (tab === 'settlements') { loadOutstanding(); loadSettlements(); }
+    if (tab === 'reports') { renderReportFilters(); loadPersonWiseReport(); }
+    if (tab === 'persons') loadPersons();
+    if (tab === 'types') loadTypes();
+  }
+
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function closeOutside(e, id) { if (e.target.id === id) closeModal(id); }
+  function showFormError(id, msg) { const el = document.getElementById(id); el.textContent = '❌ ' + msg; el.style.display = 'block'; }
+  function hideFormError(id) { document.getElementById(id).style.display = 'none'; }
+
+  // ---------- Shared master data ----------
+  async function loadMasters() {
+    const [pRes, tRes] = await Promise.all([
+      apiJSON('/api/expenditure/persons'),
+      apiJSON('/api/expenditure/expense-types'),
+    ]);
+    personsCache = pRes.success ? pRes.persons : [];
+    typesCache = tRes.success ? tRes.expense_types : [];
+    fillPersonSelects();
+    fillTypeSelects();
+  }
+
+  function fillPersonSelects() {
+    const opts = personsCache.map(p => `<option value="${p.person_id}">${p.name}</option>`).join('');
+    ['exp-paid-by', 'settle-from', 'settle-to'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = opts;
+    });
+  }
+  function fillTypeSelects() {
+    const opts = typesCache.map(t => `<option value="${t.expense_type_id}">${t.expense_type_name}</option>`).join('');
+    const el = document.getElementById('exp-type');
+    if (el) el.innerHTML = opts;
+  }
+
+  // ============ DASHBOARD ============
+  async function loadDashboard() {
+    const data = await apiJSON('/api/expenditure/dashboard');
+    const grid = document.getElementById('dashboard-cards');
+    if (!data.success) { grid.innerHTML = `<div class="empty-state">⚠️ Could not load dashboard.</div>`; return; }
+    const c = data.cards;
+    const cards = [
+      ['Total Expenses', money(c.total_expenses), ''],
+      ['Office Expenses', money(c.office_expenses), ''],
+      ['Individual Expenses', money(c.individual_expenses), ''],
+      ['Shared Expenses', money(c.shared_expenses), ''],
+      ['Total Settled', money(c.total_paid_settlements), 'positive'],
+      ['Outstanding Amount', money(c.outstanding_amount), 'negative'],
+      ['Pending Settlements', c.pending_settlements, ''],
+      ['Active Members', c.active_members, ''],
+    ];
+    grid.innerHTML = cards.map(([label, val, cls]) => `
+      <div class="stat-card ${cls}">
+        <div class="sc-label">${label}</div>
+        <div class="sc-value">${val}</div>
+      </div>`).join('');
+  }
+
+  // ============ EXPENSES ============
+  function populateMonthFilter() {
+    const sel = document.getElementById('filter-month');
+    if (sel.options.length) return;
+    let opts = '<option value="">All Months</option>';
+    const now = new Date();
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const val = d.toISOString().slice(0,7);
+      const label = d.toLocaleString('en-IN', { month: 'short', year: 'numeric' });
+      opts += `<option value="${val}">${label}</option>`;
+    }
+    sel.innerHTML = opts;
+  }
+
+  let searchDebounce;
+  function debounceSearch() { clearTimeout(searchDebounce); searchDebounce = setTimeout(loadExpenses, 350); }
+  function clearExpenseFilters() {
+    document.getElementById('filter-category').value = '';
+    document.getElementById('filter-month').value = '';
+    document.getElementById('filter-search').value = '';
+    loadExpenses();
+  }
+
+  async function loadExpenses() {
+    populateMonthFilter();
+    const params = new URLSearchParams();
+    const cat = document.getElementById('filter-category').value;
+    const month = document.getElementById('filter-month').value;
+    const search = document.getElementById('filter-search').value;
+    if (cat) params.set('category', cat);
+    if (month) params.set('month', month);
+    if (search) params.set('search', search);
+
+    const data = await apiJSON('/api/expenditure/expenses?' + params.toString());
+    const tbody = document.getElementById('expenses-tbody');
+    if (!data.success || !data.expenses.length) {
+      tbody.innerHTML = `<tr><td colspan="9" class="empty-state">😕 No expenses found.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.expenses.map(e => `
+      <tr>
+        <td>${e.expense_month ? e.expense_month.slice(0,7) : ''}</td>
+        <td>${e.expense_name}</td>
+        <td>${e.expense_type_name || '-'}</td>
+        <td><span class="badge ${e.expense_category.toLowerCase()}">${e.expense_category}</span></td>
+        <td>${money(e.amount)}</td>
+        <td>${e.paid_by_name || '-'}</td>
+        <td>${e.is_split_expense ? `<span class="badge shared">${e.split_type}</span>` : '-'}</td>
+        <td>${e.is_recurring ? e.recurring_type : '-'}</td>
+        <td>
+          <button class="btn-danger" onclick="deleteExpense(${e.expense_id}, ${e.is_recurring})">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function deleteExpense(id, isRecurring) {
+    let scope = 'single';
+    if (isRecurring) {
+      const all = confirm("Ye ek recurring expense hai. Saari periods delete karni hain? OK = sab, Cancel = sirf ye ek.");
+      scope = all ? 'batch' : 'single';
+    } else {
+      if (!confirm("Delete this expense?")) return;
+    }
+    const data = await apiJSON(`/api/expenditure/expenses/${id}?scope=${scope}`, { method: 'DELETE' });
+    if (data.success) { loadExpenses(); loadDashboard(); } else { alert('❌ ' + data.error); }
+  }
+
+  function openExpenseModal() {
+    document.getElementById('expense-modal-title').textContent = 'Add Expense';
+    ['exp-name','exp-amount','exp-recurring-start','exp-recurring-end'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('exp-category').value = 'Office';
+    document.getElementById('exp-paid-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('exp-month').value = new Date().toISOString().slice(0,7);
+    document.getElementById('exp-description').value = '';
+    document.getElementById('exp-is-recurring').checked = false;
+    document.getElementById('exp-is-split').checked = false;
+    toggleRecurringBox();
+    toggleSplitBox();
+    hideFormError('expense-form-error');
+    document.getElementById('expense-modal').classList.add('open');
+  }
+
+  function toggleRecurringBox() {
+    document.getElementById('recurring-box').classList.toggle('show', document.getElementById('exp-is-recurring').checked);
+  }
+  function toggleSplitBox() {
+    const show = document.getElementById('exp-is-split').checked;
+    document.getElementById('split-box').classList.toggle('show', show);
+    if (show) renderSplitInputs();
+  }
+  function renderSplitInputs() {
+    const type = document.getElementById('exp-split-type').value;
+    const container = document.getElementById('split-inputs');
+    if (type === 'Equal') {
+      container.innerHTML = personsCache.map(p => `
+        <div class="person-check-row">
+          <label><input type="checkbox" class="equal-split-check" value="${p.person_id}" checked/> ${p.name}</label>
+        </div>`).join('');
+      document.getElementById('split-total-hint').textContent = '';
+    } else {
+      container.innerHTML = personsCache.map(p => `
+        <div class="custom-split-row">
+          <span>${p.name}</span>
+          <input type="number" class="custom-split-amt" data-person="${p.person_id}" step="0.01" placeholder="0.00" oninput="updateSplitHint()"/>
+        </div>`).join('');
+      updateSplitHint();
+    }
+  }
+  function updateSplitHint() {
+    const amount = parseFloat(document.getElementById('exp-amount').value || 0);
+    const inputs = document.querySelectorAll('.custom-split-amt');
+    let total = 0;
+    inputs.forEach(i => total += parseFloat(i.value || 0));
+    const hint = document.getElementById('split-total-hint');
+    hint.textContent = `Split total: ${money(total)} / Expense amount: ${money(amount)}`;
+    hint.className = 'split-total-hint ' + (Math.abs(total - amount) < 0.01 ? 'ok' : 'bad');
+  }
+
+  async function submitExpense() {
+    hideFormError('expense-form-error');
+    const payload = {
+      expense_name: document.getElementById('exp-name').value.trim(),
+      expense_type_id: document.getElementById('exp-type').value,
+      expense_category: document.getElementById('exp-category').value,
+      amount: document.getElementById('exp-amount').value,
+      paid_by_person_id: document.getElementById('exp-paid-by').value,
+      paid_date: document.getElementById('exp-paid-date').value,
+      description: document.getElementById('exp-description').value,
+      is_recurring: document.getElementById('exp-is-recurring').checked,
+      is_split_expense: document.getElementById('exp-is-split').checked,
+    };
+    if (!payload.expense_name || !payload.amount || !payload.paid_by_person_id || !payload.paid_date) {
+      showFormError('expense-form-error', 'Please fill all required fields.');
+      return;
+    }
+    if (payload.is_recurring) {
+      const start = document.getElementById('exp-recurring-start').value;
+      if (!start) { showFormError('expense-form-error', 'Recurring start month is required.'); return; }
+      payload.recurring_type = document.getElementById('exp-recurring-type').value;
+      payload.recurring_start_month = start + '-01';
+      const end = document.getElementById('exp-recurring-end').value;
+      if (end) payload.recurring_end_month = end + '-01';
+    } else {
+      const month = document.getElementById('exp-month').value;
+      if (!month) { showFormError('expense-form-error', 'Expense month is required.'); return; }
+      payload.expense_month = month + '-01';
+    }
+    if (payload.is_split_expense) {
+      payload.split_type = document.getElementById('exp-split-type').value;
+      if (payload.split_type === 'Equal') {
+        const ids = Array.from(document.querySelectorAll('.equal-split-check:checked')).map(c => parseInt(c.value));
+        if (!ids.length) { showFormError('expense-form-error', 'Select at least one person for equal split.'); return; }
+        payload.split_payload = { person_ids: ids };
+      } else {
+        const rows = Array.from(document.querySelectorAll('.custom-split-amt'))
+          .map(i => ({ person_id: parseInt(i.dataset.person), amount: parseFloat(i.value || 0) }))
+          .filter(r => r.amount > 0);
+        if (!rows.length) { showFormError('expense-form-error', 'Enter custom split amounts.'); return; }
+        payload.split_payload = { splits: rows };
+      }
+    }
+
+    const data = await apiJSON('/api/expenditure/expenses', { method: 'POST', body: JSON.stringify(payload) });
+    if (data.success) {
+      closeModal('expense-modal');
+      loadExpenses();
+      loadDashboard();
+    } else {
+      showFormError('expense-form-error', data.error || 'Could not save expense.');
+    }
+  }
+
+  // ============ SETTLEMENTS ============
+  async function loadOutstanding() {
+    const data = await apiJSON('/api/expenditure/reports/outstanding');
+    const container = document.getElementById('outstanding-list');
+    if (!data.success || !data.outstanding.length) {
+      container.innerHTML = `<div class="empty-state">✅ No pending settlements. Everyone is settled up!</div>`;
+      return;
+    }
+    container.innerHTML = data.outstanding.map(t => `
+      <div class="owe-row">
+        <div class="owe-names">${t.from_name} → ${t.to_name}</div>
+        <div class="owe-amount">${money(t.amount)}</div>
+      </div>`).join('');
+  }
+
+  async function loadSettlements() {
+    const data = await apiJSON('/api/expenditure/settlements');
+    const tbody = document.getElementById('settlements-tbody');
+    if (!data.success || !data.settlements.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">😕 No settlements recorded yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.settlements.map(s => `
+      <tr>
+        <td>${s.payment_date}</td>
+        <td>${s.from_name}</td>
+        <td>${s.to_name}</td>
+        <td>${money(s.amount)}</td>
+        <td>${s.payment_mode}</td>
+        <td>${s.reference_number || '-'}</td>
+        <td><button class="btn-danger" onclick="deleteSettlement(${s.settlement_id})">Delete</button></td>
+      </tr>`).join('');
+  }
+
+  function openSettlementModal() {
+    document.getElementById('settle-amount').value = '';
+    document.getElementById('settle-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('settle-ref').value = '';
+    document.getElementById('settle-remarks').value = '';
+    hideFormError('settlement-form-error');
+    document.getElementById('settlement-modal').classList.add('open');
+  }
+
+  async function submitSettlement() {
+    hideFormError('settlement-form-error');
+    const payload = {
+      from_person_id: document.getElementById('settle-from').value,
+      to_person_id: document.getElementById('settle-to').value,
+      amount: document.getElementById('settle-amount').value,
+      payment_date: document.getElementById('settle-date').value,
+      payment_mode: document.getElementById('settle-mode').value,
+      reference_number: document.getElementById('settle-ref').value,
+      remarks: document.getElementById('settle-remarks').value,
+    };
+    if (payload.from_person_id === payload.to_person_id) {
+      showFormError('settlement-form-error', 'From and To person cannot be the same.');
+      return;
+    }
+    if (!payload.amount || !payload.payment_date) {
+      showFormError('settlement-form-error', 'Amount and payment date are required.');
+      return;
+    }
+    const data = await apiJSON('/api/expenditure/settlements', { method: 'POST', body: JSON.stringify(payload) });
+    if (data.success) {
+      closeModal('settlement-modal');
+      loadOutstanding();
+      loadSettlements();
+      loadDashboard();
+    } else {
+      showFormError('settlement-form-error', data.error || 'Could not save settlement.');
+    }
+  }
+
+  async function deleteSettlement(id) {
+    if (!confirm('Delete this settlement record?')) return;
+    const data = await apiJSON(`/api/expenditure/settlements/${id}`, { method: 'DELETE' });
+    if (data.success) { loadOutstanding(); loadSettlements(); loadDashboard(); } else { alert('❌ ' + data.error); }
+  }
+
+  // ============ REPORTS ============
+  function renderReportFilters() {
+    const period = document.getElementById('report-period').value;
+    const el = document.getElementById('report-extra-filters');
+    const now = new Date();
+    if (period === 'monthly') {
+      el.innerHTML = `<input type="month" id="report-month" value="${now.toISOString().slice(0,7)}"/>`;
+    } else if (period === 'quarterly') {
+      el.innerHTML = `
+        <select id="report-quarter"><option value="1">Q1 (Jan-Mar)</option><option value="2">Q2 (Apr-Jun)</option><option value="3">Q3 (Jul-Sep)</option><option value="4">Q4 (Oct-Dec)</option></select>
+        <input type="number" id="report-year" value="${now.getFullYear()}" style="width:90px;"/>`;
+    } else if (period === 'six_monthly') {
+      el.innerHTML = `
+        <select id="report-half"><option value="H1">Jan-Jun</option><option value="H2">Jul-Dec</option></select>
+        <input type="number" id="report-year" value="${now.getFullYear()}" style="width:90px;"/>`;
+    } else {
+      el.innerHTML = `<input type="number" id="report-year" value="${now.getFullYear()}" style="width:90px;"/>`;
+    }
+  }
+
+  async function loadSummaryReport() {
+    const period = document.getElementById('report-period').value;
+    const params = new URLSearchParams({ period });
+    const category = document.getElementById('report-category').value;
+    if (category) params.set('category', category);
+    if (period === 'monthly') params.set('month', document.getElementById('report-month').value);
+    if (period === 'quarterly') { params.set('quarter', document.getElementById('report-quarter').value); params.set('year', document.getElementById('report-year').value); }
+    if (period === 'six_monthly') { params.set('half', document.getElementById('report-half').value); params.set('year', document.getElementById('report-year').value); }
+    if (period === 'yearly') params.set('year', document.getElementById('report-year').value);
+
+    const data = await apiJSON('/api/expenditure/reports/summary?' + params.toString());
+    const tbody = document.getElementById('summary-tbody');
+    if (!data.success || !data.summary.length) {
+      tbody.innerHTML = `<tr><td colspan="2" class="empty-state">😕 No data for selected filters.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.summary.map(r => `<tr><td>${r.expense_type_name || 'Uncategorized'}</td><td>${money(r.total)}</td></tr>`).join('')
+      + `<tr style="font-weight:800;background:#fffbeb;"><td>Grand Total</td><td>${money(data.grand_total)}</td></tr>`;
+  }
+
+  async function loadPersonWiseReport() {
+    const data = await apiJSON('/api/expenditure/reports/person-wise');
+    const tbody = document.getElementById('personwise-tbody');
+    if (!data.success || !data.report.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">😕 No data yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.report.map(r => `
+      <tr>
+        <td>${r.name}</td><td>${money(r.paid)}</td><td>${money(r.personal_expense)}</td><td>${money(r.shared_expense)}</td>
+        <td style="color:${r.balance >= 0 ? '#059669' : '#dc2626'}; font-weight:800;">${r.balance >= 0 ? '+' : ''}${money(r.balance)}</td>
+      </tr>`).join('');
+  }
+
+  // ============ PERSONS ============
+  async function loadPersons() {
+    const data = await apiJSON('/api/expenditure/persons');
+    const tbody = document.getElementById('persons-tbody');
+    if (!data.success || !data.persons.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty-state">😕 No persons added yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.persons.map(p => `
+      <tr>
+        <td>${p.name}</td><td>${p.mobile_number || '-'}</td>
+        <td><span class="badge ${p.status === 'Active' ? 'office' : 'individual'}">${p.status}</span></td>
+        <td>
+          <button class="btn-edit" onclick='editPerson(${JSON.stringify(p)})'>Edit</button>
+          <button class="btn-danger" onclick="deletePerson(${p.person_id})">Delete</button>
+        </td>
+      </tr>`).join('');
+    personsCache = data.persons;
+    fillPersonSelects();
+  }
+
+  function openPersonModal() {
+    document.getElementById('person-modal-title').textContent = 'Add Person';
+    document.getElementById('person-id').value = '';
+    document.getElementById('person-name').value = '';
+    document.getElementById('person-mobile').value = '';
+    document.getElementById('person-status').value = 'Active';
+    hideFormError('person-form-error');
+    document.getElementById('person-modal').classList.add('open');
+  }
+  function editPerson(p) {
+    document.getElementById('person-modal-title').textContent = 'Edit Person';
+    document.getElementById('person-id').value = p.person_id;
+    document.getElementById('person-name').value = p.name;
+    document.getElementById('person-mobile').value = p.mobile_number || '';
+    document.getElementById('person-status').value = p.status;
+    hideFormError('person-form-error');
+    document.getElementById('person-modal').classList.add('open');
+  }
+  async function submitPerson() {
+    hideFormError('person-form-error');
+    const id = document.getElementById('person-id').value;
+    const payload = {
+      name: document.getElementById('person-name').value.trim(),
+      mobile_number: document.getElementById('person-mobile').value.trim(),
+      status: document.getElementById('person-status').value,
+    };
+    if (!payload.name) { showFormError('person-form-error', 'Name is required.'); return; }
+    const url = id ? `/api/expenditure/persons/${id}` : '/api/expenditure/persons';
+    const data = await apiJSON(url, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) });
+    if (data.success) { closeModal('person-modal'); loadPersons(); } else { showFormError('person-form-error', data.error); }
+  }
+  async function deletePerson(id) {
+    if (!confirm('Delete this person? This may fail if they have existing expenses.')) return;
+    const data = await apiJSON(`/api/expenditure/persons/${id}`, { method: 'DELETE' });
+    if (data.success) loadPersons(); else alert('❌ ' + data.error);
+  }
+
+  // ============ EXPENSE TYPES ============
+  async function loadTypes() {
+    const data = await apiJSON('/api/expenditure/expense-types');
+    const tbody = document.getElementById('types-tbody');
+    if (!data.success || !data.expense_types.length) {
+      tbody.innerHTML = `<tr><td colspan="2" class="empty-state">😕 No expense types yet.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.expense_types.map(t => `
+      <tr>
+        <td>${t.expense_type_name}</td>
+        <td>
+          <button class="btn-edit" onclick='editType(${JSON.stringify(t)})'>Edit</button>
+          <button class="btn-danger" onclick="deleteType(${t.expense_type_id})">Delete</button>
+        </td>
+      </tr>`).join('');
+    typesCache = data.expense_types;
+    fillTypeSelects();
+  }
+  function openTypeModal() {
+    document.getElementById('type-modal-title').textContent = 'Add Expense Type';
+    document.getElementById('type-id').value = '';
+    document.getElementById('type-name').value = '';
+    hideFormError('type-form-error');
+    document.getElementById('type-modal').classList.add('open');
+  }
+  function editType(t) {
+    document.getElementById('type-modal-title').textContent = 'Edit Expense Type';
+    document.getElementById('type-id').value = t.expense_type_id;
+    document.getElementById('type-name').value = t.expense_type_name;
+    hideFormError('type-form-error');
+    document.getElementById('type-modal').classList.add('open');
+  }
+  async function submitType() {
+    hideFormError('type-form-error');
+    const id = document.getElementById('type-id').value;
+    const name = document.getElementById('type-name').value.trim();
+    if (!name) { showFormError('type-form-error', 'Name is required.'); return; }
+    const url = id ? `/api/expenditure/expense-types/${id}` : '/api/expenditure/expense-types';
+    const data = await apiJSON(url, { method: id ? 'PUT' : 'POST', body: JSON.stringify({ expense_type_name: name }) });
+    if (data.success) { closeModal('type-modal'); loadTypes(); } else { showFormError('type-form-error', data.error); }
+  }
+  async function deleteType(id) {
+    if (!confirm('Delete this expense type?')) return;
+    const data = await apiJSON(`/api/expenditure/expense-types/${id}`, { method: 'DELETE' });
+    if (data.success) loadTypes(); else alert('❌ ' + data.error);
+  }
+
+  // ---------- User info + init ----------
+  const params = new URLSearchParams(window.location.search);
+  const userName = params.get('name') || sessionStorage.getItem('user_name') || localStorage.getItem('user_name') || 'User';
+  document.getElementById('user-avatar').textContent = userName.charAt(0).toUpperCase();
+  document.getElementById('user-name').textContent = userName.split(' ')[0];
+
+  (async function init() {
+    await loadMasters();
+    loadDashboard();
+  })();
+</script>
+</body>
+</html>

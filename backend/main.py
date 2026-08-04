@@ -29,6 +29,7 @@ from routes.college_master import college_master_bp
 from routes.streams import streams_bp
 from routes.monitor import monitor_bp
 from routes.reminder import reminders_bp
+from routes.expenditure import expenditure_bp
 
 from routes.reminder_attachments import reminder_attachments_bp
 from routes.college_predictor import college_predictor_bp
@@ -38,6 +39,8 @@ from routes.student_delete import student_delete_bp
 from routes.course_admin import course_admin_bp
 from routes.medical_predictor import medical_predictor_bp
 from routes.medical_student_data import medical_student_data_bp
+
+
 
 from db import init_db
 from monitor_service import start_monitor
@@ -133,6 +136,8 @@ app.register_blueprint(student_delete_bp, url_prefix="/api")
 app.register_blueprint(course_admin_bp, url_prefix="/api")
 app.register_blueprint(medical_predictor_bp, url_prefix="/api")
 app.register_blueprint(medical_student_data_bp, url_prefix="/api")
+
+app.register_blueprint(expenditure_bp, url_prefix="/api")
 
 # Targeted limits on monitor endpoints that change state (password/config,
 # start/stop) — these are not polled repeatedly by the frontend like
