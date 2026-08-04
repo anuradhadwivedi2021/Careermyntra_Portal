@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.development
+
 # Python
 __pycache__/
 *.pyc
@@ -12,8 +13,17 @@ backend/uploads/
 backend/outputs/
 
 # VS Code
-.vscode/backend/logs/*.log*
+.vscode/
+backend/logs/*.log
 *.bak
 *.save
 *backup*.py
 backend/venv/
+
+# Android
+build/
+.gradle/
+*.apk
+*.aab
+local.properties
+.idea/
