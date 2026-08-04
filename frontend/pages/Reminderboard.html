@@ -198,7 +198,6 @@
   }
   setInterval(tickClock, 1000);
   tickClock();
-
   function fmtDeadline(iso){
     const d = new Date(iso);
     const date = d.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" });
@@ -279,7 +278,6 @@
         </div>`;
     }
   }
-
   loadBoard();
   setInterval(loadBoard, REFRESH_MS);
 </script>
