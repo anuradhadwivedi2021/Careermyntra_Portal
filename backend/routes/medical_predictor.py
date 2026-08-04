@@ -125,6 +125,7 @@ def _ensure_medical_schema():
                 districts         JSONB DEFAULT '[]',
                 seat_types        JSONB DEFAULT '[]',
                 quotas            JSONB DEFAULT '[]',
+                college_statuses  JSONB DEFAULT '[]',
                 colleges          JSONB DEFAULT '[]',
                 created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -138,6 +139,7 @@ def _ensure_medical_schema():
         try:
             cur.execute("ALTER TABLE medical_predictor_students ADD COLUMN IF NOT EXISTS admission_authority TEXT")
             cur.execute("ALTER TABLE medical_predictor_students ADD COLUMN IF NOT EXISTS states JSONB DEFAULT '[]'")
+            cur.execute("ALTER TABLE medical_predictor_students ADD COLUMN IF NOT EXISTS college_statuses JSONB DEFAULT '[]'")
             conn.commit()
         except Exception:
             logger.exception("[medical:schema_migration] failed to add admission_authority/states to medical_predictor_students")
@@ -521,7 +523,7 @@ def get_filter_options():
     course_slug = request.args.get("course_slug", "mbbs")
     table_name = _get_table_name(course_slug)
     if not table_name:
-        return jsonify({"years": [], "categories": [], "rounds": [], "seat_types": [], "quotas": [], "genders": []})
+        return jsonify({"years": [], "categories": [], "rounds": [], "seat_types": [], "quotas": [], "genders": [], "college_statuses": []})
 
     conn = get_connection()
     cur = get_cursor(conn)
@@ -537,12 +539,15 @@ def get_filter_options():
     quotas = [r["quota_code"] for r in cur.fetchall()]
     cur.execute(f"SELECT DISTINCT gender FROM {table_name} WHERE gender IS NOT NULL ORDER BY gender")
     genders = [r["gender"] for r in cur.fetchall()]
+    cur.execute(f"SELECT DISTINCT college_status FROM {table_name} WHERE college_status IS NOT NULL AND college_status <> '' ORDER BY college_status")
+    college_statuses = [r["college_status"] for r in cur.fetchall()]
     cur.close()
     conn.close()
 
     return jsonify({
         "years": years, "categories": categories, "rounds": rounds,
         "seat_types": seat_types, "quotas": quotas, "genders": genders,
+        "college_statuses": college_statuses,
     })
 
 
@@ -703,6 +708,7 @@ def predict():
     colleges = data.get("colleges", []) or []
     seat_types = data.get("seat_types", []) or []
     quotas = data.get("quotas", []) or []
+    college_statuses = data.get("college_statuses", []) or []
     gender = data.get("gender", "")
 
     where = ["1=1"]
@@ -741,6 +747,10 @@ def predict():
         placeholders = ",".join(["%s"] * len(quotas))
         where.append(f"quota_code IN ({placeholders})")
         params.extend(quotas)
+    if college_statuses:
+        placeholders = ",".join(["%s"] * len(college_statuses))
+        where.append(f"college_status IN ({placeholders})")
+        params.extend(college_statuses)
     if gender:
         where.append("gender = %s")
         params.append(gender)

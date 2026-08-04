@@ -228,6 +228,16 @@
         </div>
 
         <div class="field">
+          <label>College Status</label>
+          <div class="ms-wrap" id="college_status-wrap">
+            <div class="ms-box" id="college_status-box" onclick="togglePanel('college_status')">
+              <span id="college_status-ph">All Statuses</span>
+            </div>
+            <div class="ms-panel" id="college_status-panel"></div>
+          </div>
+        </div>
+
+        <div class="field">
           <label>Quota</label>
           <div class="ms-wrap" id="quota-wrap">
             <div class="ms-box" id="quota-box" onclick="togglePanel('quota')">
@@ -407,6 +417,7 @@
     state: { selected: new Set(), options: [], open: false },
     district: { selected: new Set(), options: [], open: false },
     seat_type: { selected: new Set(), options: [], open: false },
+    college_status: { selected: new Set(), options: [], open: false },
     quota: { selected: new Set(), options: [], open: false },
     cap_round: { selected: new Set(), options: [], open: false },
   };
@@ -463,7 +474,7 @@
     const ph = document.getElementById(`${type}-ph`);
     box.querySelectorAll('.chip').forEach(c => c.remove());
     const sel = [...state[type].selected];
-    const LABELS = { state: 'All States', district: 'All Districts', seat_type: 'All Seat Types', quota: 'All Quotas', cap_round: 'All Rounds' };
+    const LABELS = { state: 'All States', district: 'All Districts', seat_type: 'All Seat Types', college_status: 'All Statuses', quota: 'All Quotas', cap_round: 'All Rounds' };
     if (!sel.length) { ph.style.display = 'inline'; ph.textContent = LABELS[type]; return; }
     ph.style.display = 'none';
     sel.forEach(v => {
@@ -513,6 +524,7 @@
         : '<option value="">No years found</option>';
 
       state.seat_type.options = d.seat_types || [];
+      state.college_status.options = d.college_statuses || [];
       state.quota.options = d.quotas || [];
       state.cap_round.options = d.rounds || [];
     } catch (e) { console.warn('filter-options failed', e); }
@@ -623,6 +635,7 @@
       districts: [...state.district.selected],
       seat_types: [...state.seat_type.selected],
       quotas: [...state.quota.selected],
+      college_statuses: [...state.college_status.selected],
       colleges: [],
     };
 
@@ -685,9 +698,10 @@
       await loadDistricts();
       state.district.selected = new Set(s.districts || []);
       state.seat_type.selected = new Set(s.seat_types || []);
+      state.college_status.selected = new Set(s.college_statuses || []);
       state.quota.selected = new Set(s.quotas || []);
       state.cap_round.selected = new Set(s.cap_round || []);
-      ['state', 'district', 'seat_type', 'quota', 'cap_round'].forEach(renderBox);
+      ['state', 'district', 'seat_type', 'college_status', 'quota', 'cap_round'].forEach(renderBox);
 
       showToast('✅ Student loaded');
     } catch (e) { showToast('❌ Network error while loading student'); }
@@ -847,6 +861,7 @@
       districts: [...state.district.selected],
       seat_types: [...state.seat_type.selected],
       quotas: [...state.quota.selected],
+      college_statuses: [...state.college_status.selected],
     };
 
     try {
