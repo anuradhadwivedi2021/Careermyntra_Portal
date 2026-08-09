@@ -293,7 +293,7 @@ def add_new_medical_course():
                 course_name VARCHAR(100) NOT NULL DEFAULT '{display_name.replace("'", "''")}',
                 category VARCHAR(50) NOT NULL,
                 sub_category VARCHAR(50),
-                seat_type VARCHAR(50) DEFAULT 'Government',
+                seat_type VARCHAR(150) DEFAULT 'Government',
                 quota_code VARCHAR(50) DEFAULT 'State',
                 gender VARCHAR(20),
                 cap_year VARCHAR(20) NOT NULL,
