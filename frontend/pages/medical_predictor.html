@@ -1058,6 +1058,11 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
     populateCourseDropdown();
     loadSavedStudentsDropdown();
+
+    // Naya history entry — Back button dabane par is course-selection
+    // screen pe wapas aane ke liye, Dashboard pe seedha jaane ke bajaye.
+    history.pushState({ view: 'form', slug: slug }, '', '');
+
     (async () => {
       await loadAdmissionAuthorities();
       await loadStates();
@@ -1066,6 +1071,28 @@
       loadStats();
     })();
   }
+
+  // Back/Forward button dabane par ye chalega.
+  window.addEventListener('popstate', function (event) {
+    if (event.state && event.state.view === 'form') {
+      SELECTED_COURSE_SLUG = event.state.slug;
+      document.getElementById('course-cards-wrap').style.display = 'none';
+      document.getElementById('predictor-page-content').style.display = '';
+      populateCourseDropdown();
+      loadSavedStudentsDropdown();
+      (async () => {
+        await loadAdmissionAuthorities();
+        await loadStates();
+        await loadDistricts();
+        await loadFilterOptions();
+        loadStats();
+      })();
+    } else {
+      document.getElementById('predictor-page-content').style.display = 'none';
+      document.getElementById('course-cards-wrap').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
 
   // ── Add New Course modal ──
   function openAddCourseModal() {
