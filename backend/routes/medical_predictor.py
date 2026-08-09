@@ -486,6 +486,7 @@ def upload_cutoff(course_slug):
                     return default
                 return v
 
+            cur.execute("SAVEPOINT row_sp")
             cur.execute(f"""
                 INSERT INTO {table_name} (
                     college_code, college_name, course_name, category, sub_category,
@@ -540,9 +541,10 @@ def upload_cutoff(course_slug):
                 str(val("admission_authority", "")).strip() or None,
                 bool(val("is_autonomous", False)),
             ))
+            cur.execute("RELEASE SAVEPOINT row_sp")
             inserted += 1
         except Exception:
-            conn.rollback()
+            cur.execute("ROLLBACK TO SAVEPOINT row_sp")
             skipped += 1
             logger.exception(f"[medical:upload] row failed for '{college_name}'")
 
