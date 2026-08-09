@@ -497,11 +497,10 @@ def upload_cutoff(course_slug):
                     %s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s
                 )
                 ON CONFLICT (college_name, course_name, cap_year, cap_round, category,
-                             sub_category, seat_type, quota_code, gender)
+                             sub_category, seat_type, quota_code, gender,
+                             neet_rank_cutoff, neet_marks_cutoff)
                 DO UPDATE SET
                     college_code       = EXCLUDED.college_code,
-                    neet_marks_cutoff  = EXCLUDED.neet_marks_cutoff,
-                    neet_rank_cutoff   = EXCLUDED.neet_rank_cutoff,
                     fees               = EXCLUDED.fees,
                     college_status     = EXCLUDED.college_status,
                     university         = EXCLUDED.university,
