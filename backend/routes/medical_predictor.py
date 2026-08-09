@@ -316,7 +316,8 @@ def add_new_medical_course():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT {slug}_unique UNIQUE (
                     college_name, course_name, cap_year, cap_round, category,
-                    sub_category, seat_type, quota_code, gender
+                    sub_category, seat_type, quota_code, gender,
+                    neet_rank_cutoff, neet_marks_cutoff
                 )
             );
         """)
