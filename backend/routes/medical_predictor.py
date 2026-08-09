@@ -405,6 +405,14 @@ def upload_cutoff(course_slug):
     # instead of "CAP Year", "Rank"/"Percentile" instead of the DB's
     # neet_rank_cutoff/neet_marks_cutoff column names) so uploads don't
     # fail just because the source sheet uses different column titles.
+    #
+    # NOTE: "course" and "branch" are deliberately NOT in this static map —
+    # some sheets (single-course exports) store the course name under
+    # "Branch" (e.g. "M.B.B.S."), while others (multi-course MCC/AIQ
+    # exports) store it under "Course" and leave "Branch" entirely blank.
+    # Blindly aliasing both to "course_name" let an empty "Branch" column
+    # silently overwrite a fully-populated "Course" column. Instead we pick
+    # whichever of the two actually has data, just below.
     COLUMN_ALIASES = {
         "institute_name": "college_name",
         "inst_name": "college_name",
@@ -415,12 +423,18 @@ def upload_cutoff(course_slug):
         "percentile": "neet_marks_cutoff",
         "marks": "neet_marks_cutoff",
         "admission_autherity": "admission_authority",  # common typo in source sheets
-        "course": "course_name",
         "quota": "quota_code",
-        "branch": "course_name",
         "status": "college_status",  # e.g. Un-Aided / Government / Corporation
     }
     df = df.rename(columns={k: v for k, v in COLUMN_ALIASES.items() if k in df.columns})
+
+    # Resolve course_name from "course" or "branch", whichever has real data.
+    if "course" in df.columns and df["course"].notna().any():
+        df = df.rename(columns={"course": "course_name"})
+        if "branch" in df.columns:
+            df = df.drop(columns=["branch"])
+    elif "branch" in df.columns:
+        df = df.rename(columns={"branch": "course_name"})
 
     # Drop duplicate columns keeping last (renamed ones take priority)
     df = df.loc[:, ~df.columns.duplicated(keep="last")]
@@ -428,6 +442,31 @@ def upload_cutoff(course_slug):
     missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
     if missing:
         return jsonify({"error": f"Missing required columns: {', '.join(missing)}"}), 400
+
+    # If the sheet has an explicit course/branch column, only keep rows
+    # belonging to the course this upload targets — a single file mixing
+    # multiple courses (e.g. an MCC/AIQ export with MBBS + BDS + B.Sc.
+    # Nursing all in one sheet) must not dump every row into just one
+    # course's table. Rows with no course info at all (older single-course
+    # sheets) are kept as-is, same as before.
+    def _normalize_course(s):
+        return re.sub(r"[^A-Za-z0-9]", "", str(s or "")).upper()
+
+    conn_check = get_connection()
+    cur_check = get_cursor(conn_check)
+    cur_check.execute("SELECT display_name FROM medical_courses WHERE slug = %s", (course_slug,))
+    row_check = cur_check.fetchone()
+    cur_check.close()
+    conn_check.close()
+    target_course_norm = _normalize_course(row_check["display_name"] if row_check else course_slug)
+
+    wrong_course_skipped = 0
+    if "course_name" in df.columns:
+        has_course = df["course_name"].notna() & (df["course_name"].astype(str).str.strip() != "")
+        matches_target = df["course_name"].apply(lambda v: _normalize_course(v) == target_course_norm)
+        keep_mask = (~has_course) | matches_target
+        wrong_course_skipped = int((~keep_mask).sum())
+        df = df[keep_mask]
 
     conn = get_connection()
     cur = get_cursor(conn)
@@ -511,9 +550,13 @@ def upload_cutoff(course_slug):
     cur.close()
     conn.close()
 
+    msg = f"Upload complete. {inserted} rows saved, {skipped} skipped."
+    if wrong_course_skipped:
+        msg += f" ({wrong_course_skipped} rows belonged to a different course and were not uploaded here.)"
+
     return jsonify({
-        "message": f"Upload complete. {inserted} rows saved, {skipped} skipped.",
-        "inserted": inserted, "skipped": skipped,
+        "message": msg,
+        "inserted": inserted, "skipped": skipped, "wrong_course_skipped": wrong_course_skipped,
     })
 
 
