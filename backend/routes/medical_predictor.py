@@ -294,7 +294,7 @@ def add_new_medical_course():
                 category VARCHAR(50) NOT NULL,
                 sub_category VARCHAR(50),
                 seat_type VARCHAR(150) DEFAULT 'Government',
-                quota_code VARCHAR(50) DEFAULT 'State',
+                quota_code VARCHAR(150) DEFAULT 'State',
                 gender VARCHAR(20),
                 cap_year VARCHAR(20) NOT NULL,
                 cap_round VARCHAR(50) NOT NULL,
