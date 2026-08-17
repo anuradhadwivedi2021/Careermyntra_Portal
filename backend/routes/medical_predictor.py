@@ -570,30 +570,70 @@ def get_filter_options():
     if not table_name:
         return jsonify({"years": [], "categories": [], "rounds": [], "seat_types": [], "quotas": [], "genders": [], "college_statuses": []})
 
+    # Upstream selections — each dropdown's options are filtered by
+    # everything selected BEFORE it in the flow: Admission Authority →
+    # States → Districts → Category → Gender → Seat Type → College Status
+    # → Quota → CAP Year → CAP Round. A field never filters by itself or
+    # by anything that comes after it in this chain.
+    admission_authority = request.args.get("admission_authority", "").strip()
+    states = [s.strip() for s in (request.args.get("states") or "").split(",") if s.strip()]
+    districts = [d.strip() for d in (request.args.get("districts") or "").split(",") if d.strip()]
+    category = request.args.get("category", "").strip()
+    gender = request.args.get("gender", "").strip()
+    seat_types = [s.strip() for s in (request.args.get("seat_types") or "").split(",") if s.strip()]
+    college_statuses = [s.strip() for s in (request.args.get("college_statuses") or "").split(",") if s.strip()]
+    quotas = [s.strip() for s in (request.args.get("quotas") or "").split(",") if s.strip()]
+    cap_year = request.args.get("cap_year", "").strip()
+
     conn = get_connection()
     cur = get_cursor(conn)
-    cur.execute(f"SELECT DISTINCT cap_year FROM {table_name} WHERE cap_year IS NOT NULL ORDER BY cap_year DESC")
-    years = [r["cap_year"] for r in cur.fetchall()]
-    cur.execute(f"SELECT DISTINCT category FROM {table_name} WHERE category IS NOT NULL ORDER BY category")
-    categories = [r["category"] for r in cur.fetchall()]
-    cur.execute(f"SELECT DISTINCT cap_round FROM {table_name} WHERE cap_round IS NOT NULL ORDER BY cap_round")
-    rounds = [r["cap_round"] for r in cur.fetchall()]
-    cur.execute(f"SELECT DISTINCT seat_type FROM {table_name} WHERE seat_type IS NOT NULL ORDER BY seat_type")
-    seat_types = [r["seat_type"] for r in cur.fetchall()]
-    cur.execute(f"SELECT DISTINCT quota_code FROM {table_name} WHERE quota_code IS NOT NULL ORDER BY quota_code")
-    quotas = [r["quota_code"] for r in cur.fetchall()]
-    cur.execute(f"SELECT DISTINCT gender FROM {table_name} WHERE gender IS NOT NULL ORDER BY gender")
-    genders = [r["gender"] for r in cur.fetchall()]
-    cur.execute(f"SELECT DISTINCT college_status FROM {table_name} WHERE college_status IS NOT NULL AND college_status <> '' ORDER BY college_status")
-    college_statuses = [r["college_status"] for r in cur.fetchall()]
+
+    def base_filters(stage):
+        """Builds WHERE clauses/params using every filter that comes
+        BEFORE `stage` in the flow — never `stage` itself or anything after."""
+        chain = ["states", "districts", "category", "gender", "seat_type",
+                 "college_status", "quota", "cap_year", "cap_round"]
+        idx = chain.index(stage)
+        where, params = [], []
+        if admission_authority:
+            where.append("admission_authority = %s"); params.append(admission_authority)
+        if states and idx > chain.index("states"):
+            where.append(f"state IN ({','.join(['%s']*len(states))})"); params.extend(states)
+        if districts and idx > chain.index("districts"):
+            where.append(f"district IN ({','.join(['%s']*len(districts))})"); params.extend(districts)
+        if category and idx > chain.index("category"):
+            where.append("category = %s"); params.append(category)
+        if gender and idx > chain.index("gender"):
+            where.append("gender = %s"); params.append(gender)
+        if seat_types and idx > chain.index("seat_type"):
+            where.append(f"seat_type IN ({','.join(['%s']*len(seat_types))})"); params.extend(seat_types)
+        if college_statuses and idx > chain.index("college_status"):
+            where.append(f"college_status IN ({','.join(['%s']*len(college_statuses))})"); params.extend(college_statuses)
+        if quotas and idx > chain.index("quota"):
+            where.append(f"quota_code IN ({','.join(['%s']*len(quotas))})"); params.extend(quotas)
+        if cap_year and idx > chain.index("cap_year"):
+            where.append("cap_year = %s"); params.append(cap_year)
+        return where, params
+
+    def distinct(col, stage):
+        where, params = base_filters(stage)
+        where = [f"{col} IS NOT NULL"] + ([f"{col} <> ''"] if col != "cap_round" else []) + where
+        order = f"{col} DESC" if col == "cap_year" else col
+        cur.execute(f"SELECT DISTINCT {col} FROM {table_name} WHERE {' AND '.join(where)} ORDER BY {order}", tuple(params))
+        return [r[col] for r in cur.fetchall()]
+
+    result = {
+        "categories": distinct("category", "category"),
+        "genders": distinct("gender", "gender"),
+        "seat_types": distinct("seat_type", "seat_type"),
+        "college_statuses": distinct("college_status", "college_status"),
+        "quotas": distinct("quota_code", "quota"),
+        "years": distinct("cap_year", "cap_year"),
+        "rounds": distinct("cap_round", "cap_round"),
+    }
     cur.close()
     conn.close()
-
-    return jsonify({
-        "years": years, "categories": categories, "rounds": rounds,
-        "seat_types": seat_types, "quotas": quotas, "genders": genders,
-        "college_statuses": college_statuses,
-    })
+    return jsonify(result)
 
 
 # ─── Admission Authority — drives the first cascading dropdown ─────────

@@ -230,12 +230,12 @@
 
         <div class="field">
           <label>Category *</label>
-          <select id="category"><option value="">Loading…</option></select>
+          <select id="category" onchange="loadFilterOptions()"><option value="">Loading…</option></select>
         </div>
 
         <div class="field">
           <label>Gender</label>
-          <select id="gender"><option value="">All Genders</option></select>
+          <select id="gender" onchange="loadFilterOptions()"><option value="">All Genders</option></select>
         </div>
 
         <div class="field">
@@ -271,7 +271,7 @@
         <div class="grid-2">
           <div class="field">
             <label>CAP Year</label>
-            <select id="cap_year"><option value="">Loading…</option></select>
+            <select id="cap_year" onchange="loadFilterOptions()"><option value="">Loading…</option></select>
           </div>
           <div class="field">
             <label>CAP Round</label>
@@ -485,6 +485,13 @@
           renderBox('district');
           await loadDistricts();
           if (state.district.open) renderOptions('district');
+          await loadFilterOptions();
+        }
+        if (type === 'district') {
+          await loadFilterOptions();
+        }
+        if (['seat_type', 'college_status', 'quota'].includes(type)) {
+          await loadFilterOptions();
         }
       });
     });
@@ -527,7 +534,22 @@
   // ── Load dropdowns ──
   async function loadFilterOptions() {
     try {
-      const res = await fetch(`${API}/medical-predictor/filter-options?course_slug=${SELECTED_COURSE_SLUG || 'mbbs'}`);
+      const params = new URLSearchParams({ course_slug: SELECTED_COURSE_SLUG || 'mbbs' });
+      const authority = document.getElementById('admission_authority').value || '';
+      if (authority) params.set('admission_authority', authority);
+      if (state.state.selected.size) params.set('states', [...state.state.selected].join(','));
+      if (state.district.selected.size) params.set('districts', [...state.district.selected].join(','));
+      const catVal = document.getElementById('category').value || '';
+      if (catVal) params.set('category', catVal);
+      const genderVal = document.getElementById('gender').value || '';
+      if (genderVal) params.set('gender', genderVal);
+      if (state.seat_type.selected.size) params.set('seat_types', [...state.seat_type.selected].join(','));
+      if (state.college_status.selected.size) params.set('college_statuses', [...state.college_status.selected].join(','));
+      if (state.quota.selected.size) params.set('quotas', [...state.quota.selected].join(','));
+      const yearVal = document.getElementById('cap_year').value || '';
+      if (yearVal) params.set('cap_year', yearVal);
+
+      const res = await fetch(`${API}/medical-predictor/filter-options?${params.toString()}`);
       const d = await res.json();
 
       const catSel = document.getElementById('category');
@@ -583,6 +605,7 @@
     renderBox('district');
     await loadStates();
     await loadDistricts();
+    await loadFilterOptions();
   }
 
   async function loadDistricts() {
