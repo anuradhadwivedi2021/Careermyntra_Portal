@@ -771,7 +771,7 @@ def predict():
     # a biological gender. If user picks Male/Female/Other on the form,
     # we treat that as "no gender filter" (show all seats they're eligible for).
     # Only filter if the value matches a real DB seat-type.
-    VALID_DB_GENDERS = {"General", "Ladies", "PWD", "Defense", "Defence", "TFWS", "Orphan", "EWS", "Minority"}
+        VALID_DB_GENDERS = {"General", "Ladies", "PWD", "Defense", "TFWS", "Orphan", "EWS", "Minority"}
     if student_gender and student_gender in VALID_DB_GENDERS:
         where_clauses.append("(gender = %s OR gender = 'All' OR gender IS NULL)")
         params.append(student_gender)
